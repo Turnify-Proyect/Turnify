@@ -16,7 +16,7 @@ import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
-  @Get('propfessional/:professionalId')
+  @Get('professional/:professionalId')
   getByProfessionalId(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
   ) {

@@ -15,6 +15,10 @@ export class AvailabilityService {
     private readonly availabilityRepository: AvailabilityRepository,
   ) {}
 
+  private normalizeTime(time: string): string {
+    return time.slice(0, 5);
+  }
+
   private validateTimeRange(startTime: string, endTime: string): void {
     if (startTime >= endTime) {
       throw new BadRequestException('Start time must be earlier than end time');
@@ -34,12 +38,19 @@ export class AvailabilityService {
         dayOfWeek,
       );
 
-    const overlapping = availabilities.some(
-      (availability) =>
+    const normalizedStartTime = this.normalizeTime(startTime);
+    const normalizedEndTime = this.normalizeTime(endTime);
+
+    const overlapping = availabilities.some((availability) => {
+      const existingStartTime = this.normalizeTime(availability.startTime);
+      const existingEndTime = this.normalizeTime(availability.endTime);
+
+      return (
         availability.id !== currentAvailabilityId &&
-        startTime < availability.endTime &&
-        endTime > availability.startTime,
-    );
+        normalizedStartTime < existingEndTime &&
+        normalizedEndTime > existingStartTime
+      );
+    });
 
     if (overlapping) {
       throw new ConflictException(
@@ -53,6 +64,10 @@ export class AvailabilityService {
   }
 
   async update(id: string, data: UpdateAvailabilityDto): Promise<Availability> {
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('No data provided to update');
+    }
+
     const availability = await this.availabilityRepository.getById(id);
 
     if (!availability) {
