@@ -52,4 +52,9 @@ export class ServicesController {
   reactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.reactivate(id);
   }
+
+  @Get(':serviceId/professionals')
+  async getProfessionalsByService(@Param('serviceId', ParseUUIDPipe) serviceId: string,) {
+  return this.servicesService.getProfessionalsByService(serviceId);
+}
 }

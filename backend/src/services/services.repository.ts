@@ -1,15 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Service } from './entities/service.entity';
 import { Repository } from 'typeorm';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { ProfessionalService } from 'src/professionals/entities/professional-service.entity';
 
 @Injectable()
 export class ServicesRepository {
   constructor(
     @InjectRepository(Service)
     private readonly ormServiceRepository: Repository<Service>,
+    @InjectRepository(ProfessionalService)
+    private readonly professionalServicesRepository: Repository<ProfessionalService>,
   ) {}
 
   async getAll(): Promise<Service[]> {
@@ -45,4 +48,24 @@ export class ServicesRepository {
   async reactivate(id: string): Promise<void> {
     await this.ormServiceRepository.update(id, { isActive: true });
   }
+
+  async getProfessionalsByService(serviceId: string,): Promise<ProfessionalService[]> {
+  const service = await this.ormServiceRepository.findOne({where: { id: serviceId },
+    });
+
+  if (!service) {
+    throw new NotFoundException(
+      'No existe un servicio con el ID proporcionado',
+    );
+  }
+
+  return this.professionalServicesRepository.find({
+    where: { serviceId },
+    relations: {
+      professional: {
+        user: true,
+      },
+    },
+  });
+}
 }

@@ -66,4 +66,8 @@ export class ServicesService {
     await this.servicesRepository.reactivate(id);
     return this.getById(id);
   }
+
+  async getProfessionalsByService(serviceId: string) {
+  return this.servicesRepository.getProfessionalsByService(serviceId);
+}
 }

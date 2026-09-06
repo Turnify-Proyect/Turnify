@@ -11,6 +11,14 @@ import { Availability } from '../../availability/entities/availability.entity';
 import { ProfessionalService } from '../../professionals/entities/professional-service.entity';
 import { User } from '../../users/entities/user.entity';
 
+export enum ProfessionalSpecialty {
+  COSMETOLOGIA = 'cosmetología',
+  MASAJES = 'masajes',
+  MANICURIA = 'manicuría',
+  PEDICURIA = 'pedicuría',
+  DEPILACION = 'depilación',
+}
+
 @Entity({ name: 'PROFESSIONALS' })
 export class Professional {
   @PrimaryGeneratedColumn('uuid', { name: 'professional_id' })
@@ -20,8 +28,8 @@ export class Professional {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @Column({ type: 'varchar', length: 100, nullable: false })
-  specialty!: string;
+  @Column({ type: 'enum', enum: ProfessionalSpecialty, nullable: false })
+  specialty!: ProfessionalSpecialty;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive!: boolean;
