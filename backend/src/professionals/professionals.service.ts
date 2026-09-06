@@ -1,26 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProfessionalDto } from './dto/create-professional.dto';
 import { UpdateProfessionalDto } from './dto/update-professional.dto';
+import { ProfessionalsRepository } from './professionals.repository';
 
 @Injectable()
 export class ProfessionalsService {
-  create(createProfessionalDto: CreateProfessionalDto) {
-    return 'This action adds a new professional';
+  constructor(private readonly professionalsRepository: ProfessionalsRepository) {}
+
+  async createProfessional(createProfessionalDto: CreateProfessionalDto) {
+    return this.professionalsRepository.createProfessional(createProfessionalDto);
   }
 
-  findAll() {
-    return `This action returns all professionals`;
+  async getActiveProfessionals() {
+    return  this.professionalsRepository.getActiveProfessionals();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} professional`;
+  async getAllProfessionals() {
+    return  this.professionalsRepository.getAllProfessionals();
   }
 
-  update(id: number, updateProfessionalDto: UpdateProfessionalDto) {
-    return `This action updates a #${id} professional`;
+  async getProfessionalById(id: string) {
+    return  this.professionalsRepository.getProfessionalById(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} professional`;
+  async updateProfessional(id: string, updateProfessionalDto: UpdateProfessionalDto) {
+    return  this.professionalsRepository.updateProfessional(id, updateProfessionalDto);
+  }
+
+  async softDeleteProfessional(id: string) {
+    return  this.professionalsRepository.softDeleteProfessional(id);
+  }
+
+  async activateProfessional(id: string) {
+    return  this.professionalsRepository.activateProfessional(id);
+  }
+
+  async associateService(professionalId: string, serviceId: string) {
+    return this.professionalsRepository.associateService(professionalId, serviceId);
+  }
+
+  async getServicesByProfessional(professionalId: string) {
+    return this.professionalsRepository.getServicesByProfessional(professionalId);
+  }
+
+  async removeServiceFromProfessional(professionalId: string, serviceId: string) {
+    return this.professionalsRepository.removeServiceFromProfessional(professionalId, serviceId);
   }
 }
