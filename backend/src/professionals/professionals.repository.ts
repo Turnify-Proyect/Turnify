@@ -51,6 +51,7 @@ export class ProfessionalsRepository {
   }
 
   async getProfessionalById(id: string): Promise<Professional | null> {
+
     const professional = await this.professionalsrepository.findOne({
       where: { id },
       relations: {
