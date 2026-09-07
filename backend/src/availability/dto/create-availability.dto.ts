@@ -2,17 +2,12 @@ import {
   IsEnum,
   IsNotEmpty,
   IsString,
-  IsUUID,
   Matches,
 } from 'class-validator';
 
 import { DayOfWeek } from '../entities/availability.entity';
 
 export class CreateAvailabilityDto {
-  @IsUUID()
-  @IsNotEmpty()
-  professionalId!: string;
-
   @IsEnum(DayOfWeek)
   @IsNotEmpty()
   dayOfWeek!: DayOfWeek;
