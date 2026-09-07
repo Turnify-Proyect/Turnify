@@ -1,4 +1,11 @@
-import {IsEnum, IsNotEmpty, IsString, IsUUID, Matches,} from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
+
 import { DayOfWeek } from '../entities/availability.entity';
 
 export class CreateAvailabilityDto {
