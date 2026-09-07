@@ -7,17 +7,8 @@ import {
 } from 'typeorm';
 import { Appointment } from '../../appointments/entities/appointment.entity';
 import { Professional } from '../../professionals/entities/professional.entity';
-
-export enum UserRole {
-  CLIENT = 'client',
-  PROFESSIONAL = 'professional',
-  ADMIN = 'admin',
-}
-
-export enum AuthProvider {
-  LOCAL = 'local',
-  GOOGLE = 'google',
-}
+import { UserRole } from '../../common/userRoles.enum';
+import { AuthProvider } from '../../common/authProvider.enum';
 
 @Entity({ name: 'USERS' })
 export class User {
@@ -36,10 +27,10 @@ export class User {
     length: 255,
     nullable: true,
   })
-  passwordHash!: string | null;
+  password_hash!: string | null;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  phone!: string | null;
+  phone!: number | null;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.CLIENT })
   role!: UserRole;
