@@ -75,26 +75,23 @@ export class ServicesRepository {
     });
   }
 
-  async getProfessionalsByService(
-    serviceId: string,
-  ): Promise<ProfessionalService[]> {
-    const service = await this.ormServiceRepository.findOne({
-      where: { id: serviceId },
+  async getProfessionalsByService(serviceId: string,): Promise<ProfessionalService[]> {
+  const service = await this.ormServiceRepository.findOne({where: { id: serviceId },
     });
 
-    if (!service) {
-      throw new NotFoundException(
-        'No existe un servicio con el ID proporcionado',
-      );
-    }
-
-    return this.professionalServicesRepository.find({
-      where: { serviceId },
-      relations: {
-        professional: {
-          user: true,
-        },
-      },
-    });
+  if (!service) {
+    throw new NotFoundException(
+      'No existe un servicio con el ID proporcionado',
+    );
   }
+
+  return this.professionalServicesRepository.find({
+    where: { serviceId },
+    relations: {
+      professional: {
+        user: true,
+      },
+    },
+  });
+}
 }

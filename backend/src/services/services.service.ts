@@ -95,6 +95,6 @@ export class ServicesService {
   }
 
   async getProfessionalsByService(serviceId: string) {
-    return this.servicesRepository.getProfessionalsByService(serviceId);
-  }
+  return this.servicesRepository.getProfessionalsByService(serviceId);
+}
 }
