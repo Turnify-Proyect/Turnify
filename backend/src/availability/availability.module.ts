@@ -19,5 +19,8 @@ import { Professional } from '../professionals/entities/professional.entity';
     AvailabilityService,
     AvailabilityRepository,
   ],
+  exports: [
+    AvailabilityRepository,
+  ],
 })
 export class AvailabilityModule {}
