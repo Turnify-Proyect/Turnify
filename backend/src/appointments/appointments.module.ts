@@ -12,7 +12,16 @@ import { AvailabilityModule } from 'src/availability/availability.module';
 import { AppointmentsRepository } from './appointments.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Appointment, User, Professional, Service, ProfessionalService]), AvailabilityModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Appointment,
+      User,
+      Professional,
+      Service,
+      ProfessionalService,
+    ]),
+    AvailabilityModule,
+  ],
   controllers: [AppointmentsController],
   providers: [AppointmentsService, AppointmentsRepository],
 })

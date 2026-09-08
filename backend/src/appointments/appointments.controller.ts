@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Put,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -18,7 +28,7 @@ export class AppointmentsController {
   }
 
   @Get(':id')
-  getAppointmentById(@Param('id', ParseUUIDPipe) id: string,) {
+  getAppointmentById(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.getAppointmentById(id);
   }
 
@@ -28,12 +38,19 @@ export class AppointmentsController {
   }
 
   @Get('professional/:professionalId')
-  getAppointmentsByProfessionalId(@Param('professionalId', ParseUUIDPipe) professionalId: string) {
-    return this.appointmentsService.getAppointmentsByProfessionalId(professionalId);
+  getAppointmentsByProfessionalId(
+    @Param('professionalId', ParseUUIDPipe) professionalId: string,
+  ) {
+    return this.appointmentsService.getAppointmentsByProfessionalId(
+      professionalId,
+    );
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateAppointmentDto: UpdateAppointmentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAppointmentDto: UpdateAppointmentDto,
+  ) {
     return this.appointmentsService.update(+id, updateAppointmentDto);
   }
 

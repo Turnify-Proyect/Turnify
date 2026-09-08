@@ -5,10 +5,14 @@ import { AppointmentsRepository } from './appointments.repository';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private readonly appointmentsRepository: AppointmentsRepository) {}
+  constructor(
+    private readonly appointmentsRepository: AppointmentsRepository,
+  ) {}
 
   async createAppointment(createAppointmentDto: CreateAppointmentDto) {
-    return await this.appointmentsRepository.createAppointment(createAppointmentDto);
+    return await this.appointmentsRepository.createAppointment(
+      createAppointmentDto,
+    );
   }
 
   async getAllAppointments() {
@@ -24,7 +28,9 @@ export class AppointmentsService {
   }
 
   async getAppointmentsByProfessionalId(professionalId: string) {
-    return await this.appointmentsRepository.getAppointmentsByProfessionalId(professionalId);
+    return await this.appointmentsRepository.getAppointmentsByProfessionalId(
+      professionalId,
+    );
   }
 
   update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
@@ -35,4 +41,3 @@ export class AppointmentsService {
     return `This action removes a #${id} appointment`;
   }
 }
-

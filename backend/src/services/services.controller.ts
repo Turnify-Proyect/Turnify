@@ -65,7 +65,9 @@ export class ServicesController {
   }
 
   @Get(':serviceId/professionals')
-  async getProfessionalsByService(@Param('serviceId', ParseUUIDPipe) serviceId: string,) {
-  return this.servicesService.getProfessionalsByService(serviceId);
-}
+  async getProfessionalsByService(
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+  ) {
+    return this.servicesService.getProfessionalsByService(serviceId);
+  }
 }

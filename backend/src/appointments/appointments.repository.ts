@@ -1,18 +1,22 @@
-import {ConflictException, Injectable,NotFoundException,} from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import {Appointment,AppointmentStatus,} from './entities/appointment.entity';
+import { Appointment, AppointmentStatus } from './entities/appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 
-import { User, UserRole } from '../users/entities/user.entity';
+import { UserRole } from '../common/userRoles.enum';
+import { User } from '../users/entities/user.entity';
 import { Professional } from '../professionals/entities/professional.entity';
 import { Service } from '../services/entities/service.entity';
 import { ProfessionalService } from '../professionals/entities/professional-service.entity';
 
 import { AvailabilityRepository } from '../availability/availability.repository';
 import { DayOfWeek } from '../availability/entities/availability.entity';
-
 
 @Injectable()
 export class AppointmentsRepository {
@@ -34,7 +38,7 @@ export class AppointmentsRepository {
 
     private readonly availabilityRepository: AvailabilityRepository,
   ) {}
-//funcion para obtener el dia de la semana a partir de una fecha
+  //funcion para obtener el dia de la semana a partir de una fecha
   private getDayOfWeek(date: Date): DayOfWeek {
     const days: DayOfWeek[] = [
       DayOfWeek.SUNDAY,
@@ -49,27 +53,27 @@ export class AppointmentsRepository {
     return days[date.getDay()];
   }
 
-//función para expirar turnos pendientes que hayan pasado su fecha de expiración. 
-// Esto se puede hacer con un cron/job programado para que cambie a EXPIRED exactamente 
-// al cumplirse los 10 minutos aunque nadie haga una nueva request - REVISAR EN GRUPO
+  //función para expirar turnos pendientes que hayan pasado su fecha de expiración.
+  // Esto se puede hacer con un cron/job programado para que cambie a EXPIRED exactamente
+  // al cumplirse los 10 minutos aunque nadie haga una nueva request - REVISAR EN GRUPO
   private async expirePendingAppointments(): Promise<void> {
-  await this.appointmentsRepository
-    .createQueryBuilder()
-    .update(Appointment)
-    .set({
-      status: AppointmentStatus.EXPIRED,
-    })
-    .where('status = :pending', {
-      pending: AppointmentStatus.PENDING,
-    })
-    .andWhere('expires_at IS NOT NULL')
-    .andWhere('expires_at <= :now', {
-      now: new Date(),
-    })
-    .execute();
-}
+    await this.appointmentsRepository
+      .createQueryBuilder()
+      .update(Appointment)
+      .set({
+        status: AppointmentStatus.EXPIRED,
+      })
+      .where('status = :pending', {
+        pending: AppointmentStatus.PENDING,
+      })
+      .andWhere('expires_at IS NOT NULL')
+      .andWhere('expires_at <= :now', {
+        now: new Date(),
+      })
+      .execute();
+  }
 
-//valida si el profesional esta disponible en el horario solicitado
+  //valida si el profesional esta disponible en el horario solicitado
   private async validateProfessionalAvailability(
     professionalId: string,
     startAt: Date,
@@ -86,23 +90,18 @@ export class AppointmentsRepository {
     const appointmentStartMinutes =
       startAt.getHours() * 60 + startAt.getMinutes();
 
-    const appointmentEndMinutes =
-      endAt.getHours() * 60 + endAt.getMinutes();
+    const appointmentEndMinutes = endAt.getHours() * 60 + endAt.getMinutes();
 
     const isWithinAvailability = availabilities.some((availability) => {
       const [startHour, startMinute] = availability.startTime
         .split(':')
         .map(Number);
 
-      const [endHour, endMinute] = availability.endTime
-        .split(':')
-        .map(Number);
+      const [endHour, endMinute] = availability.endTime.split(':').map(Number);
 
-      const availabilityStartMinutes =
-        startHour * 60 + startMinute;
+      const availabilityStartMinutes = startHour * 60 + startMinute;
 
-      const availabilityEndMinutes =
-        endHour * 60 + endMinute;
+      const availabilityEndMinutes = endHour * 60 + endMinute;
 
       return (
         appointmentStartMinutes >= availabilityStartMinutes &&
@@ -116,50 +115,50 @@ export class AppointmentsRepository {
       );
     }
   }
-//valida si el profesional tiene un turno asignado en el mismo horario
+  //valida si el profesional tiene un turno asignado en el mismo horario
   private async validateProfessionalNoOverlap(
-      professionalId: string,
-      startAt: Date,
-      endAt: Date,
-    ): Promise<void> {
-      const overlappingAppointment = await this.appointmentsRepository
-        .createQueryBuilder('appointment')
-        .where('appointment.professional_id = :professionalId', {
-          professionalId,
-        })
-        .andWhere(
-          `(
+    professionalId: string,
+    startAt: Date,
+    endAt: Date,
+  ): Promise<void> {
+    const overlappingAppointment = await this.appointmentsRepository
+      .createQueryBuilder('appointment')
+      .where('appointment.professional_id = :professionalId', {
+        professionalId,
+      })
+      .andWhere(
+        `(
             appointment.status = :confirmed
             OR (
               appointment.status = :pending
               AND appointment.expires_at > :now
             )
           )`,
-          {
-            confirmed: AppointmentStatus.CONFIRMED,
-            pending: AppointmentStatus.PENDING,
-            now: new Date(),
-          },
-        )
-        .andWhere('appointment.start_at < :endAt', { endAt })
-        .andWhere('appointment.end_at > :startAt', { startAt })
-        .getOne();
+        {
+          confirmed: AppointmentStatus.CONFIRMED,
+          pending: AppointmentStatus.PENDING,
+          now: new Date(),
+        },
+      )
+      .andWhere('appointment.start_at < :endAt', { endAt })
+      .andWhere('appointment.end_at > :startAt', { startAt })
+      .getOne();
 
-      if (overlappingAppointment) {
-        throw new ConflictException(
-          'El profesional ya tiene un turno asignado en ese horario',
-        );
-      }
+    if (overlappingAppointment) {
+      throw new ConflictException(
+        'El profesional ya tiene un turno asignado en ese horario',
+      );
+    }
   }
 
   //valida si el usuario tiene rol de cliente
   private validateUserRole(user: User): void {
-  if (user.role !== UserRole.CLIENT) {
-    throw new ConflictException(
-      'Solo los usuarios con rol de cliente pueden realizar reservas',
-    );
+    if (user.role !== UserRole.CLIENT) {
+      throw new ConflictException(
+        'Solo los usuarios con rol de cliente pueden realizar reservas',
+      );
+    }
   }
-}
 
   //valida si el usuario tiene un turno asignado en el mismo horario
   private async validateUserNoOverlap(
@@ -197,7 +196,6 @@ export class AppointmentsRepository {
     }
   }
 
-  
   //crear reserva de turno
   async createAppointment(
     createAppointmentDto: CreateAppointmentDto,
@@ -269,9 +267,7 @@ export class AppointmentsRepository {
     const startAt = new Date(createAppointmentDto.startAt);
 
     if (Number.isNaN(startAt.getTime())) {
-      throw new ConflictException(
-        'La fecha y hora del turno no son válidas',
-      );
+      throw new ConflictException('La fecha y hora del turno no son válidas');
     }
 
     const now = new Date();
@@ -292,21 +288,11 @@ export class AppointmentsRepository {
       endAt,
     );
 
-    await this.validateProfessionalNoOverlap(
-      professional.id,
-      startAt,
-      endAt,
-    );
+    await this.validateProfessionalNoOverlap(professional.id, startAt, endAt);
 
-    await this.validateUserNoOverlap(
-      user.id,
-      startAt,
-      endAt,
-    );
+    await this.validateUserNoOverlap(user.id, startAt, endAt);
 
-    const expiresAt = new Date(
-      Date.now() + 10 * 60 * 1000,
-    );
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     const appointment = this.appointmentsRepository.create({
       user,
@@ -322,45 +308,43 @@ export class AppointmentsRepository {
 
   //todos los turnos (ADMIN)
   async getAllAppointments(): Promise<Appointment[]> {
-  await this.expirePendingAppointments();
+    await this.expirePendingAppointments();
 
-  return this.appointmentsRepository.find({
-    relations: {
-      user: true,
-      professional: {
+    return this.appointmentsRepository.find({
+      relations: {
         user: true,
+        professional: {
+          user: true,
+        },
+        service: true,
+        payment: true,
       },
-      service: true,
-      payment: true,
-    },
-    order: {
-      startAt: 'ASC',
-    },
-  });
+      order: {
+        startAt: 'ASC',
+      },
+    });
   }
 
   async getAppointmentById(id: string): Promise<Appointment> {
-  await this.expirePendingAppointments();
+    await this.expirePendingAppointments();
 
-  const appointment = await this.appointmentsRepository.findOne({
-    where: { id },
-    relations: {
-      user: true,
-      professional: {
+    const appointment = await this.appointmentsRepository.findOne({
+      where: { id },
+      relations: {
         user: true,
+        professional: {
+          user: true,
+        },
+        service: true,
+        payment: true,
       },
-      service: true,
-      payment: true,
-    },
-  });
+    });
 
-  if (!appointment) {
-    throw new NotFoundException(
-      'No existe un turno con el ID proporcionado',
-    );
-  }
+    if (!appointment) {
+      throw new NotFoundException('No existe un turno con el ID proporcionado');
+    }
 
-  return appointment;
+    return appointment;
   }
 
   async getAppointmentsByUserId(userId: string): Promise<Appointment[]> {
@@ -395,7 +379,9 @@ export class AppointmentsRepository {
     });
   }
 
-  async getAppointmentsByProfessionalId(professionalId: string): Promise<Appointment[]> {
+  async getAppointmentsByProfessionalId(
+    professionalId: string,
+  ): Promise<Appointment[]> {
     await this.expirePendingAppointments();
 
     const professional = await this.professionalsRepository.findOne({
@@ -426,5 +412,4 @@ export class AppointmentsRepository {
       },
     });
   }
-
 }
