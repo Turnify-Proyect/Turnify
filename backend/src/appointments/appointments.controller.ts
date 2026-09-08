@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, ParseUUIDPipe } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -9,20 +9,30 @@ export class AppointmentsController {
 
   @Post()
   create(@Body() createAppointmentDto: CreateAppointmentDto) {
-    return this.appointmentsService.create(createAppointmentDto);
+    return this.appointmentsService.createAppointment(createAppointmentDto);
   }
 
   @Get()
-  findAll() {
-    return this.appointmentsService.findAll();
+  getAllAppointments() {
+    return this.appointmentsService.getAllAppointments();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.appointmentsService.findOne(+id);
+  getAppointmentById(@Param('id', ParseUUIDPipe) id: string,) {
+    return this.appointmentsService.getAppointmentById(id);
   }
 
-  @Patch(':id')
+  @Get('user/:userId')
+  getAppointmentsByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
+    return this.appointmentsService.getAppointmentsByUserId(userId);
+  }
+
+  @Get('professional/:professionalId')
+  getAppointmentsByProfessionalId(@Param('professionalId', ParseUUIDPipe) professionalId: string) {
+    return this.appointmentsService.getAppointmentsByProfessionalId(professionalId);
+  }
+
+  @Put(':id')
   update(@Param('id') id: string, @Body() updateAppointmentDto: UpdateAppointmentDto) {
     return this.appointmentsService.update(+id, updateAppointmentDto);
   }
