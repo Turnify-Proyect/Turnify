@@ -10,6 +10,8 @@ import { ProfessionalsModule } from './professionals/professionals.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { PaymentsModule } from './payments/payments.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -29,6 +31,12 @@ import { PaymentsModule } from './payments/payments.module';
     AvailabilityModule,
     AppointmentsModule,
     PaymentsModule,
+    AuthModule,
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1h' },
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],

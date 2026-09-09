@@ -7,12 +7,16 @@ import {
   Param,
   Delete,
   Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Roles } from 'src/decorators/roles.decorators';
-import { UserRole } from 'src/common/userRoles.enum';
+import { Roles } from '../decorators/roles.decorators';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../common/userRoles.enum';
 import {
   ApiBearerAuth,
   ApiQuery,
@@ -25,7 +29,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiQuery({
     name: 'page',
@@ -60,7 +65,8 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -76,7 +82,7 @@ export class UsersController {
     status: 404,
     description: 'Usuario no encontrado',
   })
-  getUserById(@Param('id') id: string) {
+  getUserById(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.getUserById(id);
   }
 
@@ -95,6 +101,7 @@ export class UsersController {
 
   @Put(':id')
   @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -110,12 +117,13 @@ export class UsersController {
     status: 404,
     description: 'Usuario no encontrado',
   })
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  updateUser(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.updateUser(id, updateUserDto);
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -131,7 +139,7 @@ export class UsersController {
     status: 404,
     description: 'Usuario no encontrado',
   })
-  removeUser(@Param('id') id: string) {
+  removeUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.removeUser(id);
   }
 }
