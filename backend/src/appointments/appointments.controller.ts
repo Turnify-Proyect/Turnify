@@ -1,17 +1,8 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Put,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import {Controller,Get,Post,Body,Patch,Param,Delete,Put,ParseUUIDPipe,} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
+import { AppointmentStatus } from './entities/appointment.entity';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -46,16 +37,37 @@ export class AppointmentsController {
     );
   }
 
-  @Put(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateAppointmentDto: UpdateAppointmentDto,
+  @Patch(':id/cancel')
+  cancelAppointment(
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.appointmentsService.update(+id, updateAppointmentDto);
+    return this.appointmentsService.cancelAppointment(id);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.appointmentsService.remove(+id);
+  @Put(':id/reschedule')
+  rescheduleAppointment(@Param('id', ParseUUIDPipe) id: string, @Body() rescheduleAppointmentDto: RescheduleAppointmentDto,) 
+  {
+    return this.appointmentsService.rescheduleAppointment(
+      id,
+      rescheduleAppointmentDto,
+    );
   }
+
+  //Rol profesional: Completar un turno
+  @Patch(':id/complete')
+  completeAppointment(@Param('id', ParseUUIDPipe) id: string) {
+    return this.appointmentsService.completeAppointment(id);
+  }
+
+  //Rol ADMIN: cambiar el estado de un turno
+  @Patch(':id/status')
+  updateAppointmentStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') newStatus: AppointmentStatus,
+  ) {
+    return this.appointmentsService.updateAppointmentStatus(id, newStatus);
+  }
+
+
+
 }
