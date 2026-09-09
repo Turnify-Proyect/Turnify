@@ -9,7 +9,14 @@ import { ProfessionalsRepository } from './professionals.repository';
 import { Service } from 'src/services/entities/service.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Professional, ProfessionalService, User, Service])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Professional,
+      ProfessionalService,
+      User,
+      Service,
+    ]),
+  ],
   controllers: [ProfessionalsController],
   providers: [ProfessionalsService, ProfessionalsRepository],
 })

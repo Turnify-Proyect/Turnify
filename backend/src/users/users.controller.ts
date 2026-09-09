@@ -86,19 +86,6 @@ export class UsersController {
     return this.usersService.getUserById(id);
   }
 
-  @Post()
-  @ApiResponse({
-    status: 200,
-    description: 'Usuario creado exitosamente',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Usuario no creado, error en los datos enviados',
-  })
-  createUser(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.createUser(createUserDto);
-  }
-
   @Put(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -117,7 +104,10 @@ export class UsersController {
     status: 404,
     description: 'Usuario no encontrado',
   })
-  updateUser(@Param('id', ParseUUIDPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
+  updateUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     return this.usersService.updateUser(id, updateUserDto);
   }
 

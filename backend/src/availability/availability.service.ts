@@ -24,7 +24,9 @@ export class AvailabilityService {
   // Valida que el horario de inicio sea anterior al horario de finalización.
   private validateTimeRange(startTime: string, endTime: string): void {
     if (startTime >= endTime) {
-      throw new BadRequestException('Start time must be earlier than end time');
+      throw new BadRequestException(
+        'La hora de inicio debe ser anterior a la hora de finalización',
+      );
     }
   }
 
@@ -82,14 +84,18 @@ export class AvailabilityService {
   async update(id: string, data: UpdateAvailabilityDto): Promise<Availability> {
     // Evita ejecutar un PATCH sin ningún dato para modificar.
     if (Object.keys(data).length === 0) {
-      throw new BadRequestException('No data provided to update');
+      throw new BadRequestException(
+        'No se proporcionaron datos para actualizar',
+      );
     }
 
     const availability = await this.availabilityRepository.getById(id);
 
     // Verifica que la disponibilidad exista antes de modificarla.
     if (!availability) {
-      throw new NotFoundException(`Availability with id ${id} not found`);
+      throw new NotFoundException(
+        `No se encontró la disponibilidad con id ${id}`,
+      );
     }
 
     // Si un campo no viene en el PATCH,
@@ -138,7 +144,9 @@ export class AvailabilityService {
     const availability = await this.availabilityRepository.getById(id);
 
     if (!availability) {
-      throw new NotFoundException(`Availability with id ${id} not found`);
+      throw new NotFoundException(
+        `No se encontró la disponibilidad con id ${id}`,
+      );
     }
 
     await this.availabilityRepository.delete(id);

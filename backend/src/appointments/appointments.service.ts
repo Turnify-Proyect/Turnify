@@ -5,22 +5,22 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 @Injectable()
 export class AppointmentsService {
   create(createAppointmentDto: CreateAppointmentDto) {
-    return 'This action adds a new appointment';
+    return 'Cita creada';
   }
 
   findAll() {
-    return `This action returns all appointments`;
+    return `Todas las citas encontradas`;
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} appointment`;
+    return `La cita #${id} ha sido encontrada`;
   }
 
   update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
-    return `This action updates a #${id} appointment`;
+    return `La cita #${id} ha sido actualizada`;
   }
 
   remove(id: number) {
-    return `This action removes a #${id} appointment`;
+    return `La cita #${id} ha sido eliminada`;
   }
 }
