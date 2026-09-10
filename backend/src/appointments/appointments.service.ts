@@ -1,27 +1,64 @@
 import { Injectable } from '@nestjs/common';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentsRepository } from './appointments.repository';
+import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
+import { AppointmentStatus } from './entities/appointment.entity';
 
 @Injectable()
 export class AppointmentsService {
-  create(createAppointmentDto: CreateAppointmentDto) {
-    return 'Cita creada';
+  constructor(
+    private readonly appointmentsRepository: AppointmentsRepository,
+  ) {}
+
+  async createAppointment(createAppointmentDto: CreateAppointmentDto) {
+    return await this.appointmentsRepository.createAppointment(
+      createAppointmentDto,
+    );
   }
 
-  findAll() {
-    return `Todas las citas encontradas`;
+  async getAllAppointments() {
+    return await this.appointmentsRepository.getAllAppointments();
   }
 
-  findOne(id: number) {
-    return `La cita #${id} ha sido encontrada`;
+  async getAppointmentById(id: string) {
+    return await this.appointmentsRepository.getAppointmentById(id);
   }
 
-  update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
-    return `La cita #${id} ha sido actualizada`;
+  async getAppointmentsByUserId(userId: string) {
+    return await this.appointmentsRepository.getAppointmentsByUserId(userId);
   }
 
-  remove(id: number) {
-    return `La cita #${id} ha sido eliminada`;
+  async getAppointmentsByProfessionalId(professionalId: string) {
+    return await this.appointmentsRepository.getAppointmentsByProfessionalId(
+      professionalId,
+    );
+  }
+
+  async cancelAppointment(id: string) {
+    return await this.appointmentsRepository.cancelAppointment(id);
+  }
+
+  async rescheduleAppointment(
+    id: string,
+    rescheduleAppointmentDto: RescheduleAppointmentDto,
+  ) {
+    return await this.appointmentsRepository.rescheduleAppointment(
+      id,
+      rescheduleAppointmentDto,
+    );
+  }
+
+  async completeAppointment(id: string) {
+    return await this.appointmentsRepository.completeAppointment(id);
+  }
+
+  async updateAppointmentStatus(
+    id: string,
+    newStatus: AppointmentStatus,
+  ) {
+    return await this.appointmentsRepository.updateAppointmentStatus(
+      id,
+      newStatus,
+    );
   }
 }
