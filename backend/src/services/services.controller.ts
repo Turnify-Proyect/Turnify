@@ -11,6 +11,12 @@ import {
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { Roles } from '../decorators/roles.decorators';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../common/userRoles.enum';
+import { ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 
 @Controller('services')
 export class ServicesController {
@@ -19,6 +25,17 @@ export class ServicesController {
   // Obtiene todos los servicios, incluidos los inactivos.
   // Esta ruta está pensada para uso administrativo.
   @Get('all')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de servicios activos e inactivos',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para acceder',
+  })
   getAll() {
     return this.servicesService.getAll();
   }
@@ -26,18 +43,60 @@ export class ServicesController {
   // Obtiene únicamente los servicios activos.
   // Es la consulta principal para clientes o vistas públicas.
   @Get()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de Servicios activos',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Error al acceder a la lista de servicios activos',
+  })
   getAllActive() {
     return this.servicesService.getAllActive();
   }
 
   // Obtiene un servicio específico por su id.
   @Get(':id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del servicio',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de un servicios',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No existe el servicio con ese id',
+  })
   getById(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.getById(id);
   }
 
   // Actualiza parcialmente un servicio existente.
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del servicio',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Servicio actualizado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No existe el servicio con ese id',
+  })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() data: UpdateServiceDto,
@@ -47,6 +106,17 @@ export class ServicesController {
 
   // Crea un nuevo servicio.
   @Post()
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 201,
+    description: 'Servicio creado con exito',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'El servicio no pudo ser creado',
+  })
   create(@Body() data: CreateServiceDto) {
     return this.servicesService.create(data);
   }
@@ -54,12 +124,46 @@ export class ServicesController {
   // Realiza una baja lógica del servicio.
   // El registro se conserva en la base, pero pasa a isActive = false.
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del servicio',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Servicio desactivado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No existe el servicio con ese id',
+  })
   deactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.deactivate(id);
   }
 
   // Reactiva un servicio previamente desactivado.
   @Patch(':id/reactivate')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del servicio',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Servicio reactivado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No existe el servicio con ese id',
+  })
   reactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.reactivate(id);
   }

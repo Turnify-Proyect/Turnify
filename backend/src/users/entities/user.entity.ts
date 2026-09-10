@@ -27,7 +27,7 @@ export class User {
     length: 255,
     nullable: true,
   })
-  password_hash!: string | null;
+  password_hash!: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone!: number | null;

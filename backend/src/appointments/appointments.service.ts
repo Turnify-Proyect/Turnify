@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { AppointmentsRepository } from './appointments.repository';
-import {RescheduleAppointmentDto} from './dto/reschedule-appointment.dto';
+import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
 
 @Injectable()
@@ -38,24 +38,27 @@ export class AppointmentsService {
     return await this.appointmentsRepository.cancelAppointment(id);
   }
 
-  async rescheduleAppointment(id: string, rescheduleAppointmentDto: RescheduleAppointmentDto) {
+  async rescheduleAppointment(
+    id: string,
+    rescheduleAppointmentDto: RescheduleAppointmentDto,
+  ) {
     return await this.appointmentsRepository.rescheduleAppointment(
       id,
       rescheduleAppointmentDto,
     );
   }
 
-  //
   async completeAppointment(id: string) {
     return await this.appointmentsRepository.completeAppointment(id);
   }
 
-  async updateAppointmentStatus(id: string, newStatus: AppointmentStatus) {
-    return await this.appointmentsRepository.updateAppointmentStatus(id, newStatus);
+  async updateAppointmentStatus(
+    id: string,
+    newStatus: AppointmentStatus,
+  ) {
+    return await this.appointmentsRepository.updateAppointmentStatus(
+      id,
+      newStatus,
+    );
   }
-
-
-
-
-  
 }

@@ -12,9 +12,9 @@ export class MatchPassword implements ValidatorConstraintInterface {
   validate(confirmPassword: string, args: ValidationArguments): boolean {
     const obj = args.object as Record<string, unknown>;
     const key = args.constraints[0] as string;
-    const password = obj[key];
+    const password_hash = obj[key];
 
-    if (password !== confirmPassword) {
+    if (password_hash !== confirmPassword) {
       return false;
     }
     return true;

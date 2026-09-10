@@ -5,22 +5,22 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 @Injectable()
 export class PaymentsService {
   create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
+    return 'Pago creado exitosamente';
   }
 
   findAll() {
-    return `This action returns all payments`;
+    return `Todos los pagos encontrados`;
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} payment`;
+    return `El pago #${id} ha sido encontrado`;
   }
 
   update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
+    return `El pago #${id} ha sido actualizado`;
   }
 
   remove(id: number) {
-    return `This action removes a #${id} payment`;
+    return `El pago #${id} ha sido eliminado`;
   }
 }

@@ -37,6 +37,10 @@ export class UsersRepository {
     return filteredUser;
   }
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    return await this.ormUsersRepository.findOneBy({ email });
+  }
+
   async createUser(
     createUserDto: CreateUserDto,
   ): Promise<Omit<User, 'password_hash' | 'role'>> {

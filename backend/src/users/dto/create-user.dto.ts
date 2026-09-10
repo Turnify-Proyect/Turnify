@@ -56,10 +56,10 @@ export class CreateUserDto {
 
   @ApiProperty({
     description: 'Confirmar password debe ser igual a la contraseña',
-    example: 'Abc123!',
+    example: 'Abc1234!',
   })
   @IsNotEmpty()
-  @Validate(MatchPassword, ['password'])
+  @Validate(MatchPassword, ['password_hash'])
   confirmPassword!: string;
 
   @ApiProperty({
