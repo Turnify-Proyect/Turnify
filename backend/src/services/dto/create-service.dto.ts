@@ -8,6 +8,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { ServiceCategory } from '../entities/service.entity';
 
 export class CreateServiceDto {
   @IsString()
@@ -18,6 +19,10 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  category!: ServiceCategory;
 
   @IsNumberString()
   price!: string;
