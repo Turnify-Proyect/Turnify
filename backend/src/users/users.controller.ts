@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   ParseUUIDPipe,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 
@@ -22,6 +23,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiParam,
+  ApiOperation,
 } from '@nestjs/swagger';
 import { UserOwnerOrAdminGuard } from 'src/auth/guards/user-owner-or-admin.guard';
 
@@ -63,6 +65,27 @@ export class UsersController {
     const validLimit = !isNaN(limitNum) && limitNum > 0 ? limitNum : 5;
 
     return this.usersService.getAllUsers(validPage, validLimit);
+  }
+
+  // Endpoint para que el usuario pueda ver su propio perfil, sin necesidad de ser admin, solo con estar autenticado
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener el perfil del usuario autenticado',
+    description:
+    'Devuelve los datos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil del usuario autenticado obtenido correctamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token no enviado, inválido o expirado',
+  })
+  getMyProfile(@Req() req: any) {
+    return this.usersService.getUserById(req.user.id);
   }
 
   @Get(':id')
