@@ -10,6 +10,7 @@ import { Service } from 'src/services/entities/service.entity';
 import { Availability } from 'src/availability/entities/availability.entity';
 import { AvailabilityModule } from 'src/availability/availability.module';
 import { AppointmentsRepository } from './appointments.repository';
+import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-or-admin.guard';
 
 @Module({
   imports: [
@@ -23,6 +24,6 @@ import { AppointmentsRepository } from './appointments.repository';
     AvailabilityModule,
   ],
   controllers: [AppointmentsController],
-  providers: [AppointmentsService, AppointmentsRepository],
+  providers: [AppointmentsService, AppointmentsRepository, AppointmentOwnerOrAdminGuard],
 })
 export class AppointmentsModule {}

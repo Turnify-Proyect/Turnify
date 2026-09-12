@@ -8,6 +8,7 @@ import {
   Put,
   ParseUUIDPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 
 import { AppointmentsService } from './appointments.service';
@@ -15,11 +16,12 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
 
-import { ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../decorators/roles.decorators';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
+import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-or-admin.guard';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -59,6 +61,30 @@ export class AppointmentsController {
   })
   getAllAppointments() {
     return this.appointmentsService.getAllAppointments();
+  }
+
+
+  @Get('me')
+  @Roles(UserRole.CLIENT)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+      summary: 'Obtener los turnos del usuario autenticado',
+      description:
+      'Devuelve la lista de turnos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
+    })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de turnos del usuario autenticado',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token no enviado, inválido o expirado',
+  })
+  getMyAppointments(@Req() req: any) {
+    return this.appointmentsService.getAppointmentsByUserId(
+      req.user.id,
+    );
   }
 
   @Get(':id')
@@ -106,13 +132,69 @@ export class AppointmentsController {
   }
 
   @Patch(':id/cancel')
-  cancelAppointment(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  @Roles(UserRole.CLIENT, UserRole.ADMIN)
+  @UseGuards(
+    AuthGuard,
+    RolesGuard,
+    AppointmentOwnerOrAdminGuard,
+  )
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cancelar un turno',
+    description: 'Permite cancelar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.',
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'ID del turno a cancelar',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Turno cancelado correctamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'El usuario no tiene permiso para cancelar este turno',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Turno no encontrado',
+  })
+  cancelAppointment(@Param('id', ParseUUIDPipe) id: string,) {
     return this.appointmentsService.cancelAppointment(id);
   }
 
   @Put(':id/reschedule')
+  @Roles(UserRole.CLIENT, UserRole.ADMIN)
+  @UseGuards(
+    AuthGuard,
+    RolesGuard,
+    AppointmentOwnerOrAdminGuard,
+  )
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'ID del turno a reprogramar',
+    type: String,
+  })
+  @ApiOperation({
+    summary: 'Reprogramar un turno',
+    description: 'Permite reprogramar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.', 
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Turno reprogramado correctamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'El usuario no tiene permiso para reprogramar este turno',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Turno no encontrado',
+  })
   rescheduleAppointment(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() rescheduleAppointmentDto: RescheduleAppointmentDto,
