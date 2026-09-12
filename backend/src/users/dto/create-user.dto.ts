@@ -1,8 +1,8 @@
-import { ApiProperty, PickType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
-  IsNumber,
+  IsOptional,
   IsString,
   IsStrongPassword,
   MaxLength,
@@ -52,63 +52,71 @@ export class CreateUserDto {
         'Password debe tener minimo 1 minuscula, 1 mayuscula, 1 numero y 1 simbolo',
     },
   )
-  password_hash!: string;
+  // El DTO recibe la contraseña en texto plano como "password".
+  // "password_hash" queda reservado exclusivamente para la entidad y la DB.
+  //coemntado por:Lautaro-dev
+  password!: string;
 
   @ApiProperty({
     description: 'Confirmar password debe ser igual a la contraseña',
     example: 'Abc1234!',
   })
   @IsNotEmpty()
-  @Validate(MatchPassword, ['password_hash'])
+  @Validate(MatchPassword, ['password'])
+  // Solo se utiliza para verificar que ambas contraseñas coincidan.
+  // No se persiste ni se envía al Repository.
+  //coemntado por:Lautaro-dev
   confirmPassword!: string;
 
+  // El teléfono es obligatorio y se recibe como string porque no representa un valor matemático y puede contener prefijos, espacios o código de país.
+  //coemntado por:Lautaro-dev
   @ApiProperty({
-    description:
-      'Telefono debe ser un numero y no debe ser un NaN ni un Infinito',
-    example: 1234567890,
+    description: 'Telefono del usuario',
+    example: '+54 343 1234567',
   })
   @IsNotEmpty({ message: 'Telefono es requerido' })
-  @IsNumber(
-    {
-      allowNaN: false,
-      allowInfinity: false,
-    },
-    { message: 'Telefono no debe ser un NaN ni un Infinito' },
-  )
-  phone!: number;
+  @IsString({ message: 'Telefono debe ser un string' })
+  @MaxLength(20, { message: 'Telefono de no mas de 20 caracteres' })
+  // El teléfono es obligatorio y se recibe como string porque puede contener
+  // prefijos, código de país, espacios y ceros iniciales.
+  //coemntado por:Lautaro-dev
+  phone!: string;
 
-  @ApiProperty({
-    description:
-      'Pais del usuario debe tener al menos 5 y no mas de 15 caracteres',
+  // Agregué @IsOptional() + ? y nullable:true para dejarlo como campo opcional para el usuario
+  // Cambié @ApiProperty por @ApiPropertyOptional para que swagger lo entienda como un campo opcional
+  //coemntado por:Lautaro-dev
+  @ApiPropertyOptional({
+    description: 'Pais del usuario',
     example: 'Argentina',
   })
-  @IsString({ message: 'Pais es requerido' })
+  @IsOptional()
+  @IsString({ message: 'Pais debe ser un string' })
   @MinLength(5, { message: 'Pais de al menos 5 caracteres' })
   @MaxLength(15, { message: 'Pais de no mas de 15 caracteres' })
-  country!: string;
+  country?: string;
 
-  @ApiProperty({
-    description:
-      'Direccion del usuario debe tener al menos 3 y no mas de 80 caracteres',
+  @ApiPropertyOptional({
+    description: 'Direccion del usuario',
     example: 'Calle falsa 15472',
   })
-  @IsString({ message: 'Direccion es requerido' })
+  @IsOptional()
+  @IsString({ message: 'Direccion debe ser un string' })
   @MinLength(3, { message: 'Direccion de al menos 3 caracteres' })
   @MaxLength(80, { message: 'Direccion de no mas de 80 caracteres' })
-  address!: string;
+  address?: string;
 
-  @ApiProperty({
-    description:
-      'Ciudad del usuario debe tener al menos 5 y no mas de 20 caracteres',
+  @ApiPropertyOptional({
+    description: 'Ciudad del usuario',
     example: 'Rosario',
   })
-  @IsString({ message: 'Ciudad es requerido ' })
+  @IsOptional()
+  @IsString({ message: 'Ciudad debe ser un string' })
   @MinLength(5, { message: 'Ciudad de al menos 5 caracteres' })
   @MaxLength(20, { message: 'Ciudad de no mas de 20 caracteres' })
-  city!: string;
+  city?: string;
 }
 
 export class LoginUserDto extends PickType(CreateUserDto, [
   'email',
-  'password_hash',
+  'password',
 ]) {}

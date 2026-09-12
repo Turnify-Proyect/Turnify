@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 
@@ -15,9 +14,11 @@ export class UsersService {
     return this.usersRepository.getUserById(id);
   }
 
-  createUser(createUserDto: CreateUserDto) {
-    return this.usersRepository.createUser(createUserDto);
-  }
+  //user.service.createUser desactivado, sin uso
+  // createUser(createUserDto: CreateUserDto) {
+  //   return this.usersRepository.createUser(createUserDto);
+  // }
+  //coemntado por:Lautaro-dev
 
   updateUser(id: string, updateUserDto: UpdateUserDto) {
     return this.usersRepository.updateUser(id, updateUserDto);

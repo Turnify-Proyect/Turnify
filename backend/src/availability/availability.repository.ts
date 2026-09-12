@@ -15,8 +15,11 @@ export class AvailabilityRepository {
   ) {}
 
   // Busca una disponibilidad por su id.
+  //coemntado por:Lautaro-dev
   // También carga la relación con Professional porque el service
+  //coemntado por:Lautaro-dev
   // necesita conocer a qué profesional pertenece durante un update.
+  //coemntado por:Lautaro-dev
   async getById(id: string): Promise<Availability | null> {
     return this.ormAvailabilityRepository.findOne({
       where: { id },
@@ -27,6 +30,7 @@ export class AvailabilityRepository {
   }
 
   // Obtiene todas las disponibilidades asociadas a un profesional.
+  //coemntado por:Lautaro-dev
   async getByProfessionalId(professionalId: string): Promise<Availability[]> {
     return this.ormAvailabilityRepository.find({
       where: {
@@ -38,8 +42,11 @@ export class AvailabilityRepository {
   }
 
   // Obtiene únicamente las disponibilidades de un profesional
+  //coemntado por:Lautaro-dev
   // para un día específico de la semana.
+  //coemntado por:Lautaro-dev
   // Se usa principalmente para validar superposiciones de horarios.
+  //coemntado por:Lautaro-dev
   async getByProfessionalAndDay(
     professionalId: string,
     dayOfWeek: DayOfWeek,
@@ -55,13 +62,17 @@ export class AvailabilityRepository {
   }
 
   // Actualiza parcialmente una disponibilidad existente.
+  //coemntado por:Lautaro-dev
   // La validación de existencia y reglas de negocio se realiza en el service.
+  //coemntado por:Lautaro-dev
   async update(id: string, data: UpdateAvailabilityDto): Promise<void> {
     await this.ormAvailabilityRepository.update(id, data);
   }
 
   // Crea una nueva disponibilidad y la asocia
+  //coemntado por:Lautaro-dev
   // al profesional indicado mediante su id.
+  //coemntado por:Lautaro-dev
   async create(
     professionalId: string,
     data: CreateAvailabilityDto,
@@ -79,7 +90,9 @@ export class AvailabilityRepository {
   }
 
   // Elimina físicamente una disponibilidad.
+  //coemntado por:Lautaro-dev
   // La verificación de existencia se realiza previamente en el service.
+  //coemntado por:Lautaro-dev
   async delete(id: string): Promise<void> {
     await this.ormAvailabilityRepository.delete(id);
   }

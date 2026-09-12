@@ -23,7 +23,9 @@ export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   // Obtiene todos los servicios, incluidos los inactivos.
+  //coemntado por:Lautaro-dev
   // Esta ruta está pensada para uso administrativo.
+  //coemntado por:Lautaro-dev
   @Get('all')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -41,7 +43,9 @@ export class ServicesController {
   }
 
   // Obtiene únicamente los servicios activos.
+  //coemntado por:Lautaro-dev
   // Es la consulta principal para clientes o vistas públicas.
+  //coemntado por:Lautaro-dev
   @Get()
   @ApiResponse({
     status: 200,
@@ -56,6 +60,7 @@ export class ServicesController {
   }
 
   // Obtiene un servicio específico por su id.
+  //coemntado por:Lautaro-dev
   @Get(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -79,6 +84,7 @@ export class ServicesController {
   }
 
   // Actualiza parcialmente un servicio existente.
+  //coemntado por:Lautaro-dev
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -105,6 +111,7 @@ export class ServicesController {
   }
 
   // Crea un nuevo servicio.
+  //coemntado por:Lautaro-dev
   @Post()
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
   @UseGuards(AuthGuard, RolesGuard)
@@ -122,7 +129,9 @@ export class ServicesController {
   }
 
   // Realiza una baja lógica del servicio.
+  //coemntado por:Lautaro-dev
   // El registro se conserva en la base, pero pasa a isActive = false.
+  //coemntado por:Lautaro-dev
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -146,6 +155,7 @@ export class ServicesController {
   }
 
   // Reactiva un servicio previamente desactivado.
+  //coemntado por:Lautaro-dev
   @Patch(':id/reactivate')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)

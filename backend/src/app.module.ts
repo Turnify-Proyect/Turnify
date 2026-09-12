@@ -12,6 +12,7 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { env } from './config/env';
 
 @Module({
   imports: [
@@ -25,6 +26,8 @@ import { JwtModule } from '@nestjs/jwt';
         return configService.get('typeorm')!;
       },
     }),
+    //Cambié la importacion de JWT_SECRET por la de env.ts
+    //coemntado por:Lautaro-dev
     UsersModule,
     ServicesModule,
     ProfessionalsModule,
@@ -34,7 +37,7 @@ import { JwtModule } from '@nestjs/jwt';
     AuthModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET,
+      secret: env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
   ],

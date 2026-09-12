@@ -16,12 +16,15 @@ export class ServicesRepository {
   ) {}
 
   // Obtiene todos los servicios registrados,
+  //coemntado por:Lautaro-dev
   // incluyendo los que están inactivos.
+  //coemntado por:Lautaro-dev
   async getAll(): Promise<Service[]> {
     return this.ormServiceRepository.find();
   }
 
   // Obtiene únicamente los servicios que se encuentran activos.
+  //coemntado por:Lautaro-dev
   async getAllActive(): Promise<Service[]> {
     return this.ormServiceRepository.find({
       where: {
@@ -31,7 +34,9 @@ export class ServicesRepository {
   }
 
   // Busca un servicio por su nombre.
+  //coemntado por:Lautaro-dev
   // Se utiliza principalmente para validar nombres duplicados.
+  //coemntado por:Lautaro-dev
   async getByName(name: string): Promise<Service | null> {
     return this.ormServiceRepository.findOneBy({
       name,
@@ -39,6 +44,7 @@ export class ServicesRepository {
   }
 
   // Busca un servicio específico por su id.
+  //coemntado por:Lautaro-dev
   async getById(id: string): Promise<Service | null> {
     return this.ormServiceRepository.findOneBy({
       id,
@@ -46,14 +52,19 @@ export class ServicesRepository {
   }
 
   // Actualiza parcialmente un servicio existente.
+  //coemntado por:Lautaro-dev
   // Las validaciones de existencia y reglas de negocio
+  //coemntado por:Lautaro-dev
   // se realizan previamente en el service.
+  //coemntado por:Lautaro-dev
   async update(id: string, data: UpdateServiceDto): Promise<void> {
     await this.ormServiceRepository.update(id, data);
   }
 
   // Crea una instancia de Service y luego la persiste
+  //coemntado por:Lautaro-dev
   // en la base de datos.
+  //coemntado por:Lautaro-dev
   async create(data: CreateServiceDto): Promise<Service> {
     const service = this.ormServiceRepository.create(data);
 
@@ -61,7 +72,9 @@ export class ServicesRepository {
   }
 
   // Realiza la baja lógica de un servicio
+  //coemntado por:Lautaro-dev
   // cambiando su estado a inactivo.
+  //coemntado por:Lautaro-dev
   async deactivate(id: string): Promise<void> {
     await this.ormServiceRepository.update(id, {
       isActive: false,
@@ -69,6 +82,7 @@ export class ServicesRepository {
   }
 
   // Reactiva un servicio previamente desactivado.
+  //coemntado por:Lautaro-dev
   async reactivate(id: string): Promise<void> {
     await this.ormServiceRepository.update(id, {
       isActive: true,
