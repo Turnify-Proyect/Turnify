@@ -13,17 +13,21 @@ export class ServicesService {
   constructor(private readonly servicesRepository: ServicesRepository) {}
 
   // Obtiene todos los servicios, tanto activos como inactivos.
+  //coemntado por:Lautaro-dev
   async getAll(): Promise<Service[]> {
     return this.servicesRepository.getAll();
   }
 
   // Obtiene únicamente los servicios que están activos.
+  //coemntado por:Lautaro-dev
   async getAllActive(): Promise<Service[]> {
     return this.servicesRepository.getAllActive();
   }
 
   // Busca un servicio por id.
+  //coemntado por:Lautaro-dev
   // Si no existe, devuelve un error 404.
+  //coemntado por:Lautaro-dev
   async getById(id: string): Promise<Service> {
     const service = await this.servicesRepository.getById(id);
 
@@ -35,10 +39,15 @@ export class ServicesService {
   }
 
   // Valida que el nombre del servicio no esté siendo utilizado
+  //coemntado por:Lautaro-dev
   // por otro servicio.
+  //coemntado por:Lautaro-dev
   //
+  //coemntado por:Lautaro-dev
   // currentServiceId se utiliza durante un update para permitir
+  //coemntado por:Lautaro-dev
   // que un servicio conserve su propio nombre sin generar conflicto.
+  //coemntado por:Lautaro-dev
   private async validateNameAvailability(
     name: string,
     currentServiceId?: string,
@@ -51,8 +60,11 @@ export class ServicesService {
   }
 
   // Actualiza parcialmente un servicio existente.
+  //coemntado por:Lautaro-dev
   // Primero verifica que exista y, si se modifica el nombre,
+  //coemntado por:Lautaro-dev
   // valida que no pertenezca a otro servicio.
+  //coemntado por:Lautaro-dev
   async update(id: string, data: UpdateServiceDto): Promise<Service> {
     await this.getById(id);
 
@@ -63,11 +75,14 @@ export class ServicesService {
     await this.servicesRepository.update(id, data);
 
     // Devuelve el servicio luego de aplicar los cambios.
+    //coemntado por:Lautaro-dev
     return this.getById(id);
   }
 
   // Crea un nuevo servicio luego de validar
+  //coemntado por:Lautaro-dev
   // que no exista otro con el mismo nombre.
+  //coemntado por:Lautaro-dev
   async create(data: CreateServiceDto): Promise<Service> {
     await this.validateNameAvailability(data.name);
 
@@ -75,7 +90,9 @@ export class ServicesService {
   }
 
   // Realiza una baja lógica del servicio.
+  //coemntado por:Lautaro-dev
   // El registro permanece en la base con isActive = false.
+  //coemntado por:Lautaro-dev
   async deactivate(id: string): Promise<Service> {
     await this.getById(id);
 
@@ -85,7 +102,9 @@ export class ServicesService {
   }
 
   // Reactiva un servicio previamente desactivado,
+  //coemntado por:Lautaro-dev
   // cambiando nuevamente isActive a true.
+  //coemntado por:Lautaro-dev
   async reactivate(id: string): Promise<Service> {
     await this.getById(id);
 

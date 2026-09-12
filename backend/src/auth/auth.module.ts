@@ -2,16 +2,11 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
-import { JwtModule } from '@nestjs/jwt';
-import { env } from '../config/env';
 
+// Quité el JwtModule.register, que se estaba duplicando con app.module
+//coemntado por:Lautaro-dev
 @Module({
-  imports: [
-    UsersModule,
-    JwtModule.register({
-      secret: env.JWT_SECRET,
-    }),
-  ],
+  imports: [UsersModule],
   controllers: [AuthController],
   providers: [AuthService],
 })

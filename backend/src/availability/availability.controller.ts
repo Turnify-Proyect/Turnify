@@ -23,7 +23,9 @@ export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
   // Obtiene todas las disponibilidades configuradas
+  //coemntado por:Lautaro-dev
   // para un profesional específico.
+  //coemntado por:Lautaro-dev
   @Get('professional/:professionalId')
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseGuards(AuthGuard, RolesGuard)
@@ -48,7 +50,9 @@ export class AvailabilityController {
   }
 
   // Actualiza parcialmente una disponibilidad existente.
+  //coemntado por:Lautaro-dev
   // El id corresponde al bloque de disponibilidad que se quiere modificar.
+  //coemntado por:Lautaro-dev
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -74,7 +78,9 @@ export class AvailabilityController {
   }
 
   // Crea un nuevo bloque de disponibilidad
+  //coemntado por:Lautaro-dev
   // asociado al profesional indicado en la URL.
+  //coemntado por:Lautaro-dev
   @Post('professional/:professionalId')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -100,6 +106,7 @@ export class AvailabilityController {
   }
 
   // Elimina una disponibilidad específica.
+  //coemntado por:Lautaro-dev
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)

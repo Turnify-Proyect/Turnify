@@ -85,6 +85,7 @@ export class ProfessionalsRepository {
         'No existe un usuario con el ID proporcionado',
       );
     }
+    console.log(user.role);
 
     if (user.role !== 'professional') {
       throw new ConflictException(

@@ -10,7 +10,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
+
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '../decorators/roles.decorators';
 import { UseGuards } from '@nestjs/common';
@@ -23,6 +23,7 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { UserOwnerOrAdminGuard } from 'src/auth/guards/user-owner-or-admin.guard';
 
 @Controller('users')
 export class UsersController {
@@ -65,7 +66,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+  @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({
@@ -85,10 +86,13 @@ export class UsersController {
   getUserById(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.getUserById(id);
   }
-
+  //agregué mas roles al endpoint para que sea de acceso al usuario y al profesional
+  //coemntado por:Lautaro-dev
   @Put(':id')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT, UserRole.ADMIN)
+  //tambien agregué un nuevo guard para verificar que el cliente pueda modificar su propia inf.
+  //y que si es admin pueda modificar el de cualquiera
+  @UseGuards(AuthGuard, RolesGuard, UserOwnerOrAdminGuard)
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -103,6 +107,10 @@ export class UsersController {
   @ApiResponse({
     status: 404,
     description: 'Usuario no encontrado',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El email o el teléfono ya están registrados',
   })
   updateUser(
     @Param('id', ParseUUIDPipe) id: string,

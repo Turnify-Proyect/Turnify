@@ -16,12 +16,15 @@ export class AvailabilityService {
   ) {}
 
   // Normaliza las horas al formato HH:mm.
+  //coemntado por:Lautaro-dev
   // PostgreSQL puede devolver valores TIME como "09:00:00".
+  //coemntado por:Lautaro-dev
   private normalizeTime(time: string): string {
     return time.slice(0, 5);
   }
 
   // Valida que el horario de inicio sea anterior al horario de finalización.
+  //coemntado por:Lautaro-dev
   private validateTimeRange(startTime: string, endTime: string): void {
     if (startTime >= endTime) {
       throw new BadRequestException(
@@ -31,10 +34,15 @@ export class AvailabilityService {
   }
 
   // Valida que el nuevo rango horario no se superponga con otra
+  //coemntado por:Lautaro-dev
   // disponibilidad del mismo profesional y del mismo día.
+  //coemntado por:Lautaro-dev
   //
+  //coemntado por:Lautaro-dev
   // currentAvailabilityId se utiliza durante un update para ignorar
+  //coemntado por:Lautaro-dev
   // la propia disponibilidad que se está modificando.
+  //coemntado por:Lautaro-dev
   private async validateNoOverlap(
     professionalId: string,
     dayOfWeek: DayOfWeek,
@@ -49,7 +57,9 @@ export class AvailabilityService {
       );
 
     // Normalizamos tanto el nuevo horario como los ya almacenados
+    //coemntado por:Lautaro-dev
     // para compararlos siempre utilizando el mismo formato.
+    //coemntado por:Lautaro-dev
     const normalizedStartTime = this.normalizeTime(startTime);
     const normalizedEndTime = this.normalizeTime(endTime);
 
@@ -73,16 +83,22 @@ export class AvailabilityService {
   }
 
   // Obtiene todas las disponibilidades configuradas
+  //coemntado por:Lautaro-dev
   // para un profesional específico.
+  //coemntado por:Lautaro-dev
   async getByProfessionalId(professionalId: string): Promise<Availability[]> {
     return this.availabilityRepository.getByProfessionalId(professionalId);
   }
 
   // Actualiza parcialmente una disponibilidad existente.
+  //coemntado por:Lautaro-dev
   // Los valores que no llegan en el DTO se toman de la disponibilidad actual
+  //coemntado por:Lautaro-dev
   // para poder validar el rango completo antes de actualizar.
+  //coemntado por:Lautaro-dev
   async update(id: string, data: UpdateAvailabilityDto): Promise<Availability> {
     // Evita ejecutar un PATCH sin ningún dato para modificar.
+    //coemntado por:Lautaro-dev
     if (Object.keys(data).length === 0) {
       throw new BadRequestException(
         'No se proporcionaron datos para actualizar',
@@ -92,6 +108,7 @@ export class AvailabilityService {
     const availability = await this.availabilityRepository.getById(id);
 
     // Verifica que la disponibilidad exista antes de modificarla.
+    //coemntado por:Lautaro-dev
     if (!availability) {
       throw new NotFoundException(
         `No se encontró la disponibilidad con id ${id}`,
@@ -99,7 +116,9 @@ export class AvailabilityService {
     }
 
     // Si un campo no viene en el PATCH,
+    //coemntado por:Lautaro-dev
     // se conserva el valor que ya estaba almacenado.
+    //coemntado por:Lautaro-dev
     const startTime = data.startTime ?? availability.startTime;
 
     const endTime = data.endTime ?? availability.endTime;
@@ -109,7 +128,9 @@ export class AvailabilityService {
     this.validateTimeRange(startTime, endTime);
 
     // Valida el horario resultante contra las demás disponibilidades
+    //coemntado por:Lautaro-dev
     // del mismo profesional y día.
+    //coemntado por:Lautaro-dev
     await this.validateNoOverlap(
       availability.professional.id,
       dayOfWeek,
@@ -121,11 +142,14 @@ export class AvailabilityService {
     await this.availabilityRepository.update(id, data);
 
     // Devuelve la disponibilidad luego de aplicar la actualización.
+    //coemntado por:Lautaro-dev
     return (await this.availabilityRepository.getById(id))!;
   }
 
   // Crea una nueva disponibilidad para un profesional
+  //coemntado por:Lautaro-dev
   // después de validar el rango horario y posibles superposiciones.
+  //coemntado por:Lautaro-dev
   async create(professionalId: string, data: CreateAvailabilityDto) {
     this.validateTimeRange(data.startTime, data.endTime);
 
@@ -140,6 +164,7 @@ export class AvailabilityService {
   }
 
   // Elimina una disponibilidad luego de verificar que exista.
+  //coemntado por:Lautaro-dev
   async delete(id: string): Promise<void> {
     const availability = await this.availabilityRepository.getById(id);
 
