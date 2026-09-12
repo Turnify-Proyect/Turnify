@@ -5,12 +5,16 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
+  Put,
+  ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
+
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
+import { AppointmentStatus } from './entities/appointment.entity';
+
 import { ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../decorators/roles.decorators';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -33,8 +37,12 @@ export class AppointmentsController {
     status: 403,
     description: 'Error para crear la cita',
   })
-  create(@Body() createAppointmentDto: CreateAppointmentDto) {
-    return this.appointmentsService.create(createAppointmentDto);
+  createAppointment(
+    @Body() createAppointmentDto: CreateAppointmentDto,
+  ) {
+    return this.appointmentsService.createAppointment(
+      createAppointmentDto,
+    );
   }
 
   @Get()
@@ -49,8 +57,8 @@ export class AppointmentsController {
     status: 403,
     description: 'Sin permisos para acceder',
   })
-  findAll() {
-    return this.appointmentsService.findAll();
+  getAllAppointments() {
+    return this.appointmentsService.getAllAppointments();
   }
 
   @Get(':id')
@@ -75,62 +83,61 @@ export class AppointmentsController {
     status: 404,
     description: 'Cita no encontrada',
   })
-  findOne(@Param('id') id: string) {
-    return this.appointmentsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiParam({
-    name: 'id',
-    required: true,
-    description: 'ID de la cita',
-    type: String,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Cita actualizada',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Cita no encontrada',
-  })
-  update(
-    @Param('id') id: string,
-    @Body() updateAppointmentDto: UpdateAppointmentDto,
+  getAppointmentById(
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.appointmentsService.update(+id, updateAppointmentDto);
+    return this.appointmentsService.getAppointmentById(id);
   }
 
-  @Delete(':id')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiParam({
-    name: 'id',
-    required: true,
-    description: 'ID de la cita',
-    type: String,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Cita eliminada',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Cita no encontrada',
-  })
-  remove(@Param('id') id: string) {
-    return this.appointmentsService.remove(+id);
+  @Get('user/:userId')
+  getAppointmentsByUserId(
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    return this.appointmentsService.getAppointmentsByUserId(userId);
+  }
+
+  @Get('professional/:professionalId')
+  getAppointmentsByProfessionalId(
+    @Param('professionalId', ParseUUIDPipe) professionalId: string,
+  ) {
+    return this.appointmentsService.getAppointmentsByProfessionalId(
+      professionalId,
+    );
+  }
+
+  @Patch(':id/cancel')
+  cancelAppointment(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.appointmentsService.cancelAppointment(id);
+  }
+
+  @Put(':id/reschedule')
+  rescheduleAppointment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() rescheduleAppointmentDto: RescheduleAppointmentDto,
+  ) {
+    return this.appointmentsService.rescheduleAppointment(
+      id,
+      rescheduleAppointmentDto,
+    );
+  }
+
+  @Patch(':id/complete')
+  completeAppointment(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.appointmentsService.completeAppointment(id);
+  }
+
+  @Patch(':id/status')
+  updateAppointmentStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') newStatus: AppointmentStatus,
+  ) {
+    return this.appointmentsService.updateAppointmentStatus(
+      id,
+      newStatus,
+    );
   }
 }
