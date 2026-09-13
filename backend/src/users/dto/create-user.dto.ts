@@ -116,7 +116,11 @@ export class CreateUserDto {
   city?: string;
 }
 
-export class LoginUserDto extends PickType(CreateUserDto, [
-  'email',
-  'password',
-]) {}
+export class LoginUserDto {
+  @IsEmail({}, { message: 'Ingresá un correo electrónico válido' })
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Ingresá tu contraseña' })
+  password!: string;
+}
