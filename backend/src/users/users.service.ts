@@ -26,8 +26,8 @@ export class UsersService {
     return this.usersRepository.updateUser(id, updateUserDto);
   }
 
-  // Encripta la nueva contraseña utilizando bcrypt 
- 
+  // Encripta la nueva contraseña utilizando bcrypt
+
   async changePassword(
     id: string,
     changePasswordDto: ChangePasswordDto,

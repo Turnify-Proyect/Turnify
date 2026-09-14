@@ -66,4 +66,28 @@ export class AuthController {
   signUp(@Body() newUserData: CreateUserDto) {
     return this.authService.signUp(newUserData);
   }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  googleSignIn(@Body('credential') credential: string) {
+    return this.authService.googleSignIn(credential);
+  }
+
+  @Post('google/complete')
+  @HttpCode(HttpStatus.OK)
+  googleCompleteSignUp(
+    @Body('registrationToken') registrationToken: string,
+    @Body('phone') phone: string,
+    @Body('country') country?: string,
+    @Body('address') address?: string,
+    @Body('city') city?: string,
+  ) {
+    return this.authService.googleCompleteSignUp(
+      registrationToken,
+      phone,
+      country,
+      address,
+      city,
+    );
+  }
 }

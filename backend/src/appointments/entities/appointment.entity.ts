@@ -29,11 +29,15 @@ export class Appointment {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @ManyToOne(() => Professional, (professional) => professional.appointments, {nullable: false,})
+  @ManyToOne(() => Professional, (professional) => professional.appointments, {
+    nullable: false,
+  })
   @JoinColumn({ name: 'professional_id' })
   professional!: Professional;
 
-  @ManyToOne(() => Service, (service) => service.appointments, {nullable: false,})
+  @ManyToOne(() => Service, (service) => service.appointments, {
+    nullable: false,
+  })
   @JoinColumn({ name: 'service_id' })
   service!: Service;
 

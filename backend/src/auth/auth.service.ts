@@ -7,6 +7,8 @@ import { UsersRepository } from '../users/users.repository';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { OAuth2Client } from 'google-auth-library';
+import { AuthProvider } from '../common/authProvider.enum';
 
 @Injectable()
 export class AuthService {
@@ -98,5 +100,95 @@ export class AuthService {
       // comentado por: Lautaro-dev
       password_hash: hashedPassword,
     });
+  }
+
+  private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+  async googleSignIn(idToken: string) {
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.email) {
+      throw new UnauthorizedException('Token de Google inválido');
+    }
+
+    const foundUser = await this.usersRepository.getUserByEmail(payload.email);
+
+    // Si el usuario ya existe, lo logueamos directo
+    if (foundUser) {
+      const jwtPayload = { id: foundUser.id, roles: [foundUser.role] };
+      const token = this.jwtService.sign(jwtPayload);
+      return { message: 'Usuario logueado con Google', token };
+    }
+
+    // Si es un usuario nuevo, todavía no lo creamos: falta el teléfono.
+    // Generamos un token temporal de registro con los datos de Google adentro.
+    const registrationToken = this.jwtService.sign(
+      {
+        email: payload.email,
+        name: payload.name,
+        providerId: payload.sub,
+        type: 'google_registration',
+      },
+      { expiresIn: '15m' },
+    );
+
+    return { needsPhone: true, registrationToken };
+  }
+
+  async googleCompleteSignUp(
+    registrationToken: string,
+    phone: string,
+    country?: string,
+    address?: string,
+    city?: string,
+  ) {
+    let decoded: any;
+
+    try {
+      decoded = this.jwtService.verify(registrationToken);
+    } catch {
+      throw new UnauthorizedException('El registro expiró, intentá de nuevo.');
+    }
+
+    if (decoded.type !== 'google_registration') {
+      throw new UnauthorizedException('Token de registro inválido');
+    }
+
+    const foundUser = await this.usersRepository.getUserByEmail(decoded.email);
+    if (foundUser) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    const foundPhone = await this.usersRepository.getUserByPhone(phone);
+    if (foundPhone) {
+      throw new ConflictException('El teléfono ya está registrado');
+    }
+
+    await this.usersRepository.createUser({
+      name: decoded.name || decoded.email,
+      email: decoded.email,
+      phone,
+      country: country || undefined,
+      address: address || undefined,
+      city: city || undefined,
+      password_hash: '',
+      authProvider: AuthProvider.GOOGLE,
+      providerId: decoded.providerId,
+    });
+
+    const createdUser = await this.usersRepository.getUserByEmail(decoded.email);
+
+      if (!createdUser) {
+        throw new UnauthorizedException('Error al crear el usuario');
+      }
+
+    const jwtPayload = { id: createdUser.id, roles: [createdUser.role] };
+    const token = this.jwtService.sign(jwtPayload);
+    return { message: 'Usuario registrado con Google', token };
   }
 }

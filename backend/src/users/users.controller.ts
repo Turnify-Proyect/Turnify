@@ -76,7 +76,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Obtener el perfil del usuario autenticado',
     description:
-    'Devuelve los datos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
+      'Devuelve los datos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
   })
   @ApiResponse({
     status: 200,
@@ -145,8 +145,8 @@ export class UsersController {
   }
 
   // Endpoint solo para el cambio de contraseña de usuario.
-  // Utiliza UserOwnerOrAdminGuard para permitir que un cliente actualice su propia clave 
-  
+  // Utiliza UserOwnerOrAdminGuard para permitir que un cliente actualice su propia clave
+
   @Patch(':id/password')
   @Roles(UserRole.CLIENT, UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseGuards(AuthGuard, RolesGuard, UserOwnerOrAdminGuard)

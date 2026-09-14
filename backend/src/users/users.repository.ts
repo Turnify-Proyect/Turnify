@@ -125,7 +125,7 @@ export class UsersRepository {
   }
 
   // Función para actualizar la contraseña encriptada del usuario en la base de datos.
-  // Recibe la contraseña ya cifrada con bcrypt 
+  // Recibe la contraseña ya cifrada con bcrypt
   // comentado por: Jose-dev
   async updatePassword(id: string, hashedPassword: string): Promise<string> {
     const userToUpdate = await this.ormUsersRepository.findOneBy({ id });
