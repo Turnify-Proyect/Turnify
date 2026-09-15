@@ -62,9 +62,6 @@ export class ServicesController {
   // Obtiene un servicio específico por su id.
   //coemntado por:Lautaro-dev
   @Get(':id')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
   @ApiParam({
     name: 'id',
     required: true,
@@ -100,7 +97,7 @@ export class ServicesController {
     description: 'Servicio actualizado',
   })
   @ApiResponse({
-    status: 403,
+    status: 404,
     description: 'No existe el servicio con ese id',
   })
   update(

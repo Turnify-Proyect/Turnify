@@ -6,8 +6,10 @@ export enum ServiceCategory {
   MASSAGES = "Masajes",
   FACIALS = "Faciales",
   NAILS = "Uñas",
+  PEDICURE = "Pedicuría",
   HAIR = "Cabello",
   SPA = "Spa",
+
 }
 
 @Entity({ name: 'SERVICES' })
