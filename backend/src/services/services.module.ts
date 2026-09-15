@@ -5,10 +5,11 @@ import { Service } from './entities/service.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServicesRepository } from './services.repository';
 import { ProfessionalService } from 'src/professionals/entities/professional-service.entity';
+import { CloudinaryConfig } from 'src/config/cloudinary';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Service, ProfessionalService])],
   controllers: [ServicesController],
-  providers: [ServicesService, ServicesRepository],
+  providers: [ServicesService, ServicesRepository, CloudinaryConfig],
 })
 export class ServicesModule {}

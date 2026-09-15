@@ -26,8 +26,6 @@ import { env } from './config/env';
         return configService.get('typeorm')!;
       },
     }),
-    //Cambié la importacion de JWT_SECRET por la de env.ts
-    //coemntado por:Lautaro-dev
     UsersModule,
     ServicesModule,
     ProfessionalsModule,
