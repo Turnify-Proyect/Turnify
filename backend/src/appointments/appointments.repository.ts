@@ -1,4 +1,9 @@
-import {BadRequestException, ConflictException, Injectable, NotFoundException,} from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
@@ -113,9 +118,13 @@ export class AppointmentsRepository {
     }
   }
   //valida si el profesional tiene un turno asignado en el mismo horario
-  private async validateProfessionalNoOverlap(professionalId: string, startAt: Date, endAt: Date, appointmentIdToIgnore?: string,
-    ): Promise<void> {
-      const query = this.appointmentsRepository
+  private async validateProfessionalNoOverlap(
+    professionalId: string,
+    startAt: Date,
+    endAt: Date,
+    appointmentIdToIgnore?: string,
+  ): Promise<void> {
+    const query = this.appointmentsRepository
       .createQueryBuilder('appointment')
       .where('appointment.professional_id = :professionalId', {
         professionalId,
@@ -143,14 +152,13 @@ export class AppointmentsRepository {
       });
     }
 
-        const overlappingAppointment = await query.getOne();
+    const overlappingAppointment = await query.getOne();
 
-
-      if (overlappingAppointment) {
-        throw new ConflictException(
-          'El profesional ya tiene un turno asignado en ese horario',
-        );
-      }
+    if (overlappingAppointment) {
+      throw new ConflictException(
+        'El profesional ya tiene un turno asignado en ese horario',
+      );
+    }
   }
 
   //valida si el usuario tiene rol de cliente
@@ -163,8 +171,13 @@ export class AppointmentsRepository {
   }
 
   //valida si el usuario tiene un turno asignado en el mismo horario
-  private async validateUserNoOverlap(userId: string, startAt: Date, endAt: Date, appointmentIdToIgnore?: string): Promise<void> {
-     const query = this.appointmentsRepository
+  private async validateUserNoOverlap(
+    userId: string,
+    startAt: Date,
+    endAt: Date,
+    appointmentIdToIgnore?: string,
+  ): Promise<void> {
+    const query = this.appointmentsRepository
       .createQueryBuilder('appointment')
       .where('appointment.user_id = :userId', {
         userId,
@@ -193,7 +206,6 @@ export class AppointmentsRepository {
     }
 
     const overlappingAppointment = await query.getOne();
-      
 
     if (overlappingAppointment) {
       throw new ConflictException(
@@ -424,9 +436,9 @@ export class AppointmentsRepository {
 
   //cancelación de turno
   async cancelAppointment(id: string): Promise<string> {
-  await this.expirePendingAppointments();
+    await this.expirePendingAppointments();
 
-  const appointment = await this.appointmentsRepository.findOne({
+    const appointment = await this.appointmentsRepository.findOne({
       where: { id },
       relations: {
         user: true,
@@ -439,27 +451,19 @@ export class AppointmentsRepository {
     });
 
     if (!appointment) {
-      throw new NotFoundException(
-        'No existe un turno con el ID proporcionado',
-      );
+      throw new NotFoundException('No existe un turno con el ID proporcionado');
     }
 
     if (appointment.status === AppointmentStatus.CANCELLED) {
-      throw new ConflictException(
-        'El turno ya se encuentra cancelado',
-      );
+      throw new ConflictException('El turno ya se encuentra cancelado');
     }
 
     if (appointment.status === AppointmentStatus.COMPLETED) {
-      throw new ConflictException(
-        'No se puede cancelar un turno completado',
-      );
+      throw new ConflictException('No se puede cancelar un turno completado');
     }
 
     if (appointment.status === AppointmentStatus.EXPIRED) {
-      throw new ConflictException(
-        'No se puede cancelar un turno expirado',
-      );
+      throw new ConflictException('No se puede cancelar un turno expirado');
     }
 
     appointment.status = AppointmentStatus.CANCELLED;
@@ -467,11 +471,14 @@ export class AppointmentsRepository {
 
     this.appointmentsRepository.save(appointment);
 
-    return "El turno ha sido cancelado exitosamente";
+    return 'El turno ha sido cancelado exitosamente';
   }
 
   //reprogramación de turno
-  async rescheduleAppointment(id: string, rescheduleAppointmentDto: RescheduleAppointmentDto,): Promise<Appointment> {
+  async rescheduleAppointment(
+    id: string,
+    rescheduleAppointmentDto: RescheduleAppointmentDto,
+  ): Promise<Appointment> {
     await this.expirePendingAppointments();
 
     if (Object.keys(rescheduleAppointmentDto).length === 0) {
@@ -483,10 +490,7 @@ export class AppointmentsRepository {
     const appointment = await this.appointmentsRepository.findOne({
       where: {
         id,
-        status: In([
-          AppointmentStatus.PENDING,
-          AppointmentStatus.CONFIRMED,
-        ]),
+        status: In([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]),
       },
       relations: {
         user: true,
@@ -502,133 +506,126 @@ export class AppointmentsRepository {
     }
 
     if (appointment.rescheduleCount >= 2) {
-    throw new ConflictException({
-      message:
-        'El turno alcanzó el máximo de reprogramaciones permitidas',
-      canCancel: true,
-    });
+      throw new ConflictException({
+        message: 'El turno alcanzó el máximo de reprogramaciones permitidas',
+        canCancel: true,
+      });
     }
 
-  const now = new Date();
+    const now = new Date();
 
-  const hoursUntilAppointment =
-    (appointment.startAt.getTime() - now.getTime()) /
-    (1000 * 60 * 60);
+    const hoursUntilAppointment =
+      (appointment.startAt.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-  if (hoursUntilAppointment < 24) {
-    throw new ConflictException(
-      'No se puede reprogramar un turno con menos de 24 horas de anticipación',
-    );
-  }
+    if (hoursUntilAppointment < 24) {
+      throw new ConflictException(
+        'No se puede reprogramar un turno con menos de 24 horas de anticipación',
+      );
+    }
 
-  const professionalId = rescheduleAppointmentDto.professionalId ??
-    appointment.professional.id;
+    const professionalId =
+      rescheduleAppointmentDto.professionalId ?? appointment.professional.id;
 
-  const serviceId = rescheduleAppointmentDto.serviceId ??
-    appointment.service.id;
+    const serviceId =
+      rescheduleAppointmentDto.serviceId ?? appointment.service.id;
 
-  const professional = await this.professionalsRepository.findOne({
-    where: { id: professionalId },
-  });
-
-  if (!professional) {
-    throw new NotFoundException(
-      'No existe un profesional con el ID proporcionado',
-    );
-  }
-
-  if (!professional.isActive) {
-    throw new ConflictException(
-      'El profesional seleccionado se encuentra inactivo',
-    );
-  }
-
-  const service = await this.servicesRepository.findOne({
-    where: { id: serviceId },
-  });
-
-  if (!service) {
-    throw new NotFoundException(
-      'No existe un servicio con el ID proporcionado',
-    );
-  }
-
-  if (!service.isActive) {
-    throw new ConflictException(
-      'El servicio seleccionado se encuentra inactivo',
-    );
-  }
-
-  const professionalService =
-    await this.professionalServicesRepository.findOne({
-      where: {
-        professionalId: professional.id,
-        serviceId: service.id,
-      },
+    const professional = await this.professionalsRepository.findOne({
+      where: { id: professionalId },
     });
 
-  if (!professionalService) {
-    throw new ConflictException(
-      'El profesional seleccionado no realiza este servicio',
+    if (!professional) {
+      throw new NotFoundException(
+        'No existe un profesional con el ID proporcionado',
+      );
+    }
+
+    if (!professional.isActive) {
+      throw new ConflictException(
+        'El profesional seleccionado se encuentra inactivo',
+      );
+    }
+
+    const service = await this.servicesRepository.findOne({
+      where: { id: serviceId },
+    });
+
+    if (!service) {
+      throw new NotFoundException(
+        'No existe un servicio con el ID proporcionado',
+      );
+    }
+
+    if (!service.isActive) {
+      throw new ConflictException(
+        'El servicio seleccionado se encuentra inactivo',
+      );
+    }
+
+    const professionalService =
+      await this.professionalServicesRepository.findOne({
+        where: {
+          professionalId: professional.id,
+          serviceId: service.id,
+        },
+      });
+
+    if (!professionalService) {
+      throw new ConflictException(
+        'El profesional seleccionado no realiza este servicio',
+      );
+    }
+
+    const newStartAt = new Date(rescheduleAppointmentDto.startAt);
+
+    if (Number.isNaN(newStartAt.getTime())) {
+      throw new ConflictException(
+        'La nueva fecha y hora del turno no son válidas',
+      );
+    }
+
+    if (newStartAt <= now) {
+      throw new ConflictException(
+        'No se puede reprogramar un turno a una fecha u horario pasado',
+      );
+    }
+
+    const newEndAt = new Date(
+      newStartAt.getTime() + service.durationMinutes * 60 * 1000,
     );
-  }
 
-  const newStartAt = new Date(
-    rescheduleAppointmentDto.startAt,
-  );
-
-  if (Number.isNaN(newStartAt.getTime())) {
-    throw new ConflictException(
-      'La nueva fecha y hora del turno no son válidas',
+    await this.validateProfessionalAvailability(
+      professional.id,
+      newStartAt,
+      newEndAt,
     );
-  }
 
-  if (newStartAt <= now) {
-    throw new ConflictException(
-      'No se puede reprogramar un turno a una fecha u horario pasado',
+    await this.validateProfessionalNoOverlap(
+      professional.id,
+      newStartAt,
+      newEndAt,
+      appointment.id,
     );
+
+    await this.validateUserNoOverlap(
+      appointment.user.id,
+      newStartAt,
+      newEndAt,
+      appointment.id,
+    );
+
+    appointment.professional = professional;
+    appointment.service = service;
+    appointment.startAt = newStartAt;
+    appointment.endAt = newEndAt;
+    appointment.rescheduleCount += 1;
+
+    // si el turno estaba pendiente, se reinicia el tiempo de expiración
+
+    if (appointment.status === AppointmentStatus.PENDING) {
+      appointment.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    }
+    return this.appointmentsRepository.save(appointment);
   }
-
-  const newEndAt = new Date(
-    newStartAt.getTime() +
-      service.durationMinutes * 60 * 1000,
-  );
-
-  await this.validateProfessionalAvailability(
-    professional.id,
-    newStartAt,
-    newEndAt,
-  );
-
-  await this.validateProfessionalNoOverlap(
-    professional.id,
-    newStartAt,
-    newEndAt,
-    appointment.id,
-  );
-
-  await this.validateUserNoOverlap(
-    appointment.user.id,
-    newStartAt,
-    newEndAt,
-    appointment.id,
-  );
-
-  appointment.professional = professional;
-  appointment.service = service;
-  appointment.startAt = newStartAt;
-  appointment.endAt = newEndAt;
-  appointment.rescheduleCount += 1;
-
-  // si el turno estaba pendiente, se reinicia el tiempo de expiración
-
-  if (appointment.status === AppointmentStatus.PENDING) {
-  appointment.expiresAt = new Date(
-    Date.now() + 10 * 60 * 1000,
-  );
-  }  
-  return this.appointmentsRepository.save(appointment);
-  } 
 
   //marcar turno como 'completado' (DESDE EL PANEL DEL PROFESIONAL)
   async completeAppointment(id: string): Promise<Appointment> {
@@ -647,9 +644,7 @@ export class AppointmentsRepository {
     });
 
     if (!appointment) {
-      throw new NotFoundException(
-        'No existe un turno con el ID proporcionado',
-      );
+      throw new NotFoundException('No existe un turno con el ID proporcionado');
     }
 
     if (appointment.status !== AppointmentStatus.CONFIRMED) {
@@ -668,38 +663,44 @@ export class AppointmentsRepository {
 
     appointment.status = AppointmentStatus.COMPLETED;
     return this.appointmentsRepository.save(appointment);
-  } 
+  }
 
   //cambiar el estado de un turno (DESDE EL PANEL DEL ADMINISTRADOR)
 
-    //función para validar si el cambio de estado es válido según las reglas de negocio
-    private validateAdminStatusTransition(currentStatus: AppointmentStatus, newStatus: AppointmentStatus,): void {
-      const allowedTransitions: Record< AppointmentStatus, AppointmentStatus[]> = {
-        [AppointmentStatus.PENDING]: [
-          AppointmentStatus.CONFIRMED,
-          AppointmentStatus.CANCELLED,
-        ],
+  //función para validar si el cambio de estado es válido según las reglas de negocio
+  private validateAdminStatusTransition(
+    currentStatus: AppointmentStatus,
+    newStatus: AppointmentStatus,
+  ): void {
+    const allowedTransitions: Record<AppointmentStatus, AppointmentStatus[]> = {
+      [AppointmentStatus.PENDING]: [
+        AppointmentStatus.CONFIRMED,
+        AppointmentStatus.CANCELLED,
+      ],
 
-        [AppointmentStatus.CONFIRMED]: [
-          AppointmentStatus.COMPLETED,
-          AppointmentStatus.CANCELLED,
-        ],
+      [AppointmentStatus.CONFIRMED]: [
+        AppointmentStatus.COMPLETED,
+        AppointmentStatus.CANCELLED,
+      ],
 
-        [AppointmentStatus.CANCELLED]: [],
-        [AppointmentStatus.COMPLETED]: [],
-        [AppointmentStatus.EXPIRED]: [],
-      };
+      [AppointmentStatus.CANCELLED]: [],
+      [AppointmentStatus.COMPLETED]: [],
+      [AppointmentStatus.EXPIRED]: [],
+    };
 
-      const allowedStatuses = allowedTransitions[currentStatus];
+    const allowedStatuses = allowedTransitions[currentStatus];
 
-      if (!allowedStatuses.includes(newStatus)) {
-        throw new ConflictException(
-          `No se puede cambiar el estado del turno de ${currentStatus} a ${newStatus}`,
-        );
-      }
+    if (!allowedStatuses.includes(newStatus)) {
+      throw new ConflictException(
+        `No se puede cambiar el estado del turno de ${currentStatus} a ${newStatus}`,
+      );
     }
+  }
 
-  async updateAppointmentStatus(id: string, newStatus: AppointmentStatus,): Promise<Appointment> {
+  async updateAppointmentStatus(
+    id: string,
+    newStatus: AppointmentStatus,
+  ): Promise<Appointment> {
     await this.expirePendingAppointments();
 
     const appointment = await this.appointmentsRepository.findOne({
@@ -715,15 +716,10 @@ export class AppointmentsRepository {
     });
 
     if (!appointment) {
-      throw new NotFoundException(
-        'No existe un turno con el ID proporcionado',
-      );
+      throw new NotFoundException('No existe un turno con el ID proporcionado');
     }
 
-    this.validateAdminStatusTransition(
-      appointment.status,
-      newStatus,
-    );
+    this.validateAdminStatusTransition(appointment.status, newStatus);
 
     appointment.status = newStatus;
 
@@ -732,6 +728,5 @@ export class AppointmentsRepository {
     }
 
     return this.appointmentsRepository.save(appointment);
-  } 
-   
+  }
 }

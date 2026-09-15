@@ -52,10 +52,7 @@ export class AppointmentsService {
     return await this.appointmentsRepository.completeAppointment(id);
   }
 
-  async updateAppointmentStatus(
-    id: string,
-    newStatus: AppointmentStatus,
-  ) {
+  async updateAppointmentStatus(id: string, newStatus: AppointmentStatus) {
     return await this.appointmentsRepository.updateAppointmentStatus(
       id,
       newStatus,

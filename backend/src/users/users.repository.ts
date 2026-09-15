@@ -124,6 +124,22 @@ export class UsersRepository {
     return filteredUser;
   }
 
+  // Función para actualizar la contraseña encriptada del usuario en la base de datos.
+  // Recibe la contraseña ya cifrada con bcrypt
+  // comentado por: Jose-dev
+  async updatePassword(id: string, hashedPassword: string): Promise<string> {
+    const userToUpdate = await this.ormUsersRepository.findOneBy({ id });
+
+    if (!userToUpdate) {
+      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
+    }
+
+    userToUpdate.password_hash = hashedPassword;
+    await this.ormUsersRepository.save(userToUpdate);
+
+    return 'Contraseña actualizada correctamente';
+  }
+
   async removeUser(id: string): Promise<string> {
     const userToRemove = await this.ormUsersRepository.findOneBy({ id });
     if (!userToRemove) {

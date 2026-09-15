@@ -24,6 +24,10 @@ import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-o
     AvailabilityModule,
   ],
   controllers: [AppointmentsController],
-  providers: [AppointmentsService, AppointmentsRepository, AppointmentOwnerOrAdminGuard],
+  providers: [
+    AppointmentsService,
+    AppointmentsRepository,
+    AppointmentOwnerOrAdminGuard,
+  ],
 })
 export class AppointmentsModule {}

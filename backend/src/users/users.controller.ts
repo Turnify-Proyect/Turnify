@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Put,
+  Patch,
   Param,
   Delete,
   Query,
@@ -13,6 +14,7 @@ import {
 import { UsersService } from './users.service';
 
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '../decorators/roles.decorators';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -25,7 +27,7 @@ import {
   ApiParam,
   ApiOperation,
 } from '@nestjs/swagger';
-import { UserOwnerOrAdminGuard } from 'src/auth/guards/user-owner-or-admin.guard';
+import { UserOwnerOrAdminGuard } from '../auth/guards/user-owner-or-admin.guard';
 
 @Controller('users')
 export class UsersController {
@@ -74,7 +76,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Obtener el perfil del usuario autenticado',
     description:
-    'Devuelve los datos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
+      'Devuelve los datos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
   })
   @ApiResponse({
     status: 200,
@@ -140,6 +142,43 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.updateUser(id, updateUserDto);
+  }
+
+  // Endpoint solo para el cambio de contraseña de usuario.
+  // Utiliza UserOwnerOrAdminGuard para permitir que un cliente actualice su propia clave
+
+  @Patch(':id/password')
+  @Roles(UserRole.CLIENT, UserRole.ADMIN, UserRole.PROFESSIONAL)
+  @UseGuards(AuthGuard, RolesGuard, UserOwnerOrAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Cambiar contraseña de usuario',
+    description:
+      'Permite a un usuario autenticado o a un administrador actualizar la contraseña de la cuenta.',
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del usuario a cambiar contraseña',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada correctamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La contraseña no cumple con los requisitos de fortaleza',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para modificar esta cuenta',
+  })
+  changePassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(id, changePasswordDto);
   }
 
   @Delete(':id')

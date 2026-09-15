@@ -16,7 +16,12 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
 
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { Roles } from '../decorators/roles.decorators';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -39,12 +44,8 @@ export class AppointmentsController {
     status: 403,
     description: 'Error para crear la cita',
   })
-  createAppointment(
-    @Body() createAppointmentDto: CreateAppointmentDto,
-  ) {
-    return this.appointmentsService.createAppointment(
-      createAppointmentDto,
-    );
+  createAppointment(@Body() createAppointmentDto: CreateAppointmentDto) {
+    return this.appointmentsService.createAppointment(createAppointmentDto);
   }
 
   @Get()
@@ -63,16 +64,15 @@ export class AppointmentsController {
     return this.appointmentsService.getAllAppointments();
   }
 
-
   @Get('me')
   @Roles(UserRole.CLIENT)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
-      summary: 'Obtener los turnos del usuario autenticado',
-      description:
+    summary: 'Obtener los turnos del usuario autenticado',
+    description:
       'Devuelve la lista de turnos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
-    })
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de turnos del usuario autenticado',
@@ -82,9 +82,7 @@ export class AppointmentsController {
     description: 'Token no enviado, inválido o expirado',
   })
   getMyAppointments(@Req() req: any) {
-    return this.appointmentsService.getAppointmentsByUserId(
-      req.user.id,
-    );
+    return this.appointmentsService.getAppointmentsByUserId(req.user.id);
   }
 
   @Get(':id')
@@ -109,16 +107,12 @@ export class AppointmentsController {
     status: 404,
     description: 'Cita no encontrada',
   })
-  getAppointmentById(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  getAppointmentById(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.getAppointmentById(id);
   }
 
   @Get('user/:userId')
-  getAppointmentsByUserId(
-    @Param('userId', ParseUUIDPipe) userId: string,
-  ) {
+  getAppointmentsByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.appointmentsService.getAppointmentsByUserId(userId);
   }
 
@@ -133,15 +127,12 @@ export class AppointmentsController {
 
   @Patch(':id/cancel')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
-  @UseGuards(
-    AuthGuard,
-    RolesGuard,
-    AppointmentOwnerOrAdminGuard,
-  )
+  @UseGuards(AuthGuard, RolesGuard, AppointmentOwnerOrAdminGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Cancelar un turno',
-    description: 'Permite cancelar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.',
+    description:
+      'Permite cancelar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.',
   })
   @ApiParam({
     name: 'id',
@@ -161,17 +152,13 @@ export class AppointmentsController {
     status: 404,
     description: 'Turno no encontrado',
   })
-  cancelAppointment(@Param('id', ParseUUIDPipe) id: string,) {
+  cancelAppointment(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.cancelAppointment(id);
   }
 
   @Put(':id/reschedule')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
-  @UseGuards(
-    AuthGuard,
-    RolesGuard,
-    AppointmentOwnerOrAdminGuard,
-  )
+  @UseGuards(AuthGuard, RolesGuard, AppointmentOwnerOrAdminGuard)
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -181,7 +168,8 @@ export class AppointmentsController {
   })
   @ApiOperation({
     summary: 'Reprogramar un turno',
-    description: 'Permite reprogramar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.', 
+    description:
+      'Permite reprogramar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.',
   })
   @ApiResponse({
     status: 200,
@@ -206,9 +194,7 @@ export class AppointmentsController {
   }
 
   @Patch(':id/complete')
-  completeAppointment(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  completeAppointment(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.completeAppointment(id);
   }
 
@@ -217,9 +203,6 @@ export class AppointmentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') newStatus: AppointmentStatus,
   ) {
-    return this.appointmentsService.updateAppointmentStatus(
-      id,
-      newStatus,
-    );
+    return this.appointmentsService.updateAppointmentStatus(id, newStatus);
   }
 }

@@ -23,7 +23,7 @@ export class Service {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({type: "enum", enum: ServiceCategory})
+  @Column({ type: 'enum', enum: ServiceCategory })
   category!: ServiceCategory;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
