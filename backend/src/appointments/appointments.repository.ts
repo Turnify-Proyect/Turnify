@@ -324,7 +324,7 @@ export class AppointmentsRepository {
     return this.appointmentsRepository.save(appointment);
   }
 
-  //todos los turnos (ADMIN)
+  // todos los turnos (ADMIN)
   async getAllAppointments(): Promise<Appointment[]> {
     await this.expirePendingAppointments();
 
@@ -335,7 +335,16 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El pago ya no pertenece directamente al Appointment.
+        // Ahora se accede mediante:
+        // Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
       order: {
         startAt: 'ASC',
@@ -343,7 +352,7 @@ export class AppointmentsRepository {
     });
   }
 
-  //turno por ID
+  // turno por ID
   async getAppointmentById(id: string): Promise<Appointment> {
     await this.expirePendingAppointments();
 
@@ -355,7 +364,16 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El Payment ya no pertenece directamente al Appointment.
+        // Ahora se obtiene mediante:
+        // Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
     });
 
@@ -366,7 +384,7 @@ export class AppointmentsRepository {
     return appointment;
   }
 
-  //turnos por ID de usuario
+  // turnos por ID de usuario
   async getAppointmentsByUserId(userId: string): Promise<Appointment[]> {
     await this.expirePendingAppointments();
 
@@ -391,7 +409,15 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El Payment ahora pertenece a la Order.
+        // Ruta: Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
       order: {
         startAt: 'ASC',
@@ -399,7 +425,7 @@ export class AppointmentsRepository {
     });
   }
 
-  //turnos por ID de profesional
+  // turnos por ID de profesional
   async getAppointmentsByProfessionalId(
     professionalId: string,
   ): Promise<Appointment[]> {
@@ -426,7 +452,16 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El Payment ya no pertenece directamente al Appointment.
+        // Ahora se accede mediante:
+        // Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
       order: {
         startAt: 'ASC',
@@ -434,7 +469,7 @@ export class AppointmentsRepository {
     });
   }
 
-  //cancelación de turno
+  // cancelación de turno
   async cancelAppointment(id: string): Promise<string> {
     await this.expirePendingAppointments();
 
@@ -446,7 +481,15 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El Payment ahora pertenece a la Order.
+        // Ruta: Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
     });
 
@@ -469,7 +512,9 @@ export class AppointmentsRepository {
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.expiresAt = null;
 
-    this.appointmentsRepository.save(appointment);
+    // agregué el await ya que save() es asincrono
+    //comentado por Lautaro-dev
+    await this.appointmentsRepository.save(appointment);
 
     return 'El turno ha sido cancelado exitosamente';
   }
@@ -627,7 +672,7 @@ export class AppointmentsRepository {
     return this.appointmentsRepository.save(appointment);
   }
 
-  //marcar turno como 'completado' (DESDE EL PANEL DEL PROFESIONAL)
+  // marcar turno como 'completado' (DESDE EL PANEL DEL PROFESIONAL)
   async completeAppointment(id: string): Promise<Appointment> {
     await this.expirePendingAppointments();
 
@@ -639,7 +684,16 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El Payment ya no pertenece directamente al Appointment.
+        // Ahora se accede mediante:
+        // Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
     });
 
@@ -662,6 +716,7 @@ export class AppointmentsRepository {
     }
 
     appointment.status = AppointmentStatus.COMPLETED;
+
     return this.appointmentsRepository.save(appointment);
   }
 
@@ -711,7 +766,15 @@ export class AppointmentsRepository {
           user: true,
         },
         service: true,
-        payment: true,
+
+        // El Payment ahora pertenece a la Order.
+        // Ruta: Appointment -> OrderDetail -> Order -> Payment
+        //comentado por Lautaro-dev
+        orderDetail: {
+          order: {
+            payment: true,
+          },
+        },
       },
     });
 

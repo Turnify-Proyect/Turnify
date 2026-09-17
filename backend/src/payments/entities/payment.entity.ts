@@ -5,7 +5,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Appointment } from '../../appointments/entities/appointment.entity';
+import { Order } from '../../orders/entities/order.entity';
 
 export enum PaymentStatus {
   PENDING = 'pending',
@@ -19,11 +19,12 @@ export class Payment {
   @PrimaryGeneratedColumn('uuid', { name: 'payment_id' })
   id!: string;
 
-  @OneToOne(() => Appointment, (appointment) => appointment.payment, {
+  @OneToOne(() => Order, (order) => order.payment, {
     nullable: false,
+    onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'appointment_id' })
-  appointment!: Appointment;
+  @JoinColumn({ name: 'order_id' })
+  order!: Order;
 
   @Column({ type: 'varchar', length: 50, nullable: false })
   provider!: string;
