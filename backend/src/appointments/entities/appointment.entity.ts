@@ -4,13 +4,13 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Payment } from '../../payments/entities/payment.entity';
+
 import { Professional } from '../../professionals/entities/professional.entity';
 import { Service } from '../../services/entities/service.entity';
 import { User } from '../../users/entities/user.entity';
+import { OrderDetail } from 'src/orders/entities/order-detail.entity';
 
 export enum AppointmentStatus {
   PENDING = 'pending',
@@ -41,6 +41,13 @@ export class Appointment {
   @JoinColumn({ name: 'service_id' })
   service!: Service;
 
+  @ManyToOne(() => OrderDetail, (orderDetail) => orderDetail.appointments, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'order_detail_id' })
+  orderDetail!: OrderDetail;
+
   @Column({ name: 'start_at', type: 'timestamptz', nullable: false })
   startAt!: Date;
 
@@ -62,7 +69,4 @@ export class Appointment {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
-
-  @OneToOne(() => Payment, (payment) => payment.appointment)
-  payment!: Payment | null;
 }

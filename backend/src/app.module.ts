@@ -13,6 +13,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { env } from './config/env';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { env } from './config/env';
       secret: env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
