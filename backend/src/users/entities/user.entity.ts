@@ -9,6 +9,7 @@ import { Appointment } from '../../appointments/entities/appointment.entity';
 import { Professional } from '../../professionals/entities/professional.entity';
 import { UserRole } from '../../common/userRoles.enum';
 import { AuthProvider } from '../../common/authProvider.enum';
+import { EmailVerificationToken } from '../../email-verification/entities/email-verification-token.entity';
 
 @Entity({ name: 'USERS' })
 export class User {
@@ -20,6 +21,16 @@ export class User {
 
   @Column({ unique: true, type: 'varchar', length: 50, nullable: false })
   email!: string;
+
+  // Indica si el usuario demostró tener acceso al correo registrado.
+  // Los usuarios locales comienzan sin verificar hasta confirmar el email.
+  // comentado por: Lautaro-dev
+  @Column({
+    name: 'is_email_verified',
+    type: 'boolean',
+    default: false,
+  })
+  isEmailVerified!: boolean;
 
   // Cambié nullable: true porque los usuarios autenticados mediante un proveedor externo (por ejemplo Google) pueden no tener una contraseña local almacenada en Turnify.
   //coemntado por:Lautaro-dev
@@ -83,4 +94,10 @@ export class User {
 
   @OneToOne(() => Professional, (professional) => professional.user)
   professionalProfile!: Professional | null;
+
+  @OneToMany(
+    () => EmailVerificationToken,
+    (verificationToken) => verificationToken.user,
+  )
+  emailVerificationTokens!: EmailVerificationToken[];
 }

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserData } from './types/create-user-data.type';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -63,12 +63,16 @@ export class UsersRepository {
 
   // Omiti 'confirmPassword' del CreateUserDto ya que no tiene que llegar al repositorio como informacion
   //coemntado por:Lautaro-dev
+
+  // Ahora recibe los datos internos ya procesados por el backend para crear un usuario.
+  // No utiliza CreateUserDto porque ese DTO representa los datos permitidos
+  // desde una petición HTTP, mientras que CreateUserData también puede contener
+  // información interna como authProvider, providerId y password_hash.
+  // comentado por: Lautaro-dev
   async createUser(
-    createUserDto: Omit<CreateUserDto, 'password' | 'confirmPassword'> & {
-      password_hash: string;
-    },
+    createUserData: CreateUserData,
   ): Promise<Omit<User, 'password_hash' | 'role'>> {
-    const newUser = this.ormUsersRepository.create(createUserDto);
+    const newUser = this.ormUsersRepository.create(createUserData);
 
     await this.ormUsersRepository.save(newUser);
 
