@@ -10,7 +10,6 @@ import {
   Validate,
 } from 'class-validator';
 import { MatchPassword } from '../../decorators/matchPassword.decorator';
-import { AuthProvider } from 'src/common/authProvider.enum';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -115,20 +114,6 @@ export class CreateUserDto {
   @MinLength(5, { message: 'Ciudad de al menos 5 caracteres' })
   @MaxLength(20, { message: 'Ciudad de no mas de 20 caracteres' })
   city?: string;
-
-  @ApiPropertyOptional({
-    description: 'Proveedor de autenticación del usuario (local, google, facebook)',
-    example: AuthProvider.GOOGLE,
-  })
-  @IsOptional()
-  authProvider?: AuthProvider;
-
-  @ApiPropertyOptional({
-    description: 'ID del usuario en el proveedor externo (Google, Facebook, etc.)',
-  })
-  @IsOptional()
-  @IsString({ message: 'providerId debe ser un string' })
-  providerId?: string;
 }
 
 export class LoginUserDto {

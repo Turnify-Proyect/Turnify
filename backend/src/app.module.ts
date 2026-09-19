@@ -14,6 +14,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { env } from './config/env';
 import { OrdersModule } from './orders/orders.module';
+import { EmailVerificationModule } from './email-verification/email-verification.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { OrdersModule } from './orders/orders.module';
       signOptions: { expiresIn: '1h' },
     }),
     OrdersModule,
+    EmailVerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

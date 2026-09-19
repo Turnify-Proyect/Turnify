@@ -9,12 +9,14 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { OAuth2Client } from 'google-auth-library';
 import { AuthProvider } from '../common/authProvider.enum';
+import { EmailVerificationService } from '../email-verification/email-verification.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   getAuth(): string {
@@ -91,15 +93,44 @@ export class AuthService {
     // comentado por: Lautaro-dev
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    return this.usersRepository.createUser({
+    // El usuario debe crearse primero porque necesitamos su id para asociar
+    // el token de verificación mediante la FK user_id.
+    // comentado por: Lautaro-dev
+    const createdUser = await this.usersRepository.createUser({
       ...userData,
       email,
       phone,
-
-      //aqui es renombrada como "password_hash"
-      // comentado por: Lautaro-dev
       password_hash: hashedPassword,
+
+      // El proveedor de autenticación lo determina el backend según
+      // el flujo utilizado. Como este método corresponde al registro
+      // tradicional con email y contraseña, el proveedor siempre es LOCAL.
+      // comentado por: Lautaro-dev
+      authProvider: AuthProvider.LOCAL,
+
+      // Los usuarios locales no tienen un identificador perteneciente
+      // a un proveedor externo como Google o Facebook.
+      // comentado por: Lautaro-dev
+      providerId: null,
     });
+
+    // Genera un token temporal de verificación asociado al usuario recién creado.
+    // El método guarda únicamente el hash en la DB y devuelve el token original.
+    // comentado por: Lautaro-dev
+    const verificationToken =
+      await this.emailVerificationService.createVerificationToken(
+        createdUser.id,
+      );
+
+    // TEMPORAL:
+    // El token original se devuelve únicamente mientras desarrollamos y probamos
+    // el flujo de verificación. Cuando Nodemailer esté implementado,
+    // este token se enviará por correo y dejará de exponerse en la respuesta.
+    // comentado por: Lautaro-de
+    return {
+      user: createdUser,
+      verificationToken,
+    };
   }
 
   private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -181,11 +212,13 @@ export class AuthService {
       providerId: decoded.providerId,
     });
 
-    const createdUser = await this.usersRepository.getUserByEmail(decoded.email);
+    const createdUser = await this.usersRepository.getUserByEmail(
+      decoded.email,
+    );
 
-      if (!createdUser) {
-        throw new UnauthorizedException('Error al crear el usuario');
-      }
+    if (!createdUser) {
+      throw new UnauthorizedException('Error al crear el usuario');
+    }
 
     const jwtPayload = { id: createdUser.id, roles: [createdUser.role] };
     const token = this.jwtService.sign(jwtPayload);
