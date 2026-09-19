@@ -117,7 +117,7 @@ export class ProfessionalsRepository {
   async updateProfessional(
     id: string,
     updateProfessionalDto: UpdateProfessionalDto,
-  ): Promise<string> {
+  ): Promise<{ message: string }> {
     const professionalExists = await this.professionalsrepository.findOne({
       where: { id },
     });
@@ -129,10 +129,14 @@ export class ProfessionalsRepository {
 
     await this.professionalsrepository.update(id, updateProfessionalDto);
 
-    return 'Profesional actualizado correctamente';
+    return {
+      message: 'Profesional actualizado exitosamente',
+      
+    };
+
   }
 
-  async softDeleteProfessional(id: string): Promise<string> {
+  async softDeleteProfessional(id: string): Promise<{ message: string }> {
     const professionalExists = await this.professionalsrepository.findOne({
       where: { id },
     });
@@ -143,10 +147,10 @@ export class ProfessionalsRepository {
     }
 
     await this.professionalsrepository.update(id, { isActive: false });
-    return 'Profesional eliminado correctamente';
+    return { message: 'Profesional eliminado correctamente'};
   }
 
-  async activateProfessional(id: string): Promise<string> {
+  async activateProfessional(id: string): Promise<{ message: string }> {
     const professionalExists = await this.professionalsrepository.findOne({
       where: { id },
     });
@@ -161,7 +165,7 @@ export class ProfessionalsRepository {
     }
 
     await this.professionalsrepository.update(id, { isActive: true });
-    return 'Profesional activado correctamente';
+    return {message: 'Profesional activado correctamente'};
   }
 
   async associateService(

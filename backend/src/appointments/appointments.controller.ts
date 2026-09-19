@@ -194,11 +194,17 @@ export class AppointmentsController {
   }
 
   @Patch(':id/complete')
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
   completeAppointment(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.completeAppointment(id);
   }
 
   @Patch(':id/status')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
   updateAppointmentStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') newStatus: AppointmentStatus,
