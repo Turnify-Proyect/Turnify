@@ -250,7 +250,7 @@ export class ProfessionalsRepository {
   async removeServiceFromProfessional(
     professionalId: string,
     serviceId: string,
-  ): Promise<string> {
+  ): Promise<{message: string}> {
     const professional = await this.professionalsrepository.findOne({
       where: { id: professionalId },
     });
@@ -286,6 +286,8 @@ export class ProfessionalsRepository {
 
     await this.professionalServicesRepository.remove(association);
 
-    return 'Servicio eliminado del profesional correctamente';
+    return {
+      message: "Servicio desvinculado del profesional exitosamente",
+    };
   }
 }
