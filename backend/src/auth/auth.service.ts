@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -43,6 +44,16 @@ export class AuthService {
     if (!validPassword_hash) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
+
+    // Aunque las credenciales sean correctas, los usuarios registrados
+    // localmente deben confirmar su correo antes de poder iniciar sesión.
+    // comentado por: Lautaro-dev
+    if (!foundUser.isEmailVerified) {
+      throw new ForbiddenException(
+        'Debes verificar tu correo electrónico antes de iniciar sesión',
+      );
+    }
+
     //payload.roles tiene que contener un [foundUser.role] ya que eso espera roles.guard, pensando en escalabilidad
     //coemntado por:Lautaro-dev
     //cambié la identacion "Roles" por "roles"
@@ -147,13 +158,50 @@ export class AuthService {
       throw new UnauthorizedException('Token de Google inválido');
     }
 
+    // Google informa mediante email_verified si ya comprobó que el usuario
+    // tiene acceso al correo asociado a la cuenta.
+    // Solo permitimos continuar con la autenticación si Google lo confirmó.
+    // comentado por: Lautaro-dev
+    if (!payload.email_verified) {
+      throw new UnauthorizedException(
+        'El correo asociado a la cuenta de Google no está verificado',
+      );
+    }
+
     const foundUser = await this.usersRepository.getUserByEmail(payload.email);
 
     // Si el usuario ya existe, lo logueamos directo
     if (foundUser) {
-      const jwtPayload = { id: foundUser.id, roles: foundUser.roles };
+      // Si ya existe una cuenta con ese email pero fue creada mediante
+      // autenticación local, no se vincula automáticamente con Google.
+      // La vinculación de proveedores debe ser un proceso explícito.
+      // comentado por: Lautaro-dev
+      if (foundUser.authProvider !== AuthProvider.GOOGLE) {
+        throw new ConflictException(
+          'Este email ya está registrado mediante autenticación local',
+        );
+      }
+
+      // Para una cuenta Google existente, verificamos además que el
+      // identificador de Google coincida con el almacenado originalmente.
+      // comentado por: Lautaro-dev
+      if (foundUser.providerId !== payload.sub) {
+        throw new UnauthorizedException(
+          'La cuenta de Google no coincide con el usuario registrado',
+        );
+      }
+
+      const jwtPayload = {
+        id: foundUser.id,
+        roles: foundUser.roles,
+      };
+
       const token = this.jwtService.sign(jwtPayload);
-      return { message: 'Usuario logueado con Google', token };
+
+      return {
+        message: 'Usuario logueado con Google',
+        token,
+      };
     }
 
     // Si es un usuario nuevo, todavía no lo creamos: falta el teléfono.
@@ -207,9 +255,23 @@ export class AuthService {
       country: country || undefined,
       address: address || undefined,
       city: city || undefined,
-      password_hash: '',
+
+      // Los usuarios autenticados mediante Google no utilizan
+      // una contraseña local dentro de Turnify.
+      // comentado por: Lautaro-dev
+      password_hash: null,
+
+      // Este flujo corresponde específicamente al registro mediante Google,
+      // por lo tanto el proveedor lo determina el backend.
+      // comentado por: Lautaro-dev
       authProvider: AuthProvider.GOOGLE,
+
       providerId: decoded.providerId,
+
+      // El correo ya fue validado mediante el flujo de autenticación de Google,
+      // por lo que no necesita pasar por la verificación de email de Turnify.
+      // comentado por: Lautaro-dev
+      isEmailVerified: true,
     });
 
     const createdUser = await this.usersRepository.getUserByEmail(
@@ -220,7 +282,7 @@ export class AuthService {
       throw new UnauthorizedException('Error al crear el usuario');
     }
 
-    const jwtPayload = { id: createdUser.id,  roles: createdUser.roles };
+    const jwtPayload = { id: createdUser.id, roles: createdUser.roles };
     const token = this.jwtService.sign(jwtPayload);
     return { message: 'Usuario registrado con Google', token };
   }
