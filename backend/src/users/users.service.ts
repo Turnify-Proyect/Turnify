@@ -3,13 +3,30 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersRepository } from './users.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
+import { UserRole } from 'src/common/userRoles.enum';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  getAllUsers(validPage: number, validLimit: number) {
-    return this.usersRepository.getAllUsers(validPage, validLimit);
+  //getAllUsers(validPage: number, validLimit: number) {
+  //  return this.usersRepository.getAllUsers(validPage, validLimit);
+  //}
+
+  getAllUsers(
+    page: number,
+    limit: number,
+    search?: string,
+    role?: UserRole,
+    isActive?: boolean,
+  ) {
+    return this.usersRepository.getAllUsers(
+      page,
+      limit,
+      search,
+      role,
+      isActive,
+    );
   }
 
   getUserById(id: string) {
@@ -39,4 +56,8 @@ export class UsersService {
   removeUser(id: string) {
     return this.usersRepository.removeUser(id);
   }
+
+  activateUser(id: string) {
+  return this.usersRepository.activateUser(id);
+}
 }

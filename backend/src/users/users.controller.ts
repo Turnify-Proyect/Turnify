@@ -49,6 +49,25 @@ export class UsersController {
     type: String,
     description: 'Usuarios por pagina',
   })
+  @ApiQuery({
+  name: 'search',
+  required: false,
+  type: String,
+  description: 'Buscar usuario por nombre o email',
+  })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: UserRole,
+    description: 'Filtrar usuarios por rol',
+  })
+
+  @ApiQuery({
+  name: 'isActive',
+  required: false,
+  type: Boolean,
+  description: 'Filtrar usuarios por estado activo o inactivo',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios',
@@ -60,13 +79,22 @@ export class UsersController {
   getAllUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: UserRole,
+    @Query('isActive') isActive?: string,
   ): any {
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const validPage = !isNaN(pageNum) && pageNum > 0 ? pageNum : 1;
     const validLimit = !isNaN(limitNum) && limitNum > 0 ? limitNum : 5;
+    const validIsActive =
+      isActive === 'true'
+        ? true
+        : isActive === 'false'
+          ? false
+          : undefined;
 
-    return this.usersService.getAllUsers(validPage, validLimit);
+    return this.usersService.getAllUsers(validPage, validLimit, search, role, validIsActive,);
   }
 
   // Endpoint para que el usuario pueda ver su propio perfil, sin necesidad de ser admin, solo con estar autenticado
@@ -201,5 +229,33 @@ export class UsersController {
   })
   removeUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.removeUser(id);
+  }
+
+  @Put(':id/activate')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del usuario a activar',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario activado exitosamente',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario ya se encuentra activo',
+  })
+  activateUser(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.usersService.activateUser(id);
   }
 }
