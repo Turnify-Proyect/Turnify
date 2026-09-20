@@ -55,6 +55,9 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.CLIENT })
   role!: UserRole;
 
+  @Column({name: 'is_active', type: 'boolean',default: true,})
+  isActive!: boolean;
+
   @Column({
     name: 'auth_provider',
     type: 'enum',
