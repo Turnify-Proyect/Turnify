@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { createHash, randomBytes } from 'crypto';
 import { EmailVerificationToken } from './entities/email-verification-token.entity';
-import { User } from '../users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class EmailVerificationService {
