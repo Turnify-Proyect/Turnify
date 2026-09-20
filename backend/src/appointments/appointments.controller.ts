@@ -112,7 +112,12 @@ export class AppointmentsController {
   }
 
   @Get('user/:userId')
-  getAppointmentsByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  getAppointmentsByUserId(
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
     return this.appointmentsService.getAppointmentsByUserId(userId);
   }
 
