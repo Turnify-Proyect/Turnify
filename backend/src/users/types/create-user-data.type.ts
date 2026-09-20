@@ -15,4 +15,5 @@ export type CreateUserData = {
   authProvider?: AuthProvider;
   providerId?: string | null;
 
+  isEmailVerified?: boolean;
 };
