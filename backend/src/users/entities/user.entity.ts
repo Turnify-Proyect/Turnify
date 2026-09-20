@@ -9,7 +9,7 @@ import { Appointment } from '../../appointments/entities/appointment.entity';
 import { Professional } from '../../professionals/entities/professional.entity';
 import { UserRole } from '../../common/userRoles.enum';
 import { AuthProvider } from '../../common/authProvider.enum';
-import { EmailVerificationToken } from '../../email-verification/entities/email-verification-token.entity';
+import { EmailVerificationToken } from '../../auth/email-verification/entities/email-verification-token.entity';
 
 @Entity({ name: 'USERS' })
 export class User {
@@ -52,10 +52,15 @@ export class User {
   })
   phone!: string;
 
-  @Column({type: 'enum', enum: UserRole, array: true, default: [UserRole.CLIENT],})
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    array: true,
+    default: [UserRole.CLIENT],
+  })
   roles!: UserRole[];
 
-  @Column({name: 'is_active', type: 'boolean',default: true,})
+  @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive!: boolean;
 
   @Column({

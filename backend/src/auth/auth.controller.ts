@@ -9,6 +9,7 @@ import {
 import { AuthService } from './auth.service';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CreateUserDto, LoginUserDto } from 'src/users/dto/create-user.dto';
+import { VerifyEmailDto } from './email-verification/dto/verify-email.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -89,5 +90,25 @@ export class AuthController {
       address,
       city,
     );
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'Email verificado correctamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido, expirado o ya utilizado',
+  })
+  async verifyEmail(
+    @Body() verifyEmailDto: VerifyEmailDto,
+  ): Promise<{ message: string }> {
+    await this.authService.verifyEmail(verifyEmailDto.token);
+
+    return {
+      message: 'Email verificado correctamente',
+    };
   }
 }

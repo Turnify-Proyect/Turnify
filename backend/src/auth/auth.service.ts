@@ -10,7 +10,8 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { OAuth2Client } from 'google-auth-library';
 import { AuthProvider } from '../common/authProvider.enum';
-import { EmailVerificationService } from '../email-verification/email-verification.service';
+import { EmailVerificationService } from './email-verification/email-verification.service';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly mailService: MailService,
   ) {}
 
   getAuth(): string {
@@ -126,21 +128,23 @@ export class AuthService {
     });
 
     // Genera un token temporal de verificación asociado al usuario recién creado.
-    // El método guarda únicamente el hash en la DB y devuelve el token original.
+    // El hash queda almacenado en la base de datos y el token original
+    // se utiliza únicamente para enviarlo al correo del usuario.
     // comentado por: Lautaro-dev
     const verificationToken =
       await this.emailVerificationService.createVerificationToken(
         createdUser.id,
       );
 
-    // TEMPORAL:
-    // El token original se devuelve únicamente mientras desarrollamos y probamos
-    // el flujo de verificación. Cuando Nodemailer esté implementado,
-    // este token se enviará por correo y dejará de exponerse en la respuesta.
-    // comentado por: Lautaro-de
+    // Envía al correo del usuario el enlace que contiene el token original.
+    // El token ya no se expone en la respuesta HTTP del registro.
+    // comentado por: Lautaro-dev
+    await this.mailService.sendVerificationEmail(email, verificationToken);
+
     return {
+      message:
+        'Usuario registrado correctamente. Revisá tu correo para verificar la cuenta.',
       user: createdUser,
-      verificationToken,
     };
   }
 
@@ -285,5 +289,13 @@ export class AuthService {
     const jwtPayload = { id: createdUser.id, roles: createdUser.roles };
     const token = this.jwtService.sign(jwtPayload);
     return { message: 'Usuario registrado con Google', token };
+  }
+
+  // Delega la verificación del correo al servicio especializado.
+  // AuthService expone esta operación como parte del flujo de autenticación,
+  // mientras EmailVerificationService mantiene toda la lógica de tokens.
+  // comentado por: Lautaro-dev
+  async verifyEmail(token: string): Promise<void> {
+    await this.emailVerificationService.verifyEmail(token);
   }
 }
