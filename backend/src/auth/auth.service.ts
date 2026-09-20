@@ -51,7 +51,7 @@ export class AuthService {
     //coemntado por:Lautaro-dev
     const payload = {
       id: foundUser.id,
-      roles: [foundUser.role],
+      roles: foundUser.roles,
     };
     const token = this.jwtService.sign(payload);
     return {
@@ -151,7 +151,7 @@ export class AuthService {
 
     // Si el usuario ya existe, lo logueamos directo
     if (foundUser) {
-      const jwtPayload = { id: foundUser.id, roles: [foundUser.role] };
+      const jwtPayload = { id: foundUser.id, roles: foundUser.roles };
       const token = this.jwtService.sign(jwtPayload);
       return { message: 'Usuario logueado con Google', token };
     }
@@ -220,7 +220,7 @@ export class AuthService {
       throw new UnauthorizedException('Error al crear el usuario');
     }
 
-    const jwtPayload = { id: createdUser.id, roles: [createdUser.role] };
+    const jwtPayload = { id: createdUser.id,  roles: createdUser.roles };
     const token = this.jwtService.sign(jwtPayload);
     return { message: 'Usuario registrado con Google', token };
   }

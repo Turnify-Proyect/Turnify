@@ -52,8 +52,8 @@ export class User {
   })
   phone!: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.CLIENT })
-  role!: UserRole;
+  @Column({type: 'enum', enum: UserRole, array: true, default: [UserRole.CLIENT],})
+  roles!: UserRole[];
 
   @Column({name: 'is_active', type: 'boolean',default: true,})
   isActive!: boolean;

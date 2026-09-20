@@ -162,8 +162,8 @@ export class AppointmentsRepository {
   }
 
   //valida si el usuario tiene rol de cliente
-  private validateUserRole(user: User): void {
-    if (user.role !== UserRole.CLIENT) {
+    private validateUserRole(user: User): void {
+    if (!user.roles.includes(UserRole.CLIENT)) {
       throw new ConflictException(
         'Solo los usuarios con rol de cliente pueden realizar reservas',
       );

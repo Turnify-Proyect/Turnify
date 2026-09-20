@@ -1,4 +1,5 @@
 import { AuthProvider } from 'src/common/authProvider.enum';
+import { UserRole } from 'src/common/userRoles.enum';
 
 export type CreateUserData = {
   name: string;
@@ -9,7 +10,9 @@ export type CreateUserData = {
   country?: string;
   address?: string;
   city?: string;
+  roles?: UserRole[];
 
   authProvider?: AuthProvider;
   providerId?: string | null;
+
 };

@@ -11,6 +11,7 @@ import { UpdateProfessionalDto } from './dto/update-professional.dto';
 import { User } from 'src/users/entities/user.entity';
 import { ProfessionalService } from './entities/professional-service.entity';
 import { Service } from 'src/services/entities/service.entity';
+import { UserRole } from 'src/common/userRoles.enum';
 
 @Injectable()
 export class ProfessionalsRepository {
@@ -74,26 +75,20 @@ export class ProfessionalsRepository {
   }
 
   async createProfessional(
-    createProfessionalDto: CreateProfessionalDto,
-  ): Promise<Professional> {
-    const user = await this.usersrepository.findOne({
-      where: { id: createProfessionalDto.userId },
-    });
+  createProfessionalDto: CreateProfessionalDto,
+): Promise<Professional> {
+  const user = await this.usersrepository.findOne({
+    where: { id: createProfessionalDto.userId },
+  });
 
-    if (!user) {
-      throw new NotFoundException(
-        'No existe un usuario con el ID proporcionado',
-      );
-    }
-    console.log(user.role);
+  if (!user) {
+    throw new NotFoundException(
+      'No existe un usuario con el ID proporcionado',
+    );
+  }
 
-    if (user.role !== 'professional') {
-      throw new ConflictException(
-        'El usuario no tiene rol de profesional, no se puede crear un perfil de profesional para este usuario',
-      );
-    }
-
-    const existingProfessional = await this.professionalsrepository.findOne({
+  const existingProfessional =
+    await this.professionalsrepository.findOne({
       where: {
         user: {
           id: createProfessionalDto.userId,
@@ -101,18 +96,39 @@ export class ProfessionalsRepository {
       },
     });
 
-    if (existingProfessional) {
-      throw new ConflictException('Ya existe un profesional para este usuario');
-    }
+  if (existingProfessional) {
+    throw new ConflictException(
+      'Ya existe un profesional para este usuario',
+    );
+  }
 
-    const professional = this.professionalsrepository.create({
+  const professional =
+    this.professionalsrepository.create({
       specialty: createProfessionalDto.specialty,
       user: {
         id: createProfessionalDto.userId,
       },
     });
-    return this.professionalsrepository.save(professional);
+
+  const savedProfessional =
+    await this.professionalsrepository.save(
+      professional,
+    );
+
+  // Al convertirse en profesional deja de ser cliente.
+  // Si también era admin, conserva ese rol.
+  user.roles = user.roles.filter(
+    (role) => role !== UserRole.CLIENT,
+  );
+
+  if (!user.roles.includes(UserRole.PROFESSIONAL)) {
+    user.roles.push(UserRole.PROFESSIONAL);
   }
+
+  await this.usersrepository.save(user);
+
+  return savedProfessional;
+}
 
   async updateProfessional(
     id: string,
