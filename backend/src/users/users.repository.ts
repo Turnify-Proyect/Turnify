@@ -63,7 +63,9 @@ export class UsersRepository {
     }
 
     if (role) {
-      query.andWhere('user.role = :role', { role });
+      query.andWhere(':role = ANY(user.roles)', {
+        role,
+      });
     }
 
     if (isActive !== undefined) {
@@ -144,62 +146,77 @@ export class UsersRepository {
   // comentado por: Lautaro-dev
   async createUser(
     createUserData: CreateUserData,
-  ): Promise<Omit<User, 'password_hash' | 'role'>> {
-    const newUser = this.ormUsersRepository.create(createUserData);
-
+  ): Promise<Omit<User, 'password_hash'>> {
+    const newUser =
+      this.ormUsersRepository.create(createUserData);
+  
     await this.ormUsersRepository.save(newUser);
-
-    const { password_hash, role, ...filteredUser } = newUser;
-
+  
+    const { password_hash, ...filteredUser } = newUser;
+  
     return filteredUser;
   }
+  
 
   async updateUser(
-    id: string,
-    updateUserDto: UpdateUserDto,
-  ): Promise<Omit<User, 'password_hash' | 'role'>> {
-    const userToUpdate = await this.ormUsersRepository.findOneBy({ id });
+  id: string,
+  updateUserDto: UpdateUserDto,
+): Promise<Omit<User, 'password_hash'>> {
+  const userToUpdate =
+    await this.ormUsersRepository.findOneBy({ id });
 
-    if (!userToUpdate) {
-      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
-    }
+  if (!userToUpdate) {
+    throw new NotFoundException(
+      `No se encontro el usuario con el id ${id}`,
+    );
+  }
 
-    // Si se intenta modificar el email, verifica que no pertenezca
-    // a otro usuario antes de actualizar para evitar un error UNIQUE de la DB.
-    //coemntado por:Lautaro-dev
-    if (updateUserDto.email) {
-      const userWithEmail = await this.ormUsersRepository.findOneBy({
+  if (updateUserDto.email) {
+    const userWithEmail =
+      await this.ormUsersRepository.findOneBy({
         email: updateUserDto.email,
       });
 
-      if (userWithEmail && userWithEmail.id !== id) {
-        throw new ConflictException('El email ya esta registrado');
-      }
+    if (
+      userWithEmail &&
+      userWithEmail.id !== id
+    ) {
+      throw new ConflictException(
+        'El email ya esta registrado',
+      );
     }
+  }
 
-    // Si se intenta modificar el teléfono, verifica que no pertenezca
-    // a otro usuario antes de actualizar.
-    // Esto evita que PostgreSQL lance un error UNIQUE y termine en un 500.
-    // comentado por: Lautaro-dev
-    if (updateUserDto.phone) {
-      const userWithPhone = await this.ormUsersRepository.findOneBy({
+  if (updateUserDto.phone) {
+    const userWithPhone =
+      await this.ormUsersRepository.findOneBy({
         phone: updateUserDto.phone,
       });
 
-      // Si el teléfono encontrado pertenece al mismo usuario,
-      // se permite conservarlo.
-      // Solo se considera conflicto si pertenece a otro usuario.
-      // comentado por: Lautaro-dev
-      if (userWithPhone && userWithPhone.id !== id) {
-        throw new ConflictException('El telefono ya esta registrado');
-      }
+    if (
+      userWithPhone &&
+      userWithPhone.id !== id
+    ) {
+      throw new ConflictException(
+        'El telefono ya esta registrado',
+      );
     }
-
-    const updatedUser = Object.assign(userToUpdate, updateUserDto);
-    await this.ormUsersRepository.save(updatedUser);
-    const { password_hash, role, ...filteredUser } = updatedUser;
-    return filteredUser;
   }
+
+  const updatedUser = Object.assign(
+    userToUpdate,
+    updateUserDto,
+  );
+
+  await this.ormUsersRepository.save(updatedUser);
+
+  const {
+    password_hash,
+    ...filteredUser
+  } = updatedUser;
+
+  return filteredUser;
+}
 
   // Función para actualizar la contraseña encriptada del usuario en la base de datos.
   // Recibe la contraseña ya cifrada con bcrypt
@@ -279,4 +296,33 @@ async activateUser(
     message: 'Usuario activado correctamente',
   };
 }
+
+//ADMIN: modificar rol de usuario existente
+
+async updateUserRoles(
+  id: string,
+  roles: UserRole[],
+): Promise<Omit<User, 'password_hash'>> {
+  const user =
+    await this.ormUsersRepository.findOneBy({ id });
+
+  if (!user) {
+    throw new NotFoundException(
+      `No se encontro el usuario con el id ${id}`,
+    );
+  }
+
+  user.roles = roles;
+
+  const updatedUser =
+    await this.ormUsersRepository.save(user);
+
+  const {
+    password_hash,
+    ...filteredUser
+  } = updatedUser;
+
+  return filteredUser;
+}
+
 }

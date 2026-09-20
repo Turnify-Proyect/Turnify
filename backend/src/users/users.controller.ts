@@ -20,6 +20,8 @@ import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto'
+import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import {
   ApiBearerAuth,
   ApiQuery,
@@ -258,4 +260,43 @@ export class UsersController {
   ) {
     return this.usersService.activateUser(id);
   }
+
+  @Post()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  createUserByAdmin(
+    @Body() createUserDto: CreateUserByAdminDto,
+  ) {
+    return this.usersService.createUserByAdmin(
+      createUserDto,
+    );
+  }
+
+  @Patch(':id/roles')
+@Roles(UserRole.ADMIN)
+@UseGuards(AuthGuard, RolesGuard)
+@ApiBearerAuth()
+@ApiOperation({
+  summary: 'Modificar roles de un usuario',
+})
+@ApiParam({
+  name: 'id',
+  required: true,
+  type: String,
+  description: 'ID del usuario',
+})
+@ApiResponse({
+  status: 200,
+  description: 'Roles actualizados correctamente',
+})
+updateUserRoles(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body() updateUserRolesDto: UpdateUserRolesDto,
+) {
+  return this.usersService.updateUserRoles(
+    id,
+    updateUserRolesDto,
+  );
+}
 }
