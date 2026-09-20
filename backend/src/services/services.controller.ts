@@ -110,7 +110,7 @@ export class ServicesController {
   // Crea un nuevo servicio.
   //coemntado por:Lautaro-dev
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
+  @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiResponse({
