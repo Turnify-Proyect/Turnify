@@ -20,6 +20,10 @@ import { ProfessionalService } from '../professionals/entities/professional-serv
 import { AvailabilityRepository } from '../availability/availability.repository';
 import { DayOfWeek } from '../availability/entities/availability.entity';
 
+import { DataSource } from 'typeorm';
+import { Order } from '../orders/entities/order.entity';
+import { OrderDetail } from '../orders/entities/order-detail.entity';
+
 @Injectable()
 export class AppointmentsRepository {
   constructor(
@@ -39,6 +43,12 @@ export class AppointmentsRepository {
     private readonly professionalServicesRepository: Repository<ProfessionalService>,
 
     private readonly availabilityRepository: AvailabilityRepository,
+
+    @InjectRepository(Order)
+    private readonly ordersRepository: Repository<Order>,
+
+    @InjectRepository(OrderDetail)
+    private readonly orderDetailsRepository: Repository<OrderDetail>,
   ) {}
   //funcion para obtener el dia de la semana a partir de una fecha
   private getDayOfWeek(date: Date): DayOfWeek {
@@ -162,7 +172,7 @@ export class AppointmentsRepository {
   }
 
   //valida si el usuario tiene rol de cliente
-    private validateUserRole(user: User): void {
+  private validateUserRole(user: User): void {
     if (!user.roles.includes(UserRole.CLIENT)) {
       throw new ConflictException(
         'Solo los usuarios con rol de cliente pueden realizar reservas',
@@ -312,15 +322,34 @@ export class AppointmentsRepository {
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    // Crear la orden
+    const order = this.ordersRepository.create({
+      user,
+    });
+
+    const savedOrder = await this.ordersRepository.save(order);
+
+    // Crear el detalle de la orden con el precio del servicio
+    const orderDetail = this.orderDetailsRepository.create({
+      order: savedOrder,
+      total_price: Number(service.price),
+    });
+
+    const savedOrderDetail =
+      await this.orderDetailsRepository.save(orderDetail);
+
+    // Crear el turno asociado al detalle de la orden
     const appointment = this.appointmentsRepository.create({
       user,
       professional,
       service,
+      orderDetail: savedOrderDetail,
       startAt,
       endAt,
       status: AppointmentStatus.PENDING,
       expiresAt,
     });
+
     return this.appointmentsRepository.save(appointment);
   }
 

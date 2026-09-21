@@ -11,6 +11,8 @@ import { Availability } from 'src/availability/entities/availability.entity';
 import { AvailabilityModule } from 'src/availability/availability.module';
 import { AppointmentsRepository } from './appointments.repository';
 import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-or-admin.guard';
+import { OrderDetail } from 'src/orders/entities/order-detail.entity';
+import { Order } from 'src/orders/entities/order.entity';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-o
       Professional,
       Service,
       ProfessionalService,
+      Order,
+      OrderDetail,
     ]),
     AvailabilityModule,
   ],

@@ -37,7 +37,12 @@ export class Payment {
   order!: Order;
 
   @ApiProperty({ example: 'mercadopago', description: 'Pasarela de pago' })
-  @Column({ type: 'varchar', length: 50, nullable: false, default: 'mercadopago' })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+    default: 'mercadopago',
+  })
   provider!: string;
 
   @ApiProperty({
@@ -61,7 +66,10 @@ export class Payment {
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
   status!: PaymentStatus;
 
-  @ApiProperty({ description: 'Fecha en la que fue abonado el pago', nullable: true })
+  @ApiProperty({
+    description: 'Fecha en la que fue abonado el pago',
+    nullable: true,
+  })
   @Column({ name: 'paid_at', type: 'timestamptz', nullable: true })
   paidAt!: Date | null;
 

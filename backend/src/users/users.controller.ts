@@ -20,7 +20,7 @@ import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
-import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto'
+import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import {
   ApiBearerAuth,
@@ -52,10 +52,10 @@ export class UsersController {
     description: 'Usuarios por pagina',
   })
   @ApiQuery({
-  name: 'search',
-  required: false,
-  type: String,
-  description: 'Buscar usuario por nombre o email',
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Buscar usuario por nombre o email',
   })
   @ApiQuery({
     name: 'role',
@@ -63,12 +63,11 @@ export class UsersController {
     enum: UserRole,
     description: 'Filtrar usuarios por rol',
   })
-
   @ApiQuery({
-  name: 'isActive',
-  required: false,
-  type: Boolean,
-  description: 'Filtrar usuarios por estado activo o inactivo',
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar usuarios por estado activo o inactivo',
   })
   @ApiResponse({
     status: 200,
@@ -90,13 +89,15 @@ export class UsersController {
     const validPage = !isNaN(pageNum) && pageNum > 0 ? pageNum : 1;
     const validLimit = !isNaN(limitNum) && limitNum > 0 ? limitNum : 5;
     const validIsActive =
-      isActive === 'true'
-        ? true
-        : isActive === 'false'
-          ? false
-          : undefined;
+      isActive === 'true' ? true : isActive === 'false' ? false : undefined;
 
-    return this.usersService.getAllUsers(validPage, validLimit, search, role, validIsActive,);
+    return this.usersService.getAllUsers(
+      validPage,
+      validLimit,
+      search,
+      role,
+      validIsActive,
+    );
   }
 
   // Endpoint para que el usuario pueda ver su propio perfil, sin necesidad de ser admin, solo con estar autenticado
@@ -255,9 +256,7 @@ export class UsersController {
     status: 409,
     description: 'El usuario ya se encuentra activo',
   })
-  activateUser(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  activateUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.activateUser(id);
   }
 
@@ -265,38 +264,31 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  createUserByAdmin(
-    @Body() createUserDto: CreateUserByAdminDto,
-  ) {
-    return this.usersService.createUserByAdmin(
-      createUserDto,
-    );
+  createUserByAdmin(@Body() createUserDto: CreateUserByAdminDto) {
+    return this.usersService.createUserByAdmin(createUserDto);
   }
 
   @Patch(':id/roles')
-@Roles(UserRole.ADMIN)
-@UseGuards(AuthGuard, RolesGuard)
-@ApiBearerAuth()
-@ApiOperation({
-  summary: 'Modificar roles de un usuario',
-})
-@ApiParam({
-  name: 'id',
-  required: true,
-  type: String,
-  description: 'ID del usuario',
-})
-@ApiResponse({
-  status: 200,
-  description: 'Roles actualizados correctamente',
-})
-updateUserRoles(
-  @Param('id', ParseUUIDPipe) id: string,
-  @Body() updateUserRolesDto: UpdateUserRolesDto,
-) {
-  return this.usersService.updateUserRoles(
-    id,
-    updateUserRolesDto,
-  );
-}
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Modificar roles de un usuario',
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Roles actualizados correctamente',
+  })
+  updateUserRoles(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateUserRolesDto: UpdateUserRolesDto,
+  ) {
+    return this.usersService.updateUserRoles(id, updateUserRolesDto);
+  }
 }

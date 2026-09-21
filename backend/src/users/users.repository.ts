@@ -31,7 +31,6 @@ export class UsersRepository {
   //  );
   //}
 
-
   async getAllUsers(
     page: number,
     limit: number,
@@ -93,22 +92,20 @@ export class UsersRepository {
   //  const foundUser = await this.ormUsersRepository.findOne({
   //    where: { id },
   //  });
-//
+  //
   //  if (!foundUser)
   //    throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
   //  const { password_hash, role, ...filteredUser } = foundUser;
   //  return filteredUser;
   //}
 
-  async getUserById(id: string,): Promise<Omit<User, 'password_hash'>> {
+  async getUserById(id: string): Promise<Omit<User, 'password_hash'>> {
     const foundUser = await this.ormUsersRepository.findOne({
       where: { id },
     });
 
     if (!foundUser) {
-      throw new NotFoundException(
-        `No se encontro el usuario con el id ${id}`,
-      );
+      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
     }
 
     const { password_hash, ...filteredUser } = foundUser;
@@ -147,76 +144,53 @@ export class UsersRepository {
   async createUser(
     createUserData: CreateUserData,
   ): Promise<Omit<User, 'password_hash'>> {
-    const newUser =
-      this.ormUsersRepository.create(createUserData);
-  
+    const newUser = this.ormUsersRepository.create(createUserData);
+
     await this.ormUsersRepository.save(newUser);
-  
+
     const { password_hash, ...filteredUser } = newUser;
-  
+
     return filteredUser;
   }
-  
 
   async updateUser(
-  id: string,
-  updateUserDto: UpdateUserDto,
-): Promise<Omit<User, 'password_hash'>> {
-  const userToUpdate =
-    await this.ormUsersRepository.findOneBy({ id });
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<Omit<User, 'password_hash'>> {
+    const userToUpdate = await this.ormUsersRepository.findOneBy({ id });
 
-  if (!userToUpdate) {
-    throw new NotFoundException(
-      `No se encontro el usuario con el id ${id}`,
-    );
-  }
+    if (!userToUpdate) {
+      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
+    }
 
-  if (updateUserDto.email) {
-    const userWithEmail =
-      await this.ormUsersRepository.findOneBy({
+    if (updateUserDto.email) {
+      const userWithEmail = await this.ormUsersRepository.findOneBy({
         email: updateUserDto.email,
       });
 
-    if (
-      userWithEmail &&
-      userWithEmail.id !== id
-    ) {
-      throw new ConflictException(
-        'El email ya esta registrado',
-      );
+      if (userWithEmail && userWithEmail.id !== id) {
+        throw new ConflictException('El email ya esta registrado');
+      }
     }
-  }
 
-  if (updateUserDto.phone) {
-    const userWithPhone =
-      await this.ormUsersRepository.findOneBy({
+    if (updateUserDto.phone) {
+      const userWithPhone = await this.ormUsersRepository.findOneBy({
         phone: updateUserDto.phone,
       });
 
-    if (
-      userWithPhone &&
-      userWithPhone.id !== id
-    ) {
-      throw new ConflictException(
-        'El telefono ya esta registrado',
-      );
+      if (userWithPhone && userWithPhone.id !== id) {
+        throw new ConflictException('El telefono ya esta registrado');
+      }
     }
+
+    const updatedUser = Object.assign(userToUpdate, updateUserDto);
+
+    await this.ormUsersRepository.save(updatedUser);
+
+    const { password_hash, ...filteredUser } = updatedUser;
+
+    return filteredUser;
   }
-
-  const updatedUser = Object.assign(
-    userToUpdate,
-    updateUserDto,
-  );
-
-  await this.ormUsersRepository.save(updatedUser);
-
-  const {
-    password_hash,
-    ...filteredUser
-  } = updatedUser;
-
-  return filteredUser;
-}
 
   // Función para actualizar la contraseña encriptada del usuario en la base de datos.
   // Recibe la contraseña ya cifrada con bcrypt
@@ -243,86 +217,64 @@ export class UsersRepository {
   //  return `Usuario con id ${id} eliminado correctamente`;
   //}
 
-  async removeUser(
-  id: string,
-): Promise<{ message: string }> {
-  const userToRemove =
-    await this.ormUsersRepository.findOneBy({ id });
+  async removeUser(id: string): Promise<{ message: string }> {
+    const userToRemove = await this.ormUsersRepository.findOneBy({ id });
 
-  if (!userToRemove) {
-    throw new NotFoundException(
-      `No se encontro el usuario con el id ${id}`,
-    );
+    if (!userToRemove) {
+      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
+    }
+
+    if (!userToRemove.isActive) {
+      throw new ConflictException('El usuario ya se encuentra inactivo');
+    }
+
+    userToRemove.isActive = false;
+
+    await this.ormUsersRepository.save(userToRemove);
+
+    return {
+      message: 'Usuario desactivado correctamente',
+    };
   }
 
-  if (!userToRemove.isActive) {
-    throw new ConflictException(
-      'El usuario ya se encuentra inactivo',
-    );
+  async activateUser(id: string): Promise<{ message: string }> {
+    const userToActivate = await this.ormUsersRepository.findOneBy({ id });
+
+    if (!userToActivate) {
+      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
+    }
+
+    if (userToActivate.isActive) {
+      throw new ConflictException('El usuario ya se encuentra activo');
+    }
+
+    userToActivate.isActive = true;
+
+    await this.ormUsersRepository.save(userToActivate);
+
+    return {
+      message: 'Usuario activado correctamente',
+    };
   }
 
-  userToRemove.isActive = false;
+  //ADMIN: modificar rol de usuario existente
 
-  await this.ormUsersRepository.save(userToRemove);
+  async updateUserRoles(
+    id: string,
+    roles: UserRole[],
+  ): Promise<Omit<User, 'password_hash'>> {
+    const user = await this.ormUsersRepository.findOneBy({ id });
 
-  return {
-    message: 'Usuario desactivado correctamente',
-  };
-}
+    if (!user) {
+      throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
+    }
 
-async activateUser(
-  id: string,
-): Promise<{ message: string }> {
-  const userToActivate =
-    await this.ormUsersRepository.findOneBy({ id });
+    user.roles = roles;
 
-  if (!userToActivate) {
-    throw new NotFoundException(
-      `No se encontro el usuario con el id ${id}`,
-    );
+    const updatedUser = await this.ormUsersRepository.save(user);
+
+    const { password_hash, ...filteredUser } = updatedUser;
+
+    return filteredUser;
   }
-
-  if (userToActivate.isActive) {
-    throw new ConflictException(
-      'El usuario ya se encuentra activo',
-    );
-  }
-
-  userToActivate.isActive = true;
-
-  await this.ormUsersRepository.save(userToActivate);
-
-  return {
-    message: 'Usuario activado correctamente',
-  };
-}
-
-//ADMIN: modificar rol de usuario existente
-
-async updateUserRoles(
-  id: string,
-  roles: UserRole[],
-): Promise<Omit<User, 'password_hash'>> {
-  const user =
-    await this.ormUsersRepository.findOneBy({ id });
-
-  if (!user) {
-    throw new NotFoundException(
-      `No se encontro el usuario con el id ${id}`,
-    );
-  }
-
-  user.roles = roles;
-
-  const updatedUser =
-    await this.ormUsersRepository.save(user);
-
-  const {
-    password_hash,
-    ...filteredUser
-  } = updatedUser;
-
-  return filteredUser;
-}
-
 }
