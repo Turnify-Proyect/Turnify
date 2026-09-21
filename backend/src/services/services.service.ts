@@ -7,10 +7,28 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesRepository } from './services.repository';
 import { Service } from './entities/service.entity';
+import { CloudinaryService } from '../config/cloudinary.service';
 
 @Injectable()
 export class ServicesService {
-  constructor(private readonly servicesRepository: ServicesRepository) {}
+  constructor(
+    private readonly servicesRepository: ServicesRepository,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
+
+  async updateServiceImage(
+    serviceId: string,
+    file: Express.Multer.File,
+  ): Promise<Service> {
+    const cloudinaryResult = await this.cloudinaryService.uploadImage(
+      file,
+      'turnify/services',
+    );
+    return this.servicesRepository.updateServiceImage(
+      serviceId,
+      cloudinaryResult.secure_url,
+    );
+  }
 
   // Obtiene todos los servicios, tanto activos como inactivos.
   //coemntado por:Lautaro-dev

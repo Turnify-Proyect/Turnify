@@ -325,4 +325,22 @@ async updateUserRoles(
   return filteredUser;
 }
 
+  async updateProfilePicture(
+    userId: string,
+    imgUrl: string,
+  ): Promise<Omit<User, 'password_hash'>> {
+    const user = await this.ormUsersRepository.findOneBy({ id: userId });
+
+    if (!user) {
+      throw new NotFoundException(
+        `No se encontro el usuario con el id ${userId}`,
+      );
+    }
+
+    user.imgUrl = imgUrl;
+    const updatedUser = await this.ormUsersRepository.save(user);
+
+    const { password_hash, ...filteredUser } = updatedUser;
+    return filteredUser;
+  }
 }
