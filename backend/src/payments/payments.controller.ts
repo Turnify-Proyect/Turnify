@@ -80,9 +80,12 @@ export class PaymentsController {
     status: 404,
     description: 'La orden especificada no fue encontrada',
   })
-  createStripeIntent(@Body() createPaymentDto: CreatePaymentDto) {
-    return this.paymentsService.createStripeIntent(createPaymentDto.orderId);
-  }
+  createStripeIntent(@Req() req: any,@Body() createPaymentDto: CreatePaymentDto,
+) {
+  return this.paymentsService.createStripeIntent(
+    createPaymentDto.orderId, req.user.id, req.user.roles,
+  );
+}
 
   // Sin guards: Stripe no envía tu token, la seguridad es la firma del webhook
   @Post('stripe/webhook')
