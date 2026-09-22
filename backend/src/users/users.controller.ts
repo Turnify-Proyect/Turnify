@@ -10,7 +10,13 @@ import {
   Query,
   ParseUUIDPipe,
   Req,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -28,6 +34,8 @@ import {
   ApiResponse,
   ApiParam,
   ApiOperation,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { UserOwnerOrAdminGuard } from '../auth/guards/user-owner-or-admin.guard';
 
@@ -290,5 +298,54 @@ export class UsersController {
     @Body() updateUserRolesDto: UpdateUserRolesDto,
   ) {
     return this.usersService.updateUserRoles(id, updateUserRolesDto);
+  }
+
+  @Patch(':id/upload-avatar')
+  @Roles(UserRole.CLIENT, UserRole.ADMIN, UserRole.PROFESSIONAL)
+  @UseGuards(AuthGuard, RolesGuard, UserOwnerOrAdminGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Subir o actualizar foto de perfil (avatar) de usuario a Cloudinary',
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del usuario',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Avatar actualizado correctamente en Cloudinary',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'El archivo enviado excede los 5MB o no tiene formato de imagen permitido (jpg, jpeg, png, webp)',
+  })
+  uploadAvatar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.usersService.updateProfilePicture(id, file);
   }
 }

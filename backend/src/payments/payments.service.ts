@@ -17,7 +17,9 @@ import {
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  private readonly stripe = new Stripe(
+    process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
+  );
 
   constructor(
     @InjectRepository(Payment)

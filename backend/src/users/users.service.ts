@@ -11,10 +11,25 @@ import { UserRole } from 'src/common/userRoles.enum';
 import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { AuthProvider } from '../common/authProvider.enum';
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
+import { CloudinaryService } from '../config/cloudinary.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
+
+  async updateProfilePicture(userId: string, file: Express.Multer.File) {
+    const cloudinaryResult = await this.cloudinaryService.uploadImage(
+      file,
+      'turnify/users',
+    );
+    return this.usersRepository.updateProfilePicture(
+      userId,
+      cloudinaryResult.secure_url,
+    );
+  }
 
   //getAllUsers(validPage: number, validLimit: number) {
   //  return this.usersRepository.getAllUsers(validPage, validLimit);

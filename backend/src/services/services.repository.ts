@@ -111,4 +111,22 @@ export class ServicesRepository {
       },
     });
   }
+
+  async updateServiceImage(
+    serviceId: string,
+    imageUrl: string,
+  ): Promise<Service> {
+    const service = await this.ormServiceRepository.findOneBy({
+      id: serviceId,
+    });
+
+    if (!service) {
+      throw new NotFoundException(
+        `No existe un servicio con el ID proporcionado`,
+      );
+    }
+
+    service.imageUrl = imageUrl;
+    return this.ormServiceRepository.save(service);
+  }
 }
