@@ -10,7 +10,7 @@ import {
 import { Professional } from '../../professionals/entities/professional.entity';
 import { Service } from '../../services/entities/service.entity';
 import { User } from '../../users/entities/user.entity';
-import { OrderDetail } from 'src/orders/entities/order-detail.entity';
+import { OrderDetail } from '../../orders/entities/order-detail.entity';
 
 export enum AppointmentStatus {
   PENDING = 'pending',

@@ -3,13 +3,12 @@ import { Appointment } from '../../appointments/entities/appointment.entity';
 import { ProfessionalService } from '../../professionals/entities/professional-service.entity';
 
 export enum ServiceCategory {
-  MASSAGES = "Masajes",
-  FACIALS = "Faciales",
-  NAILS = "Uñas",
-  PEDICURE = "Pedicuría",
-  HAIR = "Cabello",
-  SPA = "Spa",
-
+  MASSAGES = 'Masajes',
+  FACIALS = 'Faciales',
+  NAILS = 'Uñas',
+  PEDICURE = 'Pedicuría',
+  HAIR = 'Cabello',
+  SPA = 'Spa',
 }
 
 @Entity({ name: 'SERVICES' })

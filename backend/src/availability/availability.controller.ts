@@ -27,7 +27,7 @@ export class AvailabilityController {
   // para un profesional específico.
   //coemntado por:Lautaro-dev
   @Get('professional/:professionalId')
-  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT,)
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({

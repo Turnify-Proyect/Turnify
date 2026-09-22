@@ -75,20 +75,19 @@ export class ProfessionalsRepository {
   }
 
   async createProfessional(
-  createProfessionalDto: CreateProfessionalDto,
-): Promise<Professional> {
-  const user = await this.usersrepository.findOne({
-    where: { id: createProfessionalDto.userId },
-  });
+    createProfessionalDto: CreateProfessionalDto,
+  ): Promise<Professional> {
+    const user = await this.usersrepository.findOne({
+      where: { id: createProfessionalDto.userId },
+    });
 
-  if (!user) {
-    throw new NotFoundException(
-      'No existe un usuario con el ID proporcionado',
-    );
-  }
+    if (!user) {
+      throw new NotFoundException(
+        'No existe un usuario con el ID proporcionado',
+      );
+    }
 
-  const existingProfessional =
-    await this.professionalsrepository.findOne({
+    const existingProfessional = await this.professionalsrepository.findOne({
       where: {
         user: {
           id: createProfessionalDto.userId,
@@ -96,39 +95,32 @@ export class ProfessionalsRepository {
       },
     });
 
-  if (existingProfessional) {
-    throw new ConflictException(
-      'Ya existe un profesional para este usuario',
-    );
-  }
+    if (existingProfessional) {
+      throw new ConflictException('Ya existe un profesional para este usuario');
+    }
 
-  const professional =
-    this.professionalsrepository.create({
+    const professional = this.professionalsrepository.create({
       specialty: createProfessionalDto.specialty,
       user: {
         id: createProfessionalDto.userId,
       },
     });
 
-  const savedProfessional =
-    await this.professionalsrepository.save(
-      professional,
-    );
+    const savedProfessional =
+      await this.professionalsrepository.save(professional);
 
-  // Al convertirse en profesional deja de ser cliente.
-  // Si también era admin, conserva ese rol.
-  user.roles = user.roles.filter(
-    (role) => role !== UserRole.CLIENT,
-  );
+    // Al convertirse en profesional deja de ser cliente.
+    // Si también era admin, conserva ese rol.
+    user.roles = user.roles.filter((role) => role !== UserRole.CLIENT);
 
-  if (!user.roles.includes(UserRole.PROFESSIONAL)) {
-    user.roles.push(UserRole.PROFESSIONAL);
+    if (!user.roles.includes(UserRole.PROFESSIONAL)) {
+      user.roles.push(UserRole.PROFESSIONAL);
+    }
+
+    await this.usersrepository.save(user);
+
+    return savedProfessional;
   }
-
-  await this.usersrepository.save(user);
-
-  return savedProfessional;
-}
 
   async updateProfessional(
     id: string,
@@ -147,9 +139,7 @@ export class ProfessionalsRepository {
 
     return {
       message: 'Profesional actualizado exitosamente',
-      
     };
-
   }
 
   async softDeleteProfessional(id: string): Promise<{ message: string }> {
@@ -163,7 +153,7 @@ export class ProfessionalsRepository {
     }
 
     await this.professionalsrepository.update(id, { isActive: false });
-    return { message: 'Profesional eliminado correctamente'};
+    return { message: 'Profesional eliminado correctamente' };
   }
 
   async activateProfessional(id: string): Promise<{ message: string }> {
@@ -181,7 +171,7 @@ export class ProfessionalsRepository {
     }
 
     await this.professionalsrepository.update(id, { isActive: true });
-    return {message: 'Profesional activado correctamente'};
+    return { message: 'Profesional activado correctamente' };
   }
 
   async associateService(
@@ -266,7 +256,7 @@ export class ProfessionalsRepository {
   async removeServiceFromProfessional(
     professionalId: string,
     serviceId: string,
-  ): Promise<{message: string}> {
+  ): Promise<{ message: string }> {
     const professional = await this.professionalsrepository.findOne({
       where: { id: professionalId },
     });
@@ -303,7 +293,7 @@ export class ProfessionalsRepository {
     await this.professionalServicesRepository.remove(association);
 
     return {
-      message: "Servicio desvinculado del profesional exitosamente",
+      message: 'Servicio desvinculado del profesional exitosamente',
     };
   }
 }

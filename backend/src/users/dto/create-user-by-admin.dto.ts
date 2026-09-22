@@ -1,8 +1,4 @@
-import {
-  ArrayNotEmpty,
-  IsArray,
-  IsEnum,
-} from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsEnum } from 'class-validator';
 import { CreateUserDto } from './create-user.dto';
 import { UserRole } from '../../common/userRoles.enum';
 
