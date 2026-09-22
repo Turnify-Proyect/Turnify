@@ -1,42 +1,47 @@
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
 
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../decorators/roles.decorators';
+import { UserRole } from '../common/userRoles.enum';
+
+@ApiTags('orders')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.ordersService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersService.update(+id, updateOrderDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ordersService.remove(+id);
+  @Roles(UserRole.CLIENT)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Crear una orden y reservar temporalmente un turno',
+    description:
+      'Crea la orden, su detalle y un turno pendiente asociado. El turno se confirma únicamente después del pago.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Orden y turno pendiente creados correctamente',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'El profesional o el usuario no se encuentran disponibles en el horario solicitado',
+  })
+  create(@Req() req: any, @Body() createOrderDto: CreateOrderDto) {
+    // El userId se obtiene del JWT y no del body para impedir
+    // que un cliente genere una orden a nombre de otro usuario.
+    // comentado por: Lautaro-dev
+    return this.ordersService.create(req.user.id, createOrderDto);
   }
 }

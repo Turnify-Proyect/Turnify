@@ -22,7 +22,14 @@ import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
-import { ApiBearerAuth, ApiResponse, ApiParam, ApiConsumes, ApiBody, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiResponse,
+  ApiParam,
+  ApiConsumes,
+  ApiBody,
+  ApiOperation,
+} from '@nestjs/swagger';
 
 @Controller('services')
 export class ServicesController {
@@ -195,7 +202,8 @@ export class ServicesController {
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Subir o actualizar la imagen representativa de un servicio a Cloudinary',
+    summary:
+      'Subir o actualizar la imagen representativa de un servicio a Cloudinary',
   })
   @ApiParam({
     name: 'id',
@@ -220,7 +228,8 @@ export class ServicesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'El archivo excede 5MB o no cumple con el formato permitido (jpg, jpeg, png, webp)',
+    description:
+      'El archivo excede 5MB o no cumple con el formato permitido (jpg, jpeg, png, webp)',
   })
   @ApiResponse({
     status: 404,

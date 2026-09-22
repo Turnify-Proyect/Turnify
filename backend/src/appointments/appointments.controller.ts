@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
@@ -12,7 +11,6 @@ import {
 } from '@nestjs/common';
 
 import { AppointmentsService } from './appointments.service';
-import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
 
@@ -31,22 +29,6 @@ import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-o
 @Controller('appointments')
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
-
-  @Post()
-  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiResponse({
-    status: 201,
-    description: 'Cita creada',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Error para crear la cita',
-  })
-  createAppointment(@Body() createAppointmentDto: CreateAppointmentDto) {
-    return this.appointmentsService.createAppointment(createAppointmentDto);
-  }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)

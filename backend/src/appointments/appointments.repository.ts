@@ -20,10 +20,6 @@ import { ProfessionalService } from '../professionals/entities/professional-serv
 import { AvailabilityRepository } from '../availability/availability.repository';
 import { DayOfWeek } from '../availability/entities/availability.entity';
 
-import { DataSource } from 'typeorm';
-import { Order } from '../orders/entities/order.entity';
-import { OrderDetail } from '../orders/entities/order-detail.entity';
-
 @Injectable()
 export class AppointmentsRepository {
   constructor(
@@ -43,12 +39,6 @@ export class AppointmentsRepository {
     private readonly professionalServicesRepository: Repository<ProfessionalService>,
 
     private readonly availabilityRepository: AvailabilityRepository,
-
-    @InjectRepository(Order)
-    private readonly ordersRepository: Repository<Order>,
-
-    @InjectRepository(OrderDetail)
-    private readonly orderDetailsRepository: Repository<OrderDetail>,
   ) {}
   //funcion para obtener el dia de la semana a partir de una fecha
   private getDayOfWeek(date: Date): DayOfWeek {
@@ -224,11 +214,22 @@ export class AppointmentsRepository {
     }
   }
 
-  //crear reserva de turno
-  async createAppointment(
+  // Valida todos los datos necesarios para crear un turno y prepara
+  // las entidades relacionadas, pero NO guarda nada en la base de datos.
+  // Esto permite reutilizar las validaciones desde OrdersService.
+  // comentado por: Lautaro-dev
+  async prepareAppointment(
     createAppointmentDto: CreateAppointmentDto,
-  ): Promise<Appointment> {
+  ): Promise<{
+    user: User;
+    professional: Professional;
+    service: Service;
+    startAt: Date;
+    endAt: Date;
+    expiresAt: Date;
+  }> {
     await this.expirePendingAppointments();
+
     const user = await this.usersRepository.findOne({
       where: {
         id: createAppointmentDto.userId,
@@ -240,6 +241,7 @@ export class AppointmentsRepository {
         'No existe un usuario con el ID proporcionado',
       );
     }
+
     this.validateUserRole(user);
 
     const professional = await this.professionalsRepository.findOne({
@@ -322,36 +324,54 @@ export class AppointmentsRepository {
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Crear la orden
-    const order = this.ordersRepository.create({
-      user,
-    });
-
-    const savedOrder = await this.ordersRepository.save(order);
-
-    // Crear el detalle de la orden con el precio del servicio
-    const orderDetail = this.orderDetailsRepository.create({
-      order: savedOrder,
-      total_price: Number(service.price),
-    });
-
-    const savedOrderDetail =
-      await this.orderDetailsRepository.save(orderDetail);
-
-    // Crear el turno asociado al detalle de la orden
-    const appointment = this.appointmentsRepository.create({
+    return {
       user,
       professional,
       service,
-      orderDetail: savedOrderDetail,
       startAt,
       endAt,
-      status: AppointmentStatus.PENDING,
       expiresAt,
-    });
-
-    return this.appointmentsRepository.save(appointment);
+    };
   }
+
+  //crear reserva de turno
+  // async createAppointment(
+  //   createAppointmentDto: CreateAppointmentDto,
+  // ): Promise<Appointment> {
+  //   const { user, professional, service, startAt, endAt, expiresAt } =
+  //     await this.prepareAppointment(createAppointmentDto);
+
+  //   // TEMPORAL:
+  //   // La creación de Order y OrderDetail se mantiene acá hasta mover
+  //   // definitivamente esta responsabilidad a OrdersService.
+  //   // comentado por: Lautaro-dev
+  //   const order = this.ordersRepository.create({
+  //     user,
+  //   });
+
+  //   const savedOrder = await this.ordersRepository.save(order);
+
+  //   const orderDetail = this.orderDetailsRepository.create({
+  //     order: savedOrder,
+  //     total_price: Number(service.price),
+  //   });
+
+  //   const savedOrderDetail =
+  //     await this.orderDetailsRepository.save(orderDetail);
+
+  //   const appointment = this.appointmentsRepository.create({
+  //     user,
+  //     professional,
+  //     service,
+  //     orderDetail: savedOrderDetail,
+  //     startAt,
+  //     endAt,
+  //     status: AppointmentStatus.PENDING,
+  //     expiresAt,
+  //   });
+
+  //   return this.appointmentsRepository.save(appointment);
+  // }
 
   // todos los turnos (ADMIN)
   async getAllAppointments(): Promise<Appointment[]> {
