@@ -261,6 +261,76 @@ export class PaymentsService {
     };
   }
 
+  // Si Stripe confirma un pago después de que venció la reserva,
+  // devolvemos automáticamente el dinero y dejamos toda la operación
+  // reflejada correctamente en nuestra base de datos.
+  // comentado por: Lautaro-dev
+  private async refundExpiredOrder(
+    order: Order,
+    paymentIntentId: string,
+    amount: number,
+  ): Promise<void> {
+    // La clave de idempotencia evita generar más de un reembolso
+    // si Stripe reenvía el mismo webhook.
+    // comentado por: Lautaro-dev
+    await this.stripe.refunds.create(
+      {
+        payment_intent: paymentIntentId,
+      },
+      {
+        idempotencyKey: `turnify-refund-${paymentIntentId}`,
+      },
+    );
+
+    await this.dataSource.transaction(async (manager) => {
+      let payment = await manager.findOne(Payment, {
+        where: {
+          order: {
+            order_id: order.order_id,
+          },
+        },
+      });
+
+      if (!payment) {
+        payment = manager.create(Payment, {
+          order,
+          provider: 'stripe',
+          externalPaymentId: paymentIntentId,
+          amount: amount.toString(),
+          status: PaymentStatus.REFUNDED,
+
+          // El dinero llegó a cobrarse antes de ser reembolsado,
+          // por eso conservamos la fecha en la que se procesó.
+          // comentado por: Lautaro-dev
+          paidAt: new Date(),
+        });
+      } else {
+        payment.provider = 'stripe';
+        payment.externalPaymentId = paymentIntentId;
+        payment.amount = amount.toString();
+        payment.status = PaymentStatus.REFUNDED;
+
+        if (!payment.paidAt) {
+          payment.paidAt = new Date();
+        }
+      }
+
+      await manager.save(Payment, payment);
+
+      order.status = OrderStatus.CANCELLED;
+      await manager.save(Order, order);
+
+      const appointments = order.orderDetails?.appointments ?? [];
+
+      for (const appointment of appointments) {
+        appointment.status = AppointmentStatus.EXPIRED;
+        appointment.expiresAt = null;
+
+        await manager.save(Appointment, appointment);
+      }
+    });
+  }
+
   async handleStripeWebhook(rawBody: Buffer, signature: string) {
     let event: Stripe.Event;
     try {
@@ -274,29 +344,82 @@ export class PaymentsService {
     }
 
     if (event.type === 'payment_intent.succeeded') {
-      const intent = event.data.object as any;
+      const intent = event.data.object as Stripe.PaymentIntent;
       const orderId = intent.metadata?.orderId;
 
-      // 💡 FILTRO PROTECTOR: Si Stripe manda un evento de prueba genérico
-      // sin metadata real, respondemos éxito directo para evitar el crash 404.
+      // Ignoramos únicamente eventos de prueba genéricos que no pertenecen
+      // a una orden real de Turnify.
+      // comentado por: Lautaro-dev
       if (
         !orderId ||
         orderId.startsWith('pi_') ||
         orderId === 'prueba_manual'
       ) {
-        console.log(
-          '💰 [Stripe Webhook] Simulación exitosa (Bypass de validación).',
-        );
         return { received: true };
       }
 
-      // Si Stripe confirmó el pago, procesamos la operación en nuestra BD.
-      // Si esta operación falla, NO ocultamos el error: el webhook debe fallar
-      // para que Stripe pueda volver a intentar entregarlo.
+      const order = await this.dataSource.getRepository(Order).findOne({
+        where: {
+          order_id: orderId,
+        },
+        relations: ['orderDetails', 'orderDetails.appointments'],
+      });
+
+      if (!order) {
+        throw new NotFoundException(
+          `No se encontró la orden con ID: ${orderId}`,
+        );
+      }
+
+      const amount = intent.amount_received / 100;
+
+      // Si la orden ya fue pagada, delegamos nuevamente en processPayment().
+      // Ese método ya es idempotente y devolverá el mismo Payment si Stripe
+      // reenvía el mismo evento.
+      // comentado por: Lautaro-dev
+      if (order.status === OrderStatus.PAID) {
+        await this.processPayment({
+          orderId,
+          amount,
+          provider: 'stripe',
+          externalPaymentId: intent.id,
+          status: PaymentStatus.PAID,
+        });
+
+        return { received: true };
+      }
+
+      const appointments = order.orderDetails?.appointments ?? [];
+      const now = new Date();
+
+      const reservationExpiredOrUnavailable =
+        appointments.length === 0 ||
+        order.status === OrderStatus.CANCELLED ||
+        appointments.some(
+          (appointment) =>
+            appointment.status === AppointmentStatus.EXPIRED ||
+            appointment.status === AppointmentStatus.CANCELLED ||
+            appointment.status !== AppointmentStatus.PENDING ||
+            !appointment.expiresAt ||
+            appointment.expiresAt <= now,
+        );
+
+      // Stripe ya confirmó el cobro. Si la reserva dejó de ser válida,
+      // no podemos simplemente rechazar el webhook porque el dinero ya
+      // fue cobrado: se realiza un reembolso automático.
+      // comentado por: Lautaro-dev
+      if (reservationExpiredOrUnavailable) {
+        await this.refundExpiredOrder(order, intent.id, amount);
+
+        return { received: true };
+      }
+
+      // Reserva vigente: registramos el pago, marcamos la orden como PAID
+      // y confirmamos el turno.
       // comentado por: Lautaro-dev
       await this.processPayment({
         orderId,
-        amount: intent.amount_received / 100,
+        amount,
         provider: 'stripe',
         externalPaymentId: intent.id,
         status: PaymentStatus.PAID,
