@@ -64,28 +64,39 @@ export class PaymentsController {
   }
 
   @Post('stripe/create-intent')
-  @Roles(UserRole.ADMIN, UserRole.CLIENT)
+  @Roles(UserRole.CLIENT)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Crear el intento de pago de Stripe para una orden',
     description:
-      'Calcula el monto en el backend y devuelve el clientSecret que usa el front para mostrar el formulario de pago.',
+      'Crea el PaymentIntent únicamente para una orden pendiente perteneciente al usuario autenticado.',
   })
   @ApiResponse({
     status: 201,
     description: 'Intento de pago creado, devuelve el clientSecret',
   })
   @ApiResponse({
-    status: 404,
-    description: 'La orden especificada no fue encontrada',
+    status: 400,
+    description:
+      'La orden o la reserva ya no se encuentran disponibles para pagar',
   })
-  createStripeIntent(@Req() req: any,@Body() createPaymentDto: CreatePaymentDto,
-) {
-  return this.paymentsService.createStripeIntent(
-    createPaymentDto.orderId, req.user.id, req.user.roles,
-  );
-}
+  @ApiResponse({
+    status: 404,
+    description: 'La orden no existe o no pertenece al usuario autenticado',
+  })
+  createStripeIntent(
+    @Req() req: any,
+    @Body() createPaymentDto: CreatePaymentDto,
+  ) {
+    // El usuario se obtiene del JWT para evitar que un cliente
+    // pueda generar un PaymentIntent para la orden de otro usuario.
+    // comentado por: Lautaro-dev
+    return this.paymentsService.createStripeIntent(
+      createPaymentDto.orderId,
+      req.user.id,
+    );
+  }
 
   // Sin guards: Stripe no envía tu token, la seguridad es la firma del webhook
   @Post('stripe/webhook')

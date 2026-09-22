@@ -14,7 +14,6 @@ import {
   Appointment,
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
-import { UserRole } from '../common/userRoles.enum';
 
 @Injectable()
 export class PaymentsService {
@@ -28,481 +27,284 @@ export class PaymentsService {
     private readonly dataSource: DataSource,
   ) {}
 
+  async processPayment(processPaymentDto: ProcessPaymentDto): Promise<Payment> {
+    const { orderId, amount, provider, externalPaymentId, status } =
+      processPaymentDto;
 
-  async processPayment(
-  processPaymentDto: ProcessPaymentDto,
-): Promise<Payment> {
-  const {
-    orderId,
-    amount,
-    provider,
-    externalPaymentId,
-    status,
-  } = processPaymentDto;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  const queryRunner =
-    this.dataSource.createQueryRunner();
-
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
-
-  try {
-    const order = await queryRunner.manager.findOne(
-      Order,
-      {
+    try {
+      const order = await queryRunner.manager.findOne(Order, {
         where: { order_id: orderId },
-        relations: [
-          'orderDetails',
-          'orderDetails.appointments',
-        ],
-      },
-    );
+        relations: ['orderDetails', 'orderDetails.appointments'],
+      });
 
-    if (!order) {
-      throw new NotFoundException(
-        `No se encontró la orden con ID: ${orderId}`,
-      );
-    }
+      if (!order) {
+        throw new NotFoundException(
+          `No se encontró la orden con ID: ${orderId}`,
+        );
+      }
 
-    // Una orden cancelada/vencida no puede acreditarse.
-    if (order.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException(
-        'No se puede procesar el pago de una orden cancelada o vencida',
-      );
-    }
-
-    let payment =
-      await queryRunner.manager.findOne(Payment, {
+      let payment = await queryRunner.manager.findOne(Payment, {
         where: {
           order: {
             order_id: orderId,
           },
         },
+        relations: [
+          'order',
+          'order.orderDetails',
+          'order.orderDetails.appointments',
+        ],
       });
 
-    // Idempotencia:
-    // si Stripe vuelve a informar el mismo pago aprobado,
-    // no procesamos nuevamente la orden.
-    if (
-      payment?.status === PaymentStatus.PAID &&
-      status === PaymentStatus.PAID
-    ) {
-      await queryRunner.commitTransaction();
-      return payment;
-    }
-
-    if (!payment) {
-      payment = queryRunner.manager.create(Payment, {
-        order,
-        amount: amount.toString(),
-        provider,
-        status,
-        externalPaymentId:
-          externalPaymentId ?? null,
-      });
-    } else {
-      payment.amount = amount.toString();
-      payment.provider = provider;
-      payment.status = status;
-
-      if (externalPaymentId) {
-        payment.externalPaymentId =
-          externalPaymentId;
-      }
-    }
-
-    if (status === PaymentStatus.PAID) {
-      const expectedDeposit =
-        this.getOrderDeposit(order);
-
-      // Tolerancia mínima por posibles decimales.
-      if (
-        Math.abs(Number(amount) - expectedDeposit) >
-        0.01
-      ) {
-        throw new BadRequestException(
-          `El monto recibido no coincide con la seña esperada de la orden`,
-        );
-      }
-
-      payment.paidAt = new Date();
-
-      order.status = OrderStatus.PAID;
-
-      await queryRunner.manager.save(
-        Order,
-        order,
-      );
-
-      const appointments =
-        order.orderDetails?.appointments ?? [];
-
-      if (appointments.length === 0) {
-        throw new BadRequestException(
-          'La orden no contiene turnos asociados',
-        );
-      }
-
-      for (const appointment of appointments) {
-        // Solo confirmamos los turnos que todavía
-        // están pendientes de pago.
+      // Stripe puede reenviar un mismo webhook.
+      // Si este pago ya fue confirmado con el mismo ID externo,
+      // devolvemos el registro existente sin procesarlo nuevamente.
+      // comentado por: Lautaro-dev
+      if (payment?.status === PaymentStatus.PAID) {
         if (
-          appointment.status ===
-          AppointmentStatus.PENDING
+          externalPaymentId &&
+          payment.externalPaymentId === externalPaymentId
         ) {
-          appointment.status =
-            AppointmentStatus.CONFIRMED;
+          await queryRunner.commitTransaction();
+          return payment;
+        }
 
-          // Una vez pagada la seña, el turno
-          // ya no debe expirar.
-          appointment.expiresAt = null;
+        throw new BadRequestException('La orden ya posee un pago confirmado');
+      }
 
-          await queryRunner.manager.save(
-            Appointment,
-            appointment,
-          );
+      // Antes de confirmar un pago verificamos que los turnos asociados
+      // todavía se encuentren dentro del tiempo válido de reserva.
+      // Esto evita confirmar un turno cuyo período de pago ya venció.
+      // comentado por: Lautaro-dev
+      if (status === PaymentStatus.PAID) {
+        const appointments = order.orderDetails?.appointments;
+
+        if (!appointments || appointments.length === 0) {
+          throw new BadRequestException('La orden no tiene turnos asociados');
+        }
+
+        const now = new Date();
+
+        for (const appointment of appointments) {
+          if (
+            appointment.status === AppointmentStatus.EXPIRED ||
+            (appointment.status === AppointmentStatus.PENDING &&
+              appointment.expiresAt &&
+              appointment.expiresAt <= now)
+          ) {
+            throw new BadRequestException(
+              'No se puede confirmar el pago porque el turno asociado ya expiró',
+            );
+          }
+
+          if (appointment.status === AppointmentStatus.CANCELLED) {
+            throw new BadRequestException(
+              'No se puede confirmar el pago de un turno cancelado',
+            );
+          }
         }
       }
-    }
 
-    const savedPayment =
-      await queryRunner.manager.save(
-        Payment,
-        payment,
-      );
+      if (!payment) {
+        payment = queryRunner.manager.create(Payment, {
+          order,
+          amount: amount.toString(),
+          provider,
+          status,
+          externalPaymentId: externalPaymentId ?? null,
+        });
+      } else {
+        payment.amount = amount.toString();
+        payment.provider = provider;
+        payment.status = status;
+        if (externalPaymentId) {
+          payment.externalPaymentId = externalPaymentId;
+        }
+      }
 
-    await queryRunner.commitTransaction();
+      if (status === PaymentStatus.PAID) {
+        payment.paidAt = new Date();
 
-    return savedPayment;
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
+        order.status = OrderStatus.PAID;
+        await queryRunner.manager.save(Order, order);
 
-    if (
-      error instanceof NotFoundException ||
-      error instanceof BadRequestException
-    ) {
-      throw error;
-    }
+        if (order.orderDetails && order.orderDetails.appointments) {
+          for (const appointment of order.orderDetails.appointments) {
+            appointment.status = AppointmentStatus.CONFIRMED;
 
-    throw new BadRequestException(
-      `Error al procesar el pago: ${
-        (error as Error).message
-      }`,
-    );
-  } finally {
-    await queryRunner.release();
-  }
-}
+            // Una vez confirmado el pago, el turno deja de ser una reserva temporal,
+            // por lo tanto ya no debe conservar una fecha de expiración.
+            // comentado por: Lautaro-dev
+            appointment.expiresAt = null;
 
-//  async processPayment(processPaymentDto: ProcessPaymentDto): Promise<Payment> {
-//    const { orderId, amount, provider, externalPaymentId, status } =
-//      processPaymentDto;
-//
-//    const queryRunner = this.dataSource.createQueryRunner();
-//    await queryRunner.connect();
-//    await queryRunner.startTransaction();
-//
-//    try {
-//      const order = await queryRunner.manager.findOne(Order, {
-//        where: { order_id: orderId },
-//        relations: ['orderDetails', 'orderDetails.appointments'],
-//      });
-//
-//      if (!order) {
-//        throw new NotFoundException(
-//          `No se encontró la orden con ID: ${orderId}`,
-//        );
-//      }
-//
-//      let payment = await queryRunner.manager.findOne(Payment, {
-//        where: { order: { order_id: orderId } },
-//      });
-//
-//      if (!payment) {
-//        payment = queryRunner.manager.create(Payment, {
-//          order,
-//          amount: amount.toString(),
-//          provider,
-//          status,
-//          externalPaymentId: externalPaymentId ?? null,
-//        });
-//      } else {
-//        payment.amount = amount.toString();
-//        payment.provider = provider;
-//        payment.status = status;
-//        if (externalPaymentId) {
-//          payment.externalPaymentId = externalPaymentId;
-//        }
-//      }
-//
-//      if (status === PaymentStatus.PAID) {
-//        payment.paidAt = new Date();
-//
-//        order.status = OrderStatus.PAID;
-//        await queryRunner.manager.save(Order, order);
-//
-//        if (order.orderDetails && order.orderDetails.appointments) {
-//          for (const appointment of order.orderDetails.appointments) {
-//            appointment.status = AppointmentStatus.CONFIRMED;
-//            await queryRunner.manager.save(Appointment, appointment);
-//          }
-//        }
-//      }
-//
-//      const savedPayment = await queryRunner.manager.save(Payment, payment);
-//
-//      await queryRunner.commitTransaction();
-//
-//      return savedPayment;
-//    } catch (error) {
-//      await queryRunner.rollbackTransaction();
-//      if (error instanceof NotFoundException) {
-//        throw error;
-//      }
-//      throw new BadRequestException(
-//        `Error al procesar el pago: ${(error as Error).message}`,
-//      );
-//    } finally {
-//      await queryRunner.release();
-//    }
-//  }
+            await queryRunner.manager.save(Appointment, appointment);
+          }
+        }
+      }
 
-  //async createStripeIntent(orderId: string) {
-  //  const order = await this.dataSource.getRepository(Order).findOne({
-  //    where: { order_id: orderId },
-  //    relations: ['orderDetails', 'orderDetails.appointments'],
-  //  });
-//
-  //  if (!order) {
-  //    throw new NotFoundException(`No se encontró la orden con ID: ${orderId}`);
-  //  }
-//
-  //  const amount = this.getOrderDeposit(order);
-//
-  //  const intent = await this.stripe.paymentIntents.create({
-  //    amount: Math.round(amount * 100),
-  //    currency: 'ars',
-  //    automatic_payment_methods: {
-  //      enabled: true,
-  //    },
-  //    metadata: {
-  //      orderId,
-  //    },
-  //  });
-//
-  //  return {
-  //    clientSecret: intent.client_secret,
-  //  };
-  //}
+      const savedPayment = await queryRunner.manager.save(Payment, payment);
 
-  async createStripeIntent(
-  orderId: string,
-  userId: string,
-  roles: UserRole[],
-) {
-  const orderRepository =
-    this.dataSource.getRepository(Order);
+      await queryRunner.commitTransaction();
 
-  const order = await orderRepository.findOne({
-    where: { order_id: orderId },
-    relations: [
-      'user',
-      'orderDetails',
-      'orderDetails.appointments',
-    ],
-  });
+      // Después de confirmar la transacción volvemos a consultar el pago
+      // con sus relaciones para devolver los estados reales y actualizados
+      // de Order y Appointment.
+      // comentado por: Lautaro-dev
+      const updatedPayment = await this.paymentRepository.findOne({
+        where: { id: savedPayment.id },
+        relations: [
+          'order',
+          'order.orderDetails',
+          'order.orderDetails.appointments',
+        ],
+      });
 
-  if (!order) {
-    throw new NotFoundException(
-      `No se encontró la orden con ID: ${orderId}`,
-    );
-  }
-
-  const isAdmin = roles.includes(UserRole.ADMIN);
-
-  if (!isAdmin && order.user.id !== userId) {
-    throw new NotFoundException(
-      `No se encontró la orden con ID: ${orderId}`,
-    );
-  }
-
-  if (order.status === OrderStatus.CANCELLED) {
-    throw new BadRequestException(
-      'No se puede pagar una orden cancelada o vencida',
-    );
-  }
-
-  if (order.status === OrderStatus.PAID) {
-    throw new BadRequestException(
-      'La orden ya se encuentra abonada',
-    );
-  }
-
-  const pendingAppointments =
-    order.orderDetails?.appointments?.filter(
-      (appointment) =>
-        appointment.status === AppointmentStatus.PENDING,
-    ) ?? [];
-
-  if (pendingAppointments.length === 0) {
-    throw new BadRequestException(
-      'La orden no contiene turnos pendientes de pago',
-    );
-  }
-
-  // Todos los turnos creados dentro de una misma Order
-  // comparten el mismo plazo de expiración.
-  const now = new Date();
-
-  const orderExpired = pendingAppointments.some(
-    (appointment) =>
-      appointment.expiresAt !== null &&
-      appointment.expiresAt <= now,
-  );
-
-  if (orderExpired) {
-    await this.dataSource.transaction(async (manager) => {
-      for (const appointment of pendingAppointments) {
-        appointment.status = AppointmentStatus.EXPIRED;
-        appointment.expiresAt = null;
-
-        await manager.save(
-          Appointment,
-          appointment,
+      if (!updatedPayment) {
+        throw new NotFoundException(
+          'El pago fue procesado pero no pudo recuperarse posteriormente',
         );
       }
 
-      order.status = OrderStatus.CANCELLED;
-
-      await manager.save(Order, order);
-    });
-
-    throw new BadRequestException(
-      'La orden venció. Debe realizar una nueva reserva',
-    );
+      return updatedPayment;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Error al procesar el pago: ${(error as Error).message}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  const amount = this.getOrderDeposit(order);
-
-  const intent =
-    await this.stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'ars',
-      automatic_payment_methods: {
-        enabled: true,
+  async createStripeIntent(orderId: string, userId: string) {
+    const order = await this.dataSource.getRepository(Order).findOne({
+      where: {
+        order_id: orderId,
+        user: {
+          id: userId,
+        },
       },
-      metadata: {
-        orderId,
-      },
+      relations: ['user', 'orderDetails', 'orderDetails.appointments'],
     });
 
-  return {
-    clientSecret: intent.client_secret,
-  };
-}
+    if (!order) {
+      throw new NotFoundException(
+        'La orden no existe o no pertenece al usuario autenticado',
+      );
+    }
 
-  //async handleStripeWebhook(rawBody: Buffer, signature: string) {
-  //  let event: Stripe.Event;
-  //  try {
-  //    event = this.stripe.webhooks.constructEvent(
-  //      rawBody,
-  //      signature,
-  //      process.env.STRIPE_WEBHOOK_SECRET!,
-  //    );
-  //  } catch {
-  //    throw new BadRequestException('Firma de webhook inválida');
-  //  }
-//
-  //  if (event.type === 'payment_intent.succeeded') {
-  //    const intent = event.data.object as any;
-  //    const orderId = intent.metadata?.orderId;
-//
-  //    // 💡 FILTRO PROTECTOR: Si Stripe manda un evento de prueba genérico
-  //    // sin metadata real, respondemos éxito directo para evitar el crash 404.
-  //    if (
-  //      !orderId ||
-  //      orderId.startsWith('pi_') ||
-  //      orderId === 'prueba_manual'
-  //    ) {
-  //      console.log(
-  //        '💰 [Stripe Webhook] Simulación exitosa (Bypass de validación).',
-  //      );
-  //      return { received: true };
-  //    }
-//
-  //    // Si es un ID real de tu sistema, intentamos procesar la base de datos
-  //    try {
-  //      await this.processPayment({
-  //        orderId: orderId,
-  //        amount: intent.amount_received / 100,
-  //        provider: 'stripe',
-  //        externalPaymentId: intent.id,
-  //        status: PaymentStatus.PAID,
-  //      });
-  //    } catch (error: any) {
-  //      // 💡 PROTECCIÓN MÁXIMA PARA LA ENTREGA: Si tu método processPayment falla
-  //      // porque la orden de pgAdmin no tiene filas hijas en order_details o appointments,
-  //      // atrapamos el error acá. Así tu API devuelve un código exitoso a Stripe y el flujo avanza.
-  //      console.log(
-  //        '⚠️ [Stripe Webhook] Pago aprobado, pero saltó restricción relacional en BD:',
-  //        error.message,
-  //      );
-  //      return { received: true };
-  //    }
-  //  }
-//
-  //  return { received: true };
-  //}
+    // Solo una orden pendiente puede iniciar un proceso de pago.
+    // Evita volver a generar PaymentIntents para órdenes ya pagadas
+    // o canceladas.
+    // comentado por: Lautaro-dev
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException(
+        'La orden no se encuentra pendiente de pago',
+      );
+    }
 
-  async handleStripeWebhook(
-  rawBody: Buffer,
-  signature: string,
-) {
-  let event: Stripe.Event;
+    const appointments = order.orderDetails?.appointments;
 
-  try {
-    event =
-      this.stripe.webhooks.constructEvent(
+    if (!appointments || appointments.length === 0) {
+      throw new BadRequestException('La orden no tiene turnos asociados');
+    }
+
+    const now = new Date();
+
+    // El PaymentIntent solamente puede generarse mientras la reserva
+    // temporal siga vigente.
+    // comentado por: Lautaro-dev
+    for (const appointment of appointments) {
+      if (
+        appointment.status !== AppointmentStatus.PENDING ||
+        !appointment.expiresAt ||
+        appointment.expiresAt <= now
+      ) {
+        throw new BadRequestException(
+          'La reserva asociada a la orden ya no se encuentra disponible para pagar',
+        );
+      }
+    }
+
+    const amount = this.getOrderDeposit(order);
+
+    // Utilizamos el ID de la orden como clave de idempotencia.
+    // De esta manera, si el cliente repite la petición por doble click,
+    // refresh o problemas de red, Stripe reutiliza el mismo PaymentIntent
+    // en lugar de generar varios intentos de pago para una misma orden.
+    // comentado por: Lautaro-dev
+    const intent = await this.stripe.paymentIntents.create(
+      {
+        amount: Math.round(amount * 100),
+        currency: 'ars',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          orderId,
+        },
+      },
+      {
+        idempotencyKey: `turnify-order-${orderId}`,
+      },
+    );
+
+    return {
+      clientSecret: intent.client_secret,
+    };
+  }
+
+  async handleStripeWebhook(rawBody: Buffer, signature: string) {
+    let event: Stripe.Event;
+    try {
+      event = this.stripe.webhooks.constructEvent(
         rawBody,
         signature,
         process.env.STRIPE_WEBHOOK_SECRET!,
       );
-  } catch {
-    throw new BadRequestException(
-      'Firma de webhook inválida',
-    );
-  }
-
-  if (
-    event.type ===
-    'payment_intent.succeeded'
-  ) {
-    const intent =
-      event.data.object as Stripe.PaymentIntent;
-
-    const orderId =
-      intent.metadata?.orderId;
-
-    if (!orderId) {
-      throw new BadRequestException(
-        'El pago recibido no contiene una orden asociada',
-      );
+    } catch {
+      throw new BadRequestException('Firma de webhook inválida');
     }
 
-    await this.processPayment({
-      orderId,
-      amount: intent.amount_received / 100,
-      provider: 'stripe',
-      externalPaymentId: intent.id,
-      status: PaymentStatus.PAID,
-    });
+    if (event.type === 'payment_intent.succeeded') {
+      const intent = event.data.object as any;
+      const orderId = intent.metadata?.orderId;
+
+      // 💡 FILTRO PROTECTOR: Si Stripe manda un evento de prueba genérico
+      // sin metadata real, respondemos éxito directo para evitar el crash 404.
+      if (
+        !orderId ||
+        orderId.startsWith('pi_') ||
+        orderId === 'prueba_manual'
+      ) {
+        console.log(
+          '💰 [Stripe Webhook] Simulación exitosa (Bypass de validación).',
+        );
+        return { received: true };
+      }
+
+      // Si Stripe confirmó el pago, procesamos la operación en nuestra BD.
+      // Si esta operación falla, NO ocultamos el error: el webhook debe fallar
+      // para que Stripe pueda volver a intentar entregarlo.
+      // comentado por: Lautaro-dev
+      await this.processPayment({
+        orderId,
+        amount: intent.amount_received / 100,
+        provider: 'stripe',
+        externalPaymentId: intent.id,
+        status: PaymentStatus.PAID,
+      });
+    }
+
+    return { received: true };
   }
-
-  return {
-    received: true,
-  };
-}
-
 
   private getOrderTotal(order: Order): number {
     const total = Number(order.orderDetails?.total_price);
@@ -519,7 +321,6 @@ export class PaymentsService {
       where: { id },
       relations: [
         'order',
-        'order.user',
         'order.orderDetails',
         'order.orderDetails.appointments',
       ],
@@ -546,7 +347,7 @@ export class PaymentsService {
 
   async findAll(): Promise<Payment[]> {
     return this.paymentRepository.find({
-      relations: ['order', 'order.user'],
+      relations: ['order'],
     });
   }
 }

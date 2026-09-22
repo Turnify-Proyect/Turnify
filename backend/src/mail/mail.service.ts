@@ -13,48 +13,26 @@ export class MailService {
     // Crea y configura el cliente SMTP que utilizará
     // la aplicación para enviar todos los correos.
     // comentado por: Lautaro-dev
-  //  this.transporter = nodemailer.createTransport({
-  //    host: this.configService.get<string>('SMTP_HOST'),
-//
-  //    port,
-//
-  //    // En SMTP normalmente:
-  //    // puerto 465 -> conexión TLS directa (secure: true)
-  //    // puerto 587 -> STARTTLS (secure: false)
-  //    // comentado por: Lautaro-dev
-  //    secure: this.configService.get<string>('SMTP_SECURE') === 'true',
-//
-  //    // Credenciales utilizadas por Turnify para autenticarse
-  //    // contra el servidor SMTP.
-  //    // comentado por: Lautaro-dev
-  //    auth: {
-  //      user: this.configService.get<string>('SMTP_USER'),
-  //      pass: this.configService.get<string>('SMTP_PASS'),
-  //    },
-  //  });
-  //}
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP_HOST'),
 
+      port,
 
-  //metodo para zafar conexión VALE:
-this.transporter = nodemailer.createTransport({
-  host: this.configService.get<string>('SMTP_HOST'),
-  port,
+      // En SMTP normalmente:
+      // puerto 465 -> conexión TLS directa (secure: true)
+      // puerto 587 -> STARTTLS (secure: false)
+      // comentado por: Lautaro-dev
+      secure: this.configService.get<string>('SMTP_SECURE') === 'true',
 
-  secure: this.configService.get<string>('SMTP_SECURE') === 'true',
-
-  auth: {
-    user: this.configService.get<string>('SMTP_USER'),
-    pass: this.configService.get<string>('SMTP_PASS'),
-  },
-
-  ...(process.env.NODE_ENV !== 'production' && {
-    tls: {
-      rejectUnauthorized: false,
-    },
-  }),
-});
+      // Credenciales utilizadas por Turnify para autenticarse
+      // contra el servidor SMTP.
+      // comentado por: Lautaro-dev
+      auth: {
+        user: this.configService.get<string>('SMTP_USER'),
+        pass: this.configService.get<string>('SMTP_PASS'),
+      },
+    });
   }
-  
 
   // Método genérico encargado de enviar un correo.
   // Recibe destinatario, asunto y contenido HTML para poder
