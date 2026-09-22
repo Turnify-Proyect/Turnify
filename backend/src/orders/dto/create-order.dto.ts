@@ -1,7 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsNotEmpty,
+  IsUUID,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class CreateOrderDto {
+export class CreateOrderAppointmentDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
     description: 'ID del profesional seleccionado',
@@ -25,4 +33,16 @@ export class CreateOrderDto {
   @IsDateString()
   @IsNotEmpty()
   startAt!: string;
+}
+
+export class CreateOrderDto {
+  @ApiProperty({
+    description: 'Turnos incluidos en la orden',
+    type: [CreateOrderAppointmentDto],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderAppointmentDto)
+  appointments!: CreateOrderAppointmentDto[];
 }

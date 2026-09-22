@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -12,6 +15,10 @@ import {
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
 
+type PreparedOrderAppointment = Awaited<
+  ReturnType<AppointmentsRepository['prepareAppointment']>
+>;
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -20,22 +27,59 @@ export class OrdersService {
   ) {}
 
   async create(userId: string, createOrderDto: CreateOrderDto) {
-    // Reutilizamos las validaciones existentes de Appointment:
-    // usuario, profesional, servicio, disponibilidad y superposición.
-    // Este método todavía no guarda nada.
-    // comentado por: Lautaro-dev
-    const { user, professional, service, startAt, endAt, expiresAt } =
-      await this.appointmentsRepository.prepareAppointment({
-        userId,
-        professionalId: createOrderDto.professionalId,
-        serviceId: createOrderDto.serviceId,
-        startAt: createOrderDto.startAt,
-      });
+    /*
+     * Preparamos todos los turnos reutilizando las validaciones
+     * existentes de Appointment.
+     */
+    const preparedAppointments: PreparedOrderAppointment[] =
+      await Promise.all(
+        createOrderDto.appointments.map((item) =>
+          this.appointmentsRepository.prepareAppointment({
+            userId,
+            professionalId: item.professionalId,
+            serviceId: item.serviceId,
+            startAt: item.startAt,
+          }),
+        ),
+      );
 
-    // Order + OrderDetail + Appointment deben crearse como una única operación.
-    // Si alguno de los inserts falla, la transacción revierte los anteriores.
-    // comentado por: Lautaro-dev
+    /*
+     * prepareAppointment valida contra los turnos que ya existen
+     * en la BD, pero estos nuevos turnos todavía no fueron guardados.
+     * Por eso también validamos que no se superpongan entre ellos.
+     */
+    this.validateInternalOverlaps(preparedAppointments);
+
+    /*
+     * El precio se calcula exclusivamente con los servicios
+     * obtenidos desde la base de datos.
+     */
+    const totalPrice = preparedAppointments.reduce(
+      (total, item) => total + Number(item.service.price),
+      0,
+    );
+
+    if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
+      throw new ConflictException(
+        'No se pudo calcular un precio válido para la orden',
+      );
+    }
+
+    /*
+     * Todos los turnos pertenecientes a la misma orden
+     * comparten el mismo vencimiento para completar el pago.
+     */
+    const expiresAt = new Date(
+      Date.now() + 10 * 60 * 1000,
+    );
+
+    /*
+     * Order + OrderDetail + Appointments se crean dentro
+     * de una única transacción.
+     */
     return this.dataSource.transaction(async (manager) => {
+      const user = preparedAppointments[0].user;
+
       const order = manager.create(Order, {
         user,
         status: OrderStatus.PENDING,
@@ -43,41 +87,81 @@ export class OrdersService {
 
       const savedOrder = await manager.save(Order, order);
 
-      // El precio se obtiene del Service guardado en la base de datos.
-      // Nunca confiamos en un precio enviado por el frontend.
-      // comentado por: Lautaro-dev
+      /*
+       * Una orden tiene un único OrderDetail con el total
+       * de todos los servicios seleccionados.
+       */
       const orderDetail = manager.create(OrderDetail, {
         order: savedOrder,
-        total_price: Number(service.price),
+        total_price: totalPrice,
       });
 
-      const savedOrderDetail = await manager.save(OrderDetail, orderDetail);
+      const savedOrderDetail = await manager.save(
+        OrderDetail,
+        orderDetail,
+      );
 
-      const appointment = manager.create(Appointment, {
-        user,
-        professional,
-        service,
-        orderDetail: savedOrderDetail,
-        startAt,
-        endAt,
-        status: AppointmentStatus.PENDING,
-        expiresAt,
-      });
+      /*
+       * Creamos todos los turnos asociados al mismo OrderDetail.
+       */
+      const appointments = preparedAppointments.map(
+        (prepared) =>
+          manager.create(Appointment, {
+            user: prepared.user,
+            professional: prepared.professional,
+            service: prepared.service,
+            orderDetail: savedOrderDetail,
+            startAt: prepared.startAt,
+            endAt: prepared.endAt,
+            status: AppointmentStatus.PENDING,
+            expiresAt,
+          }),
+      );
 
-      const savedAppointment = await manager.save(Appointment, appointment);
+      const savedAppointments = await manager.save(
+        Appointment,
+        appointments,
+      );
 
       return {
         orderId: savedOrder.order_id,
         status: savedOrder.status,
-        totalPrice: Number(savedOrderDetail.total_price),
-        appointment: {
-          id: savedAppointment.id,
-          status: savedAppointment.status,
-          startAt: savedAppointment.startAt,
-          endAt: savedAppointment.endAt,
-          expiresAt: savedAppointment.expiresAt,
-        },
+        totalPrice,
+        appointments: savedAppointments.map(
+          (appointment) => ({
+            id: appointment.id,
+            status: appointment.status,
+            startAt: appointment.startAt,
+            endAt: appointment.endAt,
+            expiresAt: appointment.expiresAt,
+          }),
+        ),
       };
     });
+  }
+
+  /*
+   * Valida que los turnos incluidos en la misma orden
+   * no se superpongan entre sí.
+   */
+  private validateInternalOverlaps(
+    appointments: PreparedOrderAppointment[],
+  ): void {
+    for (let i = 0; i < appointments.length; i++) {
+      for (let j = i + 1; j < appointments.length; j++) {
+        const first = appointments[i];
+        const second = appointments[j];
+
+        const overlaps =
+          first.startAt < second.endAt &&
+          first.endAt > second.startAt;
+
+        if (overlaps) {
+          throw new ConflictException(
+            'La orden contiene turnos con horarios superpuestos',
+          );
+        }
+      }
+    }
   }
 }
