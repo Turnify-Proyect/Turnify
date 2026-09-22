@@ -14,6 +14,10 @@ const config = {
   logging: true,
   synchronize: true,
   dropSchema: false,
+  ssl:
+    process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
 };
 
 export const typeOrmConfig = registerAs('typeorm', () => config);
