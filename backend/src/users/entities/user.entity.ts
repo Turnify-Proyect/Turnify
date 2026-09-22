@@ -97,6 +97,9 @@ export class User {
   })
   city!: string | null;
 
+  @Column({ name: 'img_url', type: 'varchar', length: 500, nullable: true })
+  imgUrl!: string | null;
+
   @OneToMany(() => Appointment, (appointment) => appointment.user)
   appointments!: Appointment[];
 
