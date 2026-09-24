@@ -19,6 +19,9 @@ import { ProfessionalService } from '../professionals/entities/professional-serv
 
 import { AvailabilityRepository } from '../availability/availability.repository';
 import { DayOfWeek } from '../availability/entities/availability.entity';
+import { APP_TIMEZONE } from '../common/timezone';
+
+
 
 @Injectable()
 export class AppointmentsRepository {
@@ -41,18 +44,50 @@ export class AppointmentsRepository {
     private readonly availabilityRepository: AvailabilityRepository,
   ) {}
   //funcion para obtener el dia de la semana a partir de una fecha
-  private getDayOfWeek(date: Date): DayOfWeek {
-    const days: DayOfWeek[] = [
-      DayOfWeek.SUNDAY,
-      DayOfWeek.MONDAY,
-      DayOfWeek.TUESDAY,
-      DayOfWeek.WEDNESDAY,
-      DayOfWeek.THURSDAY,
-      DayOfWeek.FRIDAY,
-      DayOfWeek.SATURDAY,
-    ];
+ private getDayOfWeek(date: Date): DayOfWeek {
+    const dayName = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIMEZONE,
+    weekday: 'long',
+  })
+      .format(date)
+      .toLowerCase();
 
-    return days[date.getDay()];
+    const map: Record<string, DayOfWeek> = {
+      sunday: DayOfWeek.SUNDAY,
+      monday: DayOfWeek.MONDAY,
+      tuesday: DayOfWeek.TUESDAY,
+      wednesday: DayOfWeek.WEDNESDAY,
+      thursday: DayOfWeek.THURSDAY,
+      friday: DayOfWeek.FRIDAY,
+      saturday: DayOfWeek.SATURDAY,
+    };
+
+  return map[dayName];
+}
+
+
+private getArgentinaTimeParts(date: Date): {
+    hour: number;
+    minute: number;
+  } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: APP_TIMEZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  
+    const parts = formatter.formatToParts(date);
+  
+    const hour = Number(
+      parts.find((part) => part.type === 'hour')?.value,
+    );
+  
+    const minute = Number(
+      parts.find((part) => part.type === 'minute')?.value,
+    );
+  
+    return { hour, minute };
   }
 
   //función para expirar turnos pendientes que hayan pasado su fecha de expiración.
@@ -89,10 +124,12 @@ export class AppointmentsRepository {
         dayOfWeek,
       );
 
-    const appointmentStartMinutes =
-      startAt.getHours() * 60 + startAt.getMinutes();
+    const startTime = this.getArgentinaTimeParts(startAt);
+    const endTime = this.getArgentinaTimeParts(endAt);
 
-    const appointmentEndMinutes = endAt.getHours() * 60 + endAt.getMinutes();
+    const appointmentStartMinutes = startTime.hour * 60 + startTime.minute;
+
+    const appointmentEndMinutes = endTime.hour * 60 + endTime.minute;
 
     const isWithinAvailability = availabilities.some((availability) => {
       const [startHour, startMinute] = availability.startTime
