@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ProfessionalService } from 'src/professionals/entities/professional-service.entity';
+import { Category } from '../categories/category.entity';
 
 @Injectable()
 export class ServicesRepository {
@@ -20,15 +21,22 @@ export class ServicesRepository {
   // incluyendo los que están inactivos.
   //coemntado por:Lautaro-dev
   async getAll(): Promise<Service[]> {
-    return this.ormServiceRepository.find();
+    return this.ormServiceRepository.find({
+      relations: {
+        category: true,
+      },
+    });
   }
 
   // Obtiene únicamente los servicios que se encuentran activos.
   //coemntado por:Lautaro-dev
-  async getAllActive(): Promise<Service[]> {
+    async getAllActive(): Promise<Service[]> {
     return this.ormServiceRepository.find({
       where: {
         isActive: true,
+      },
+      relations: {
+        category: true,
       },
     });
   }
@@ -46,10 +54,34 @@ export class ServicesRepository {
   // Busca un servicio específico por su id.
   //coemntado por:Lautaro-dev
   async getById(id: string): Promise<Service | null> {
-    return this.ormServiceRepository.findOneBy({
+  return this.ormServiceRepository.findOne({
+    where: {
       id,
+    },
+    relations: {
+      category: true,
+    },
+  });
+}
+
+
+async create(data: CreateServiceDto, category: Category,): Promise<Service> {
+  const {
+    categoryId,
+    ...serviceData
+  } = data;
+
+  const service =
+    this.ormServiceRepository.create({
+      ...serviceData,
+      category,
     });
-  }
+
+  const saved =
+    await this.ormServiceRepository.save(service);
+
+  return (await this.getById(saved.id))!;
+}
 
   // Actualiza parcialmente un servicio existente.
   //coemntado por:Lautaro-dev
@@ -57,18 +89,30 @@ export class ServicesRepository {
   //coemntado por:Lautaro-dev
   // se realizan previamente en el service.
   //coemntado por:Lautaro-dev
-  async update(id: string, data: UpdateServiceDto): Promise<void> {
-    await this.ormServiceRepository.update(id, data);
-  }
+  async update(id: string, data: UpdateServiceDto, category?: Category,): Promise<void> {
+  const service =
+      await this.ormServiceRepository.findOneBy({
+        id,
+      });
 
-  // Crea una instancia de Service y luego la persiste
-  //coemntado por:Lautaro-dev
-  // en la base de datos.
-  //coemntado por:Lautaro-dev
-  async create(data: CreateServiceDto): Promise<Service> {
-    const service = this.ormServiceRepository.create(data);
+    if (!service) {
+      throw new NotFoundException(
+        'No existe un servicio con el ID proporcionado',
+      );
+    }
 
-    return this.ormServiceRepository.save(service);
+    const {
+      categoryId,
+      ...serviceData
+    } = data;
+
+    Object.assign(service, serviceData);
+
+    if (category) {
+      service.category = category;
+    }
+
+    await this.ormServiceRepository.save(service);
   }
 
   // Realiza la baja lógica de un servicio

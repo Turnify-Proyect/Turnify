@@ -7,9 +7,10 @@ import { ServicesRepository } from './services.repository';
 import { ProfessionalService } from 'src/professionals/entities/professional-service.entity';
 import { CloudinaryConfig } from 'src/config/cloudinary';
 import { CloudinaryService } from 'src/config/cloudinary.service';
+import { CategoriesModule } from 'src/categories/categories.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Service, ProfessionalService])],
+  imports: [TypeOrmModule.forFeature([Service, ProfessionalService]), CategoriesModule],
   controllers: [ServicesController],
   providers: [ServicesService, ServicesRepository, CloudinaryService, CloudinaryConfig],
   exports: [ServicesService],

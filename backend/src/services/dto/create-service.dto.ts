@@ -5,10 +5,10 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
-import { ServiceCategory } from '../entities/service.entity';
 
 export class CreateServiceDto {
   @IsString()
@@ -20,9 +20,8 @@ export class CreateServiceDto {
   @IsString()
   description?: string;
 
-  @IsNotEmpty()
-  @IsString()
-  category!: ServiceCategory;
+  @IsUUID()
+  categoryId!: string;
 
   @IsNumberString()
   price!: string;
