@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 
 import { AppointmentsService } from './appointments.service';
@@ -65,6 +66,32 @@ export class AppointmentsController {
   })
   getMyAppointments(@Req() req: any) {
     return this.appointmentsService.getAppointmentsByUserId(req.user.id);
+  }
+
+
+  @Get('available-slots')
+  @Roles(UserRole.CLIENT, UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  getAvailableSlots(
+    @Query('professionalId', ParseUUIDPipe)
+    professionalId: string,
+  
+    @Query('serviceId', ParseUUIDPipe)
+    serviceId: string,
+  
+    @Query('date')
+    date: string,
+  
+    @Query('appointmentId')
+    appointmentId?: string,
+  ) {
+    return this.appointmentsService.getAvailableSlots(
+      professionalId,
+      serviceId,
+      date,
+      appointmentId,
+    );
   }
 
   @Get(':id')
