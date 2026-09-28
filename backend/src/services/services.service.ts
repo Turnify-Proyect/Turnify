@@ -19,23 +19,21 @@ export class ServicesService {
   ) {}
 
   private async getCategory(categoryId: string) {
-  const category =
-    await this.categoriesRepository.getCategoryById(categoryId);
+    const category =
+      await this.categoriesRepository.getCategoryById(categoryId);
 
-  if (!category) {
-    throw new NotFoundException(
-      'No existe la categoría seleccionada',
-    );
+    if (!category) {
+      throw new NotFoundException('No existe la categoría seleccionada');
+    }
+
+    if (!category.isActive) {
+      throw new ConflictException(
+        'La categoría seleccionada se encuentra inactiva',
+      );
+    }
+
+    return category;
   }
-
-  if (!category.isActive) {
-    throw new ConflictException(
-      'La categoría seleccionada se encuentra inactiva',
-    );
-  }
-
-  return category;
-}
 
   async updateServiceImage(
     serviceId: string,
@@ -98,7 +96,7 @@ export class ServicesService {
     }
   }
 
-  async update(id: string, data: UpdateServiceDto,): Promise<Service> {
+  async update(id: string, data: UpdateServiceDto): Promise<Service> {
     await this.getById(id);
 
     if (data.name) {
@@ -109,30 +107,21 @@ export class ServicesService {
       ? await this.getCategory(data.categoryId)
       : undefined;
 
-    await this.servicesRepository.update(
-      id,
-      data,
-      category,
-    );
+    await this.servicesRepository.update(id, data, category);
 
-  return this.getById(id);
-}
+    return this.getById(id);
+  }
   // Crea un nuevo servicio luego de validar
   //coemntado por:Lautaro-dev
   // que no exista otro con el mismo nombre.
   //coemntado por:Lautaro-dev
   async create(data: CreateServiceDto): Promise<Service> {
-  await this.validateNameAvailability(data.name);
+    await this.validateNameAvailability(data.name);
 
-  const category = await this.getCategory(
-    data.categoryId,
-  );
+    const category = await this.getCategory(data.categoryId);
 
-  return this.servicesRepository.create(
-    data,
-    category,
-  );
-}
+    return this.servicesRepository.create(data, category);
+  }
 
   // Realiza una baja lógica del servicio.
   //coemntado por:Lautaro-dev

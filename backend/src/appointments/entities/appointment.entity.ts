@@ -69,4 +69,7 @@ export class Appointment {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
+
+  @Column({ name: 'reminder_sent', type: 'boolean', default: false })
+  reminderSent!: boolean;
 }

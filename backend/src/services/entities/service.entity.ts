@@ -1,9 +1,14 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Appointment } from '../../appointments/entities/appointment.entity';
 import { ProfessionalService } from '../../professionals/entities/professional-service.entity';
 import { Category } from '../../categories/category.entity';
-
-
 
 @Entity({ name: 'SERVICES' })
 export class Service {
@@ -16,7 +21,9 @@ export class Service {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @ManyToOne(() => Category,(category) => category.services,{nullable: false,},)
+  @ManyToOne(() => Category, (category) => category.services, {
+    nullable: false,
+  })
   @JoinColumn({ name: 'category_id' })
   category!: Category;
 

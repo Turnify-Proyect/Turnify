@@ -68,7 +68,6 @@ export class AppointmentsController {
     return this.appointmentsService.getAppointmentsByUserId(req.user.id);
   }
 
-
   @Get('available-slots')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -76,13 +75,13 @@ export class AppointmentsController {
   getAvailableSlots(
     @Query('professionalId', ParseUUIDPipe)
     professionalId: string,
-  
+
     @Query('serviceId', ParseUUIDPipe)
     serviceId: string,
-  
+
     @Query('date')
     date: string,
-  
+
     @Query('appointmentId')
     appointmentId?: string,
   ) {

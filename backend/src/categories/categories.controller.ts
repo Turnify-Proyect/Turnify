@@ -18,9 +18,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Controller('categories')
 export class CategoriesController {
-  constructor(
-    private readonly categoriesService: CategoriesService,
-  ) {}
+  constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
   getAllActiveCategories() {
@@ -28,9 +26,7 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  getById(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  getById(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.getCategoryById(id);
   }
 
@@ -38,9 +34,7 @@ export class CategoriesController {
   @Post()
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
-  create(
-    @Body() dto: CreateCategoryDto,
-  ) {
+  create(@Body() dto: CreateCategoryDto) {
     return this.categoriesService.createCategory(dto);
   }
 
@@ -48,9 +42,7 @@ export class CategoriesController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
-  deactivate(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  deactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.deactivateCategory(id);
   }
 
@@ -58,10 +50,7 @@ export class CategoriesController {
   @Patch(':id/reactivate')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
-  reactivate(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  reactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.reactivateCategory(id);
   }
-  
 }

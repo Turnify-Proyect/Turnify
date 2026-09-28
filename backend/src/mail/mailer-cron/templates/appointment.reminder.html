@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; }
+    .card { max-width: 550px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 8px; border: 1px solid #eef2f5; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    .header { border-bottom: 2px solid #3b82f6; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h2 { color: #1e293b; margin: 0; font-size: 22px; }
+    .content p { color: #475569; font-size: 15px; line-height: 1.6; }
+    .details { background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; }
+    .details p { margin: 8px 0; font-size: 14px; color: #334155; }
+    .footer { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 25px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h2>⏰ ¡Hola, {{userName}}!</h2>
+    </div>
+    <div class="content">
+      <p>Te escribimos para recordarte que tienes una cita programada para el día de mañana. A continuación, te compartimos los detalles:</p>
+      
+      <div class="details">
+        <p><strong>🛠️ Servicio:</strong> {{serviceName}}</p>
+        <p><strong>🧑‍⚕️ Profesional:</strong> {{professionalName}}</p>
+        <p><strong>🕒 Hora de inicio:</strong> {{time}} hs</p>
+      </div>
+
+      <p>Si necesitas realizar alguna modificación o deseas cancelar el turno, por favor hazlo desde nuestra plataforma con la mayor anticipación posible.</p>
+    </div>
+    <div class="footer">
+      <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+    </div>
+  </div>
+</body>
+</html>

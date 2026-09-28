@@ -30,7 +30,7 @@ export class ServicesRepository {
 
   // Obtiene únicamente los servicios que se encuentran activos.
   //coemntado por:Lautaro-dev
-    async getAllActive(): Promise<Service[]> {
+  async getAllActive(): Promise<Service[]> {
     return this.ormServiceRepository.find({
       where: {
         isActive: true,
@@ -54,34 +54,28 @@ export class ServicesRepository {
   // Busca un servicio específico por su id.
   //coemntado por:Lautaro-dev
   async getById(id: string): Promise<Service | null> {
-  return this.ormServiceRepository.findOne({
-    where: {
-      id,
-    },
-    relations: {
-      category: true,
-    },
-  });
-}
+    return this.ormServiceRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        category: true,
+      },
+    });
+  }
 
+  async create(data: CreateServiceDto, category: Category): Promise<Service> {
+    const { categoryId, ...serviceData } = data;
 
-async create(data: CreateServiceDto, category: Category,): Promise<Service> {
-  const {
-    categoryId,
-    ...serviceData
-  } = data;
-
-  const service =
-    this.ormServiceRepository.create({
+    const service = this.ormServiceRepository.create({
       ...serviceData,
       category,
     });
 
-  const saved =
-    await this.ormServiceRepository.save(service);
+    const saved = await this.ormServiceRepository.save(service);
 
-  return (await this.getById(saved.id))!;
-}
+    return (await this.getById(saved.id))!;
+  }
 
   // Actualiza parcialmente un servicio existente.
   //coemntado por:Lautaro-dev
@@ -89,11 +83,14 @@ async create(data: CreateServiceDto, category: Category,): Promise<Service> {
   //coemntado por:Lautaro-dev
   // se realizan previamente en el service.
   //coemntado por:Lautaro-dev
-  async update(id: string, data: UpdateServiceDto, category?: Category,): Promise<void> {
-  const service =
-      await this.ormServiceRepository.findOneBy({
-        id,
-      });
+  async update(
+    id: string,
+    data: UpdateServiceDto,
+    category?: Category,
+  ): Promise<void> {
+    const service = await this.ormServiceRepository.findOneBy({
+      id,
+    });
 
     if (!service) {
       throw new NotFoundException(
@@ -101,10 +98,7 @@ async create(data: CreateServiceDto, category: Category,): Promise<Service> {
       );
     }
 
-    const {
-      categoryId,
-      ...serviceData
-    } = data;
+    const { categoryId, ...serviceData } = data;
 
     Object.assign(service, serviceData);
 

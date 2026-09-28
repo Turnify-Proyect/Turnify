@@ -54,16 +54,16 @@ export class AppointmentsService {
   }
 
   async getAvailableSlots(
-  professionalId: string,
-  serviceId: string,
-  date: string,
-  appointmentId?: string,
-) {
-  return this.appointmentsRepository.getAvailableSlots(
-    professionalId,
-    serviceId,
-    date,
-    appointmentId,
-  );
-}
+    professionalId: string,
+    serviceId: string,
+    date: string,
+    appointmentId?: string,
+  ) {
+    return this.appointmentsRepository.getAvailableSlots(
+      professionalId,
+      serviceId,
+      date,
+      appointmentId,
+    );
+  }
 }
