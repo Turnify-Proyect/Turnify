@@ -10,13 +10,25 @@ export class CategoriesRepository {
     private readonly ormCategoryRepository: Repository<Category>,
   ) {}
 
-  async getById(id: string): Promise<Category | null> {
+  async getCategoryById(id: string): Promise<Category | null> {
     return this.ormCategoryRepository.findOneBy({
       id,
     });
   }
 
-  async getAll(): Promise<Category[]> {
+  async getCategoryByName(name: string): Promise<Category | null> {
+    return this.ormCategoryRepository
+      .createQueryBuilder('category')
+      .where(
+        'LOWER(category.name) = LOWER(:name)',
+        {
+          name: name.trim(),
+        },
+      )
+      .getOne();
+  }
+
+  async getAllCategories(): Promise<Category[]> {
     return this.ormCategoryRepository.find({
       order: {
         name: 'ASC',
@@ -24,7 +36,7 @@ export class CategoriesRepository {
     });
   }
 
-  async getAllActive(): Promise<Category[]> {
+  async getAllActiveCategories(): Promise<Category[]> {
     return this.ormCategoryRepository.find({
       where: {
         isActive: true,
@@ -34,4 +46,46 @@ export class CategoriesRepository {
       },
     });
   }
+
+   async createCategory(
+    name: string,
+    icon?: string,
+  ): Promise<Category> {
+    const category =
+      this.ormCategoryRepository.create({
+        name: name.trim(),
+        icon: icon?.trim() || null,
+        isActive: true,
+      });
+
+    return this.ormCategoryRepository.save(
+      category,
+    );
+  }
+
+  async deactivateCategory(
+    category: Category,
+  ): Promise<Category> {
+    category.isActive = false;
+
+    return this.ormCategoryRepository.save(
+      category,
+    );
+  }
+
+  async reactivateCategory(
+    category: Category,
+    icon?: string,
+  ): Promise<Category> {
+    category.isActive = true;
+
+    if (icon?.trim()) {
+      category.icon = icon.trim();
+    }
+
+    return this.ormCategoryRepository.save(
+      category,
+    );
+  }
+
 }

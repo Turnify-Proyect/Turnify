@@ -1,9 +1,11 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { CategoriesRepository } from './categories.repository';
 import { Category } from './category.entity';
+import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -11,17 +13,17 @@ export class CategoriesService {
     private readonly categoriesRepository: CategoriesRepository,
   ) {}
 
-  async getAllActive(): Promise<Category[]> {
-    return this.categoriesRepository.getAllActive();
+  async getAllActiveCategories(): Promise<Category[]> {
+    return this.categoriesRepository.getAllActiveCategories();
   }
 
-  async getAll(): Promise<Category[]> {
-    return this.categoriesRepository.getAll();
+  async getAllCategories(): Promise<Category[]> {
+    return this.categoriesRepository.getAllCategories();
   }
 
-  async getById(id: string): Promise<Category> {
+  async getCategoryById(id: string): Promise<Category> {
     const category =
-      await this.categoriesRepository.getById(id);
+      await this.categoriesRepository.getCategoryById(id);
 
     if (!category) {
       throw new NotFoundException(
@@ -31,4 +33,62 @@ export class CategoriesService {
 
     return category;
   }
+
+  async createCategory(
+    dto: CreateCategoryDto,
+  ): Promise<Category> {
+    const name = dto.name.trim();
+
+    const existing =
+      await this.categoriesRepository.getCategoryByName(
+        name,
+      );
+
+    if (existing?.isActive) {
+      throw new ConflictException(
+        'Ya existe una categoría con ese nombre',
+      );
+    }
+
+    if (existing && !existing.isActive) {
+      return this.categoriesRepository.reactivateCategory(
+        existing,
+        dto.icon,
+      );
+    }
+
+    return this.categoriesRepository.createCategory(
+      name,
+      dto.icon,
+    );
+  }
+
+  async deactivateCategory(
+    id: string,
+  ): Promise<Category> {
+    const category = await this.getCategoryById(id);
+
+    if (!category.isActive) {
+      return category;
+    }
+
+    return this.categoriesRepository.deactivateCategory(
+      category,
+    );
+  }
+
+  async reactivateCategory(
+    id: string,
+  ): Promise<Category> {
+    const category = await this.getCategoryById(id);
+
+    if (category.isActive) {
+      return category;
+    }
+
+    return this.categoriesRepository.reactivateCategory(
+      category,
+    );
+  }
+
 }
