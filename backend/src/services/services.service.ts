@@ -20,7 +20,7 @@ export class ServicesService {
 
   private async getCategory(categoryId: string) {
   const category =
-    await this.categoriesRepository.getById(categoryId);
+    await this.categoriesRepository.getCategoryById(categoryId);
 
   if (!category) {
     throw new NotFoundException(
