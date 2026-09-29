@@ -2,9 +2,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Raw } from 'typeorm';
+import { APP_TIMEZONE } from '../common/timezone';
 import { Appointment, AppointmentStatus } from './entities/appointment.entity';
-import { MailerService } from '../mail/mailer-cron/mailer.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AppointmentCronService {
@@ -13,30 +14,51 @@ export class AppointmentCronService {
   constructor(
     @InjectRepository(Appointment)
     private readonly appointmentRepository: Repository<Appointment>,
-    private readonly mailerService: MailerService,
+
+    // Utiliza el servicio centralizado encargado de las notificaciones.
+    //comentado por Lautaro-dev
+    private readonly notificationsService: NotificationsService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  // Ejecuta el recordatorio todos los días a las 08:00
+  // utilizando la zona horaria configurada para la aplicación.
+  //comentado por Lautaro-dev
+  @Cron(CronExpression.EVERY_DAY_AT_8AM, {
+    timeZone: APP_TIMEZONE,
+  })
   async sendDailyAppointmentReminders() {
     this.logger.log(
       'Iniciando proceso automático de recordatorio de turnos...',
     );
 
-    const startOfTomorrow = new Date();
-    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
-    startOfTomorrow.setHours(0, 0, 0, 0);
+    // Obtiene la fecha de mañana tomando como referencia
+    // la zona horaria configurada para la aplicación.
+    //comentado por Lautaro-dev
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const endOfTomorrow = new Date();
-    endOfTomorrow.setDate(endOfTomorrow.getDate() + 1);
-    endOfTomorrow.setHours(23, 59, 59, 999);
+    const tomorrowDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: APP_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(tomorrow);
 
     try {
       const appointments = await this.appointmentRepository.find({
         where: {
-          startAt: Between(startOfTomorrow, endOfTomorrow),
+          // Busca los turnos cuya fecha corresponde al día de mañana
+          // según la zona horaria configurada para la aplicación.
+          //comentado por Lautaro-dev
+          startAt: Raw(
+            (alias) => `DATE(${alias} AT TIME ZONE :timeZone) = :tomorrowDate`,
+            {
+              timeZone: APP_TIMEZONE,
+              tomorrowDate,
+            },
+          ),
           status: AppointmentStatus.CONFIRMED,
         },
-        relations: ['user', 'professional', 'service'],
+        relations: ['user', 'professional', 'professional.user', 'service'],
       });
 
       if (appointments.length === 0) {
@@ -60,37 +82,32 @@ export class AppointmentCronService {
           continue;
         }
 
-        const appointmentTime = startAt.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-
         try {
-          await this.mailerService.sendMailWithTemplate(
+          // Delega la construcción y el envío del correo
+          // al servicio centralizado de notificaciones.
+          //comentado por Lautaro-dev
+          await this.notificationsService.sendAppointmentReminder(
             user.email,
-            '⏰ Recordatorio de tu Turno - Próximas 24 Horas',
-            'appointment-reminder',
-            {
-              userName: (user as any).name || 'Cliente', // Ajustado con 'as any' por si cambia en tu entidad
-              serviceName: service?.name || 'No especificado',
-              professionalName:
-                (professional as any)?.name || 'No especificado', // Cast temporal para evitar el TS2339
-              time: appointmentTime,
-            },
+            user.name || 'Cliente',
+            service?.name || 'No especificado',
+            professional?.user?.name || 'No especificado',
+            startAt,
           );
         } catch (mailError) {
           this.logger.error(
-            `Error enviando correo para la cita ID ${appointment.id}: ${mailError.message}`,
+            `Error enviando correo para la cita ID ${appointment.id}: ${
+              mailError instanceof Error ? mailError.message : String(mailError)
+            }`,
           );
         }
-      } // Fin del for
+      }
 
       this.logger.log('Proceso de recordatorio de turnos completado.');
     } catch (error) {
       this.logger.error(
         'Error general en el Cron de recordatorios:',
-        error.stack,
+        error instanceof Error ? error.stack : String(error),
       );
     }
-  } // Fin del método
-} // Fin de la clase
+  }
+}

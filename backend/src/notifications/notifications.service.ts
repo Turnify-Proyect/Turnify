@@ -31,6 +31,28 @@ export class NotificationsService {
     }).format(date);
   }
 
+  async sendAppointmentReminder(
+    email: string,
+    userName: string,
+    serviceName: string,
+    professionalName: string,
+    startAt: Date,
+  ): Promise<void> {
+    // Envía el recordatorio utilizando la plantilla HTML del turno.
+    //comentado por Lautaro-dev
+    await this.mailService.sendMailWithTemplate(
+      email,
+      'Recordatorio de tu turno - Turnify',
+      'appointment.reminder',
+      {
+        userName,
+        serviceName,
+        professionalName,
+        time: this.formatTime(startAt),
+      },
+    );
+  }
+
   // Construye y envía el correo de confirmación de una orden,
   // incluyendo todos los turnos asociados y los datos del pago.
   //comentado por Lautaro-dev
