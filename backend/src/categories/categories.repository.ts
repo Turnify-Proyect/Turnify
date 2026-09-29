@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './category.entity';
+import { Service } from '../services/entities/service.entity';
 
 @Injectable()
 export class CategoriesRepository {
   constructor(
     @InjectRepository(Category)
     private readonly ormCategoryRepository: Repository<Category>,
+    @InjectRepository(Service)
+    private readonly ormServiceRepository: Repository<Service>,
   ) {}
 
   async getCategoryById(id: string): Promise<Category | null> {
@@ -72,4 +75,15 @@ export class CategoriesRepository {
 
     return this.ormCategoryRepository.save(category);
   }
+
+  async isInUse(categoryId: string): Promise<boolean> {
+  const count = await this.ormServiceRepository
+    .createQueryBuilder('service')
+    .where('service.category_id = :categoryId', {
+      categoryId,
+    })
+    .getCount();
+
+  return count > 0;
+}
 }
