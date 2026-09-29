@@ -10,6 +10,8 @@ import { Service } from 'src/services/entities/service.entity';
 import { AvailabilityModule } from 'src/availability/availability.module';
 import { AppointmentsRepository } from './appointments.repository';
 import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-or-admin.guard';
+import { AppointmentCronService } from './appointment.service.cron';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,12 +23,14 @@ import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-o
       ProfessionalService,
     ]),
     AvailabilityModule,
+    NotificationsModule,
   ],
   controllers: [AppointmentsController],
   providers: [
     AppointmentsService,
     AppointmentsRepository,
     AppointmentOwnerOrAdminGuard,
+    AppointmentCronService,
   ],
   exports: [AppointmentsRepository],
 })
