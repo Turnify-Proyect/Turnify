@@ -52,4 +52,18 @@ export class AppointmentsService {
       newStatus,
     );
   }
+
+  async getAvailableSlots(
+    professionalId: string,
+    serviceId: string,
+    date: string,
+    appointmentId?: string,
+  ) {
+    return this.appointmentsRepository.getAvailableSlots(
+      professionalId,
+      serviceId,
+      date,
+      appointmentId,
+    );
+  }
 }

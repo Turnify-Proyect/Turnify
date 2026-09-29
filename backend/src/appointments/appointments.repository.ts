@@ -21,8 +21,6 @@ import { AvailabilityRepository } from '../availability/availability.repository'
 import { DayOfWeek } from '../availability/entities/availability.entity';
 import { APP_TIMEZONE } from '../common/timezone';
 
-
-
 @Injectable()
 export class AppointmentsRepository {
   constructor(
@@ -44,11 +42,11 @@ export class AppointmentsRepository {
     private readonly availabilityRepository: AvailabilityRepository,
   ) {}
   //funcion para obtener el dia de la semana a partir de una fecha
- private getDayOfWeek(date: Date): DayOfWeek {
+  private getDayOfWeek(date: Date): DayOfWeek {
     const dayName = new Intl.DateTimeFormat('en-US', {
-    timeZone: APP_TIMEZONE,
-    weekday: 'long',
-  })
+      timeZone: APP_TIMEZONE,
+      weekday: 'long',
+    })
       .format(date)
       .toLowerCase();
 
@@ -62,11 +60,10 @@ export class AppointmentsRepository {
       saturday: DayOfWeek.SATURDAY,
     };
 
-  return map[dayName];
-}
+    return map[dayName];
+  }
 
-
-private getArgentinaTimeParts(date: Date): {
+  private getArgentinaTimeParts(date: Date): {
     hour: number;
     minute: number;
   } {
@@ -76,17 +73,13 @@ private getArgentinaTimeParts(date: Date): {
       minute: '2-digit',
       hour12: false,
     });
-  
+
     const parts = formatter.formatToParts(date);
-  
-    const hour = Number(
-      parts.find((part) => part.type === 'hour')?.value,
-    );
-  
-    const minute = Number(
-      parts.find((part) => part.type === 'minute')?.value,
-    );
-  
+
+    const hour = Number(parts.find((part) => part.type === 'hour')?.value);
+
+    const minute = Number(parts.find((part) => part.type === 'minute')?.value);
+
     return { hour, minute };
   }
 
@@ -249,6 +242,179 @@ private getArgentinaTimeParts(date: Date): {
         'El usuario ya tiene un turno asignado en ese horario',
       );
     }
+  }
+
+  private minutesToTime(totalMinutes: number): string {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+
+  async getAvailableSlots(
+    professionalId: string,
+    serviceId: string,
+    date: string,
+    appointmentIdToIgnore?: string,
+  ): Promise<{ date: string; slots: string[] }> {
+    await this.expirePendingAppointments();
+
+    const professional = await this.professionalsRepository.findOne({
+      where: { id: professionalId },
+    });
+
+    if (!professional) {
+      throw new NotFoundException('No existe el profesional seleccionado');
+    }
+
+    if (!professional.isActive) {
+      throw new ConflictException(
+        'El profesional seleccionado se encuentra inactivo',
+      );
+    }
+
+    const service = await this.servicesRepository.findOne({
+      where: { id: serviceId },
+    });
+
+    if (!service) {
+      throw new NotFoundException('No existe el servicio seleccionado');
+    }
+
+    if (!service.isActive) {
+      throw new ConflictException(
+        'El servicio seleccionado se encuentra inactivo',
+      );
+    }
+
+    const professionalService =
+      await this.professionalServicesRepository.findOne({
+        where: {
+          professionalId,
+          serviceId,
+        },
+      });
+
+    if (!professionalService) {
+      throw new ConflictException(
+        'El profesional seleccionado no realiza este servicio',
+      );
+    }
+
+    // Usamos mediodía para determinar el día sin riesgos
+    // de cambio de fecha por zona horaria.
+    const selectedDate = new Date(`${date}T12:00:00-03:00`);
+
+    if (Number.isNaN(selectedDate.getTime())) {
+      throw new BadRequestException('La fecha seleccionada no es válida');
+    }
+
+    const dayOfWeek = this.getDayOfWeek(selectedDate);
+
+    const availabilities =
+      await this.availabilityRepository.getByProfessionalAndDay(
+        professionalId,
+        dayOfWeek,
+      );
+
+    if (availabilities.length === 0) {
+      return {
+        date,
+        slots: [],
+      };
+    }
+
+    const dayStart = new Date(`${date}T00:00:00-03:00`);
+    const dayEnd = new Date(`${date}T23:59:59.999-03:00`);
+    const now = new Date();
+
+    const query = this.appointmentsRepository
+      .createQueryBuilder('appointment')
+      .where('appointment.professional_id = :professionalId', {
+        professionalId,
+      })
+      .andWhere('appointment.start_at < :dayEnd', {
+        dayEnd,
+      })
+      .andWhere('appointment.end_at > :dayStart', {
+        dayStart,
+      })
+      .andWhere(
+        `(
+        appointment.status = :confirmed
+        OR (
+          appointment.status = :pending
+          AND appointment.expires_at > :now
+        )
+      )`,
+        {
+          confirmed: AppointmentStatus.CONFIRMED,
+          pending: AppointmentStatus.PENDING,
+          now,
+        },
+      );
+
+    // Durante una reprogramación, el turno no debe bloquearse a sí mismo.
+    if (appointmentIdToIgnore) {
+      query.andWhere('appointment.appointment_id != :appointmentIdToIgnore', {
+        appointmentIdToIgnore,
+      });
+    }
+
+    const occupiedAppointments = await query.getMany();
+
+    const SLOT_INTERVAL_MINUTES = 30;
+    const slots = new Set<string>();
+
+    for (const availability of availabilities) {
+      const [startHour, startMinute] = availability.startTime
+        .slice(0, 5)
+        .split(':')
+        .map(Number);
+
+      const [endHour, endMinute] = availability.endTime
+        .slice(0, 5)
+        .split(':')
+        .map(Number);
+
+      const availabilityStart = startHour * 60 + startMinute;
+
+      const availabilityEnd = endHour * 60 + endMinute;
+
+      for (
+        let slotStartMinutes = availabilityStart;
+        slotStartMinutes + service.durationMinutes <= availabilityEnd;
+        slotStartMinutes += SLOT_INTERVAL_MINUTES
+      ) {
+        const time = this.minutesToTime(slotStartMinutes);
+
+        const candidateStart = new Date(`${date}T${time}:00-03:00`);
+
+        const candidateEnd = new Date(
+          candidateStart.getTime() + service.durationMinutes * 60 * 1000,
+        );
+
+        // Si la fecha es hoy, no ofrecemos horarios pasados.
+        if (candidateStart <= now) {
+          continue;
+        }
+
+        const overlaps = occupiedAppointments.some(
+          (appointment) =>
+            candidateStart < appointment.endAt &&
+            candidateEnd > appointment.startAt,
+        );
+
+        if (!overlaps) {
+          slots.add(time);
+        }
+      }
+    }
+
+    return {
+      date,
+      slots: Array.from(slots).sort(),
+    };
   }
 
   // Valida todos los datos necesarios para crear un turno y prepara

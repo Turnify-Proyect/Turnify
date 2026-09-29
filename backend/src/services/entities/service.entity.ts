@@ -1,15 +1,14 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Appointment } from '../../appointments/entities/appointment.entity';
 import { ProfessionalService } from '../../professionals/entities/professional-service.entity';
-
-export enum ServiceCategory {
-  MASSAGES = 'Masajes',
-  FACIALS = 'Faciales',
-  NAILS = 'Uñas',
-  PEDICURE = 'Pedicuría',
-  HAIR = 'Cabello',
-  SPA = 'Spa',
-}
+import { Category } from '../../categories/category.entity';
 
 @Entity({ name: 'SERVICES' })
 export class Service {
@@ -22,8 +21,11 @@ export class Service {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({ type: 'enum', enum: ServiceCategory })
-  category!: ServiceCategory;
+  @ManyToOne(() => Category, (category) => category.services, {
+    nullable: false,
+  })
+  @JoinColumn({ name: 'category_id' })
+  category!: Category;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
   price!: string;

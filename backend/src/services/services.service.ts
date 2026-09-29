@@ -8,13 +8,32 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesRepository } from './services.repository';
 import { Service } from './entities/service.entity';
 import { CloudinaryService } from '../config/cloudinary.service';
+import { CategoriesRepository } from '../categories/categories.repository';
 
 @Injectable()
 export class ServicesService {
   constructor(
     private readonly servicesRepository: ServicesRepository,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly categoriesRepository: CategoriesRepository,
   ) {}
+
+  private async getCategory(categoryId: string) {
+    const category =
+      await this.categoriesRepository.getCategoryById(categoryId);
+
+    if (!category) {
+      throw new NotFoundException('No existe la categoría seleccionada');
+    }
+
+    if (!category.isActive) {
+      throw new ConflictException(
+        'La categoría seleccionada se encuentra inactiva',
+      );
+    }
+
+    return category;
+  }
 
   async updateServiceImage(
     serviceId: string,
@@ -77,12 +96,6 @@ export class ServicesService {
     }
   }
 
-  // Actualiza parcialmente un servicio existente.
-  //coemntado por:Lautaro-dev
-  // Primero verifica que exista y, si se modifica el nombre,
-  //coemntado por:Lautaro-dev
-  // valida que no pertenezca a otro servicio.
-  //coemntado por:Lautaro-dev
   async update(id: string, data: UpdateServiceDto): Promise<Service> {
     await this.getById(id);
 
@@ -90,13 +103,14 @@ export class ServicesService {
       await this.validateNameAvailability(data.name, id);
     }
 
-    await this.servicesRepository.update(id, data);
+    const category = data.categoryId
+      ? await this.getCategory(data.categoryId)
+      : undefined;
 
-    // Devuelve el servicio luego de aplicar los cambios.
-    //coemntado por:Lautaro-dev
+    await this.servicesRepository.update(id, data, category);
+
     return this.getById(id);
   }
-
   // Crea un nuevo servicio luego de validar
   //coemntado por:Lautaro-dev
   // que no exista otro con el mismo nombre.
@@ -104,7 +118,9 @@ export class ServicesService {
   async create(data: CreateServiceDto): Promise<Service> {
     await this.validateNameAvailability(data.name);
 
-    return this.servicesRepository.create(data);
+    const category = await this.getCategory(data.categoryId);
+
+    return this.servicesRepository.create(data, category);
   }
 
   // Realiza una baja lógica del servicio.
