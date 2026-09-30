@@ -40,4 +40,24 @@ export class CloudinaryService {
       Readable.from(file.buffer).pipe(uploadStream);
     });
   }
+
+  async uploadUrl(
+    url: string,
+    folder: string,
+  ): Promise<UploadApiResponse> {
+    if (!url || typeof url !== 'string') {
+      throw new BadRequestException('La URL de la imagen no es válida');
+    }
+
+    try {
+      return await cloudinary.uploader.upload(url, {
+        folder,
+        resource_type: 'auto',
+      });
+    } catch (error: any) {
+      throw new BadRequestException(
+        `Error al procesar la imagen remota en Cloudinary: ${error?.message || error}`,
+      );
+    }
+  }
 }
