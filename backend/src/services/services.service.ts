@@ -96,11 +96,49 @@ export class ServicesService {
     }
   }
 
+  private async processRemoteImageUrl(
+    imageUrl?: string,
+  ): Promise<string | undefined> {
+    if (!imageUrl) return undefined;
+
+    if (imageUrl.startsWith('https://res.cloudinary.com/')) {
+      return imageUrl;
+    }
+
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      try {
+        const result = await this.cloudinaryService.uploadUrl(
+          imageUrl,
+          'turnify/services',
+        );
+        return result.secure_url;
+      } catch (error) {
+        console.warn(
+          'Aviso: No se pudo procesar la URL en Cloudinary, conservando original:',
+          error,
+        );
+        return imageUrl;
+      }
+    }
+
+    return imageUrl;
+  }
+
+  // Actualiza parcialmente un servicio existente.
+  //coemntado por:Lautaro-dev
+  // Primero verifica que exista y, si se modifica el nombre,
+  //coemntado por:Lautaro-dev
+  // valida que no pertenezca a otro servicio.
+  //coemntado por:Lautaro-dev
   async update(id: string, data: UpdateServiceDto): Promise<Service> {
     await this.getById(id);
 
     if (data.name) {
       await this.validateNameAvailability(data.name, id);
+    }
+
+    if (data.imageUrl) {
+      data.imageUrl = await this.processRemoteImageUrl(data.imageUrl);
     }
 
     const category = data.categoryId
@@ -111,12 +149,17 @@ export class ServicesService {
 
     return this.getById(id);
   }
+
   // Crea un nuevo servicio luego de validar
   //coemntado por:Lautaro-dev
   // que no exista otro con el mismo nombre.
   //coemntado por:Lautaro-dev
   async create(data: CreateServiceDto): Promise<Service> {
     await this.validateNameAvailability(data.name);
+
+    if (data.imageUrl) {
+      data.imageUrl = await this.processRemoteImageUrl(data.imageUrl);
+    }
 
     const category = await this.getCategory(data.categoryId);
 
