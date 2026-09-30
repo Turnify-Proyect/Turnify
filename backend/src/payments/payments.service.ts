@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,17 +15,22 @@ import {
   Appointment,
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
   private readonly stripe = new Stripe(
     process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
   );
+  private readonly logger = new Logger(PaymentsService.name);
 
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
+
     private readonly dataSource: DataSource,
+
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async processPayment(processPaymentDto: ProcessPaymentDto): Promise<Payment> {
@@ -156,10 +162,17 @@ export class PaymentsService {
       // comentado por: Lautaro-dev
       const updatedPayment = await this.paymentRepository.findOne({
         where: { id: savedPayment.id },
+        // Recuperamos el pago con todas las relaciones necesarias
+        // para construir posteriormente la notificación de confirmación.
+        //comentado por Lautaro-dev
         relations: [
           'order',
+          'order.user',
           'order.orderDetails',
           'order.orderDetails.appointments',
+          'order.orderDetails.appointments.service',
+          'order.orderDetails.appointments.professional',
+          'order.orderDetails.appointments.professional.user',
         ],
       });
 
@@ -169,14 +182,61 @@ export class PaymentsService {
         );
       }
 
+      if (status === PaymentStatus.PAID) {
+        // Preparamos los datos de los turnos confirmados con la información
+        // necesaria para construir el correo de confirmación.
+        //comentado por Lautaro-dev
+        const appointmentsForNotification =
+          updatedPayment.order.orderDetails.appointments.map((appointment) => ({
+            serviceName: appointment.service.name,
+            professionalName: appointment.professional.user.name,
+            startAt: appointment.startAt,
+            durationMinutes: appointment.service.durationMinutes,
+          }));
+
+        // Convertimos los valores decimales almacenados en la base de datos
+        // a number antes de enviarlos al servicio de notificaciones.
+        //comentado por Lautaro-dev
+        const depositAmount = Number(updatedPayment.amount);
+
+        const totalAmount = Number(
+          updatedPayment.order.orderDetails.total_price,
+        );
+
+        // El correo se envía únicamente cuando el pago quedó confirmado.
+        //comentado por Lautaro-dev
+        try {
+          await this.notificationsService.sendOrderConfirmed(
+            updatedPayment.order.user.email,
+            updatedPayment.order.user.name,
+            appointmentsForNotification,
+            depositAmount,
+            totalAmount,
+          );
+        } catch (error) {
+          this.logger.error(
+            'El pago fue confirmado pero no se pudo enviar el correo de confirmación',
+            error instanceof Error ? error.stack : undefined,
+          );
+        }
+      }
+
       return updatedPayment;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      // Solo revierte la transacción si todavía continúa activa.
+      //comentado por Lautaro-dev
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+
       if (error instanceof NotFoundException) {
         throw error;
       }
+
       throw new BadRequestException(
-        `Error al procesar el pago: ${(error as Error).message}`,
+        `Error al procesar el pago: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     } finally {
       await queryRunner.release();

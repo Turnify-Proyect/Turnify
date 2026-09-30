@@ -11,7 +11,7 @@ import { AvailabilityModule } from 'src/availability/availability.module';
 import { AppointmentsRepository } from './appointments.repository';
 import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-or-admin.guard';
 import { AppointmentCronService } from './appointment.service.cron';
-import { MailerService } from '../mail/mailer-cron/mailer.service';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +23,7 @@ import { MailerService } from '../mail/mailer-cron/mailer.service';
       ProfessionalService,
     ]),
     AvailabilityModule,
+    NotificationsModule,
   ],
   controllers: [AppointmentsController],
   providers: [
@@ -30,7 +31,6 @@ import { MailerService } from '../mail/mailer-cron/mailer.service';
     AppointmentsRepository,
     AppointmentOwnerOrAdminGuard,
     AppointmentCronService,
-    MailerService,
   ],
   exports: [AppointmentsRepository],
 })
