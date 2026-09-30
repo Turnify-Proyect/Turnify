@@ -6,10 +6,12 @@ import { OrderDetail } from '../orders/entities/order-detail.entity';
 import { Appointment } from '../appointments/entities/appointment.entity';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment, Order, OrderDetail, Appointment]),
+    NotificationsModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],

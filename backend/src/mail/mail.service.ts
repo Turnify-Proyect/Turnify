@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 @Injectable()
 export class MailService {
@@ -56,6 +58,37 @@ export class MailService {
       // comentado por: Lautaro-dev
       html,
     });
+  }
+
+  async sendMailWithTemplate(
+    to: string,
+    subject: string,
+    templateName: string,
+    context: Record<string, string>,
+  ): Promise<void> {
+    // Busca la plantilla HTML dentro de la carpeta de templates.
+    //comentado por Lautaro-dev
+    const templatePath = path.join(
+      __dirname,
+      'mailer-cron',
+      'templates',
+      `${templateName}.html`,
+    );
+
+    // Lee el contenido completo de la plantilla como texto.
+    //comentado por Lautaro-dev
+    let htmlContent = await fs.readFile(templatePath, 'utf-8');
+
+    // Reemplaza las variables {{variable}} de la plantilla.
+    //comentado por Lautaro-dev
+    for (const [key, value] of Object.entries(context)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      htmlContent = htmlContent.replace(regex, value);
+    }
+
+    // Utiliza el mismo transporter SMTP que el resto de los correos.
+    //comentado por Lautaro-dev
+    await this.sendMail(to, subject, htmlContent);
   }
 
   // Construye y envía el correo de verificación de cuenta.
