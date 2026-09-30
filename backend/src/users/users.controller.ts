@@ -307,7 +307,8 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Subir o actualizar foto de perfil (avatar) de usuario a Cloudinary',
+    summary:
+      'Subir o actualizar foto de perfil (avatar) de usuario a Cloudinary',
   })
   @ApiParam({
     name: 'id',
@@ -332,7 +333,8 @@ export class UsersController {
   })
   @ApiResponse({
     status: 400,
-    description: 'El archivo enviado excede los 5MB o no tiene formato de imagen permitido (jpg, jpeg, png, webp)',
+    description:
+      'El archivo enviado excede los 5MB o no tiene formato de imagen permitido (jpg, jpeg, png, webp)',
   })
   uploadAvatar(
     @Param('id', ParseUUIDPipe) id: string,

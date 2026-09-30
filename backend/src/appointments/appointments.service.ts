@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AppointmentsRepository } from './appointments.repository';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
+import { APP_TIMEZONE } from '../common/timezone';
 
 @Injectable()
 export class AppointmentsService {
@@ -49,6 +50,20 @@ export class AppointmentsService {
     return await this.appointmentsRepository.updateAppointmentStatus(
       id,
       newStatus,
+    );
+  }
+
+  async getAvailableSlots(
+    professionalId: string,
+    serviceId: string,
+    date: string,
+    appointmentId?: string,
+  ) {
+    return this.appointmentsRepository.getAvailableSlots(
+      professionalId,
+      serviceId,
+      date,
+      appointmentId,
     );
   }
 }
