@@ -18,6 +18,7 @@ import { Service } from '../services/entities/service.entity';
 import { ProfessionalService } from '../professionals/entities/professional-service.entity';
 
 import { AvailabilityRepository } from '../availability/availability.repository';
+import { ProfessionalUnavailabilityRepository } from '../availability/professional-unavailability.repository';
 import { DayOfWeek } from '../availability/entities/availability.entity';
 import { APP_TIMEZONE } from '../common/timezone';
 
@@ -40,6 +41,7 @@ export class AppointmentsRepository {
     private readonly professionalServicesRepository: Repository<ProfessionalService>,
 
     private readonly availabilityRepository: AvailabilityRepository,
+    private readonly professionalUnavailabilityRepository: ProfessionalUnavailabilityRepository,
   ) {}
   //funcion para obtener el dia de la semana a partir de una fecha
   private getDayOfWeek(date: Date): DayOfWeek {
@@ -307,6 +309,14 @@ export class AppointmentsRepository {
 
     if (Number.isNaN(selectedDate.getTime())) {
       throw new BadRequestException('La fecha seleccionada no es válida');
+    }
+
+    const blocked =
+      await this.professionalUnavailabilityRepository.getOverlapping(
+        professionalId, date, date,);
+    if (blocked) {
+      return { date, slots: [],
+      };
     }
 
     const dayOfWeek = this.getDayOfWeek(selectedDate);
