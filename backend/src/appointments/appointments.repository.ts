@@ -814,52 +814,6 @@ export class AppointmentsRepository {
     const hoursUntilAppointment =
       (appointment.startAt.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-      console.log('========== RESCHEDULE PROD ==========');
-console.log('appointment ID:', appointment.id);
-console.log('now:', now.toISOString());
-
-console.log('========== RESCHEDULE PROD ==========');
-console.log('TZ ENV:', process.env.TZ);
-console.log('APP_TIMEZONE:', APP_TIMEZONE);
-
-console.log('appointment ID:', appointment.id);
-
-console.log('now:', now);
-console.log('now ISO:', now.toISOString());
-console.log('now timestamp:', now.getTime());
-
-console.log('appointment.startAt:', appointment.startAt);
-console.log('appointment.startAt ISO:', appointment.startAt.toISOString());
-console.log(
-  'appointment.startAt timestamp:',
-  appointment.startAt.getTime(),
-);
-
-console.log(
-  'hoursUntilAppointment:',
-  hoursUntilAppointment,
-);
-
-console.log(
-  'hoursUntilAppointment rounded:',
-  Math.round(hoursUntilAppointment * 100) / 100,
-);
-
-console.log('DTO:', rescheduleAppointmentDto);
-console.log('DTO startAt:', rescheduleAppointmentDto.startAt);
-
-const dtoDate = new Date(rescheduleAppointmentDto.startAt);
-
-console.log('DTO parsed:', dtoDate);
-console.log('DTO parsed ISO:', dtoDate.toISOString());
-console.log('======================================');
-
-console.log('appointment.startAt ISO:', appointment.startAt.toISOString());
-console.log('hoursUntilAppointment:', hoursUntilAppointment);
-console.log('DTO startAt:', rescheduleAppointmentDto.startAt);
-console.log('DTO startAt parsed:', new Date(rescheduleAppointmentDto.startAt).toISOString());
-console.log('======================================');
-
     if (hoursUntilAppointment < 24) {
       throw new ConflictException(
         'No se puede reprogramar un turno con menos de 24 horas de anticipación',
