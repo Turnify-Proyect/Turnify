@@ -814,6 +814,16 @@ export class AppointmentsRepository {
     const hoursUntilAppointment =
       (appointment.startAt.getTime() - now.getTime()) / (1000 * 60 * 60);
 
+      console.log('========== RESCHEDULE PROD ==========');
+console.log('appointment ID:', appointment.id);
+console.log('now:', now.toISOString());
+console.log('appointment.startAt:', appointment.startAt);
+console.log('appointment.startAt ISO:', appointment.startAt.toISOString());
+console.log('hoursUntilAppointment:', hoursUntilAppointment);
+console.log('DTO startAt:', rescheduleAppointmentDto.startAt);
+console.log('DTO startAt parsed:', new Date(rescheduleAppointmentDto.startAt).toISOString());
+console.log('======================================');
+
     if (hoursUntilAppointment < 24) {
       throw new ConflictException(
         'No se puede reprogramar un turno con menos de 24 horas de anticipación',
