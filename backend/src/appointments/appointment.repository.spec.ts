@@ -18,6 +18,7 @@ describe('AppointmentsRepository', () => {
   let servicesRepository: any;
   let professionalServicesRepository: any;
   let availabilityRepository: any;
+  let professionalUnavailabilityRepository: any;
 
   let queryBuilder: any;
 
@@ -59,6 +60,10 @@ describe('AppointmentsRepository', () => {
       getByProfessionalAndDay: jest.fn(),
     };
 
+    professionalUnavailabilityRepository = {
+      getOverlapping: jest.fn().mockResolvedValue(null),
+    };
+
     repository = new AppointmentsRepository(
       appointmentsRepository,
       usersRepository,
@@ -66,6 +71,7 @@ describe('AppointmentsRepository', () => {
       servicesRepository,
       professionalServicesRepository,
       availabilityRepository,
+      professionalUnavailabilityRepository,
     );
 
     jest.clearAllMocks();

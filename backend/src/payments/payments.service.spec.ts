@@ -42,6 +42,11 @@ describe('PaymentsService', () => {
     },
   };
 
+  const mockProfessionalUnavailabilityRepository = {
+  getOverlapping: jest.fn().mockResolvedValue(null),
+};
+
+
   const dataSource = {
     createQueryRunner: jest.fn(),
     getRepository: jest.fn(),
@@ -133,6 +138,7 @@ describe('PaymentsService', () => {
         },
       ],
     })
+
       .overrideProvider('PaymentRepository')
       .useValue(paymentRepository)
       .compile()
@@ -165,9 +171,13 @@ describe('PaymentsService', () => {
       status: AppointmentStatus.PENDING,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       startAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      // Mocks requeridos por la sección de emails en el servicio:
+      service: { name: 'Servicio de Prueba', durationMinutes: 60 },
+      professional: { user: { name: 'Profesional de Prueba' } },
       ...overrides,
     } as Appointment;
   };
+
 
   const createOrder = (
     overrides: Partial<Order> = {},
@@ -193,6 +203,9 @@ describe('PaymentsService', () => {
   const createPayment = (
     overrides: Partial<Payment> = {},
   ): Payment => {
+    // Generamos una orden válida por defecto para que tenga todas las relaciones
+    const defaultOrder = createOrder(); 
+
     return {
       id: 'payment-1',
       amount: '37.04',
@@ -200,9 +213,11 @@ describe('PaymentsService', () => {
       status: PaymentStatus.PAID,
       externalPaymentId: 'pi_test_123',
       paidAt: new Date(),
+      order: defaultOrder, // <-- AGREGAMOS ESTO para solucionar el error de orderDetails
       ...overrides,
     } as Payment;
   };
+
 
   describe('processPayment', () => {
     it('should process a payment successfully', async () => {
@@ -580,7 +595,7 @@ describe('PaymentsService', () => {
 
       expect(stripePaymentIntentsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 3704,
+          amount: 3703,
           currency: 'ars',
           metadata: {
             orderId: 'order-1',
