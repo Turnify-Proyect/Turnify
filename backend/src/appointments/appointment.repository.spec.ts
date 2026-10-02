@@ -1057,24 +1057,25 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
       );
     });
 
-    it('debería rechazar la reprogramación si faltan menos de 24 horas', async () => {
-      appointmentsRepository.findOne.mockResolvedValue(
-        createAppointment({
-          startAt: new Date('2030-10-02T10:00:00.000Z'),
-        }),
-      );
+it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 horas', async () => {
+  appointmentsRepository.findOne.mockResolvedValue(
+    createAppointment({
+      startAt: new Date('2030-10-05T15:00:00.000Z'),
+    }),
+  );
 
-      await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-03T15:00:00.000Z',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        'No se puede reprogramar un turno con menos de 24 horas de anticipación',
-      );
-    });
+  await expect(
+    repository.rescheduleAppointment(
+      'appointment-1',
+      {
+        startAt: '2030-10-02T10:00:00.000Z',
+      } as any,
+    ),
+  ).rejects.toThrow(
+    'No se puede reprogramar un turno con menos de 24 horas de anticipación',
+  );
+});
+
 
     it('debería rechazar un profesional inexistente', async () => {
       appointmentsRepository.findOne.mockResolvedValue(
