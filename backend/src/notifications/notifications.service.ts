@@ -97,4 +97,81 @@ export class NotificationsService {
     `,
     );
   }
+
+  async sendPaymentLink(
+  email: string,
+  userName: string,
+  appointments: ConfirmedAppointmentNotification[],
+  depositAmount: number,
+  checkoutUrl: string,
+  expiresAt: Date,
+): Promise<void> {
+  const appointmentsHtml = appointments
+    .map(
+      (appointment) => `
+        <div style="margin-bottom: 16px;">
+          <p><strong>Servicio:</strong> ${appointment.serviceName}</p>
+          <p><strong>Profesional:</strong> ${appointment.professionalName}</p>
+          <p><strong>Fecha:</strong> ${this.formatDate(appointment.startAt)}</p>
+          <p><strong>Hora:</strong> ${this.formatTime(appointment.startAt)}</p>
+          <p><strong>Duración:</strong> ${appointment.durationMinutes} minutos</p>
+        </div>
+      `,
+    )
+    .join('');
+
+  await this.mailService.sendMail(
+    email,
+    'Completá el pago de tu reserva - Turnify',
+    `
+      <h1>Reserva pendiente de confirmación</h1>
+
+      <p>Hola ${userName},</p>
+
+      <p>
+        Desde el centro generaron una reserva a tu nombre.
+        Para confirmarla, completá el pago de la seña.
+      </p>
+
+      ${appointmentsHtml}
+
+      <p>
+        <strong>Seña a abonar:</strong>
+        $${depositAmount.toLocaleString('es-AR')}
+      </p>
+
+      <p>
+        <strong>El enlace estará disponible hasta:</strong>
+        ${this.formatDate(expiresAt)}
+        ${this.formatTime(expiresAt)} hs
+      </p>
+
+      <p style="margin: 24px 0;">
+        <a
+          href="${checkoutUrl}"
+          style="
+            display: inline-block;
+            padding: 12px 20px;
+            background: #2f6f5e;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+          "
+        >
+          Pagar seña
+        </a>
+      </p>
+
+      <p>
+        La reserva quedará confirmada una vez recibido el pago.
+      </p>
+
+      <p>
+        Si el enlace vence antes de que completes el pago,
+        el horario volverá a quedar disponible.
+      </p>
+    `,
+  );
+}
 }

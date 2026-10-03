@@ -9,6 +9,7 @@ import {
 
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateAdminOrderDto } from './dto/create-admin-order.dto';
 
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -39,9 +40,41 @@ export class OrdersController {
       'El profesional o el usuario no se encuentran disponibles en el horario solicitado',
   })
   create(@Req() req: any, @Body() createOrderDto: CreateOrderDto) {
-    // El userId se obtiene del JWT y no del body para impedir
-    // que un cliente genere una orden a nombre de otro usuario.
-    // comentado por: Lautaro-dev
     return this.ordersService.create(req.user.id, createOrderDto);
   }
+
+
+
+  @Post('admin')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+  summary:
+    'Crear una orden para un cliente desde administración',
+})
+@ApiResponse({
+  status: 201,
+  description:
+    'Orden y turno pendiente creados correctamente',
+})
+@ApiResponse({
+  status: 409,
+  description:
+    'El profesional o el cliente no se encuentran disponibles en el horario solicitado',
+})
+createAsAdmin(
+  @Body() createAdminOrderDto:
+    CreateAdminOrderDto,
+) {
+  const {
+    userId,
+    appointments,
+  } = createAdminOrderDto;
+
+  return this.ordersService.create(
+    userId,
+    { appointments },
+  );
+}
 }
