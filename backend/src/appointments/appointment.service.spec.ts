@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentsRepository } from './appointments.repository';
 import { AppointmentStatus } from './entities/appointment.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 describe('AppointmentsService', () => {
   let service: AppointmentsService;
@@ -25,10 +26,18 @@ describe('AppointmentsService', () => {
             getAvailableSlots: jest.fn(),
           },
         },
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendAppointmentCancelled: jest.fn(),
+            sendAppointmentRescheduled: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AppointmentsService>(AppointmentsService);
+
     repository = module.get<AppointmentsRepository>(
       AppointmentsRepository,
     ) as jest.Mocked<AppointmentsRepository>;
@@ -40,10 +49,7 @@ describe('AppointmentsService', () => {
 
   describe('getAllAppointments', () => {
     it('debería obtener todos los turnos', async () => {
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       repository.getAllAppointments.mockResolvedValue(appointments as any);
 
@@ -86,23 +92,19 @@ describe('AppointmentsService', () => {
         new Error('Turno no encontrado'),
       );
 
-      await expect(
-        service.getAppointmentById('appointment-1'),
-      ).rejects.toThrow('Turno no encontrado');
+      await expect(service.getAppointmentById('appointment-1')).rejects.toThrow(
+        'Turno no encontrado',
+      );
     });
   });
 
   describe('getAppointmentsByUserId', () => {
     it('debería obtener los turnos de un usuario', async () => {
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       repository.getAppointmentsByUserId.mockResolvedValue(appointments as any);
 
-      const result =
-        await service.getAppointmentsByUserId('user-123');
+      const result = await service.getAppointmentsByUserId('user-123');
 
       expect(repository.getAppointmentsByUserId).toHaveBeenCalledTimes(1);
       expect(repository.getAppointmentsByUserId).toHaveBeenCalledWith(
@@ -123,13 +125,13 @@ describe('AppointmentsService', () => {
       const result =
         await service.getAppointmentsByProfessionalId('professional-123');
 
-      expect(
-        repository.getAppointmentsByProfessionalId,
-      ).toHaveBeenCalledTimes(1);
+      expect(repository.getAppointmentsByProfessionalId).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        repository.getAppointmentsByProfessionalId,
-      ).toHaveBeenCalledWith('professional-123');
+      expect(repository.getAppointmentsByProfessionalId).toHaveBeenCalledWith(
+        'professional-123',
+      );
 
       expect(result).toEqual(appointments);
     });
@@ -139,14 +141,41 @@ describe('AppointmentsService', () => {
     it('debería cancelar un turno', async () => {
       const response = 'El turno ha sido cancelado exitosamente';
 
+      const appointment = {
+        id: 'appointment-123',
+        user: {
+          email: 'cliente@test.com',
+          name: 'Cliente Test',
+        },
+        service: {
+          name: 'Masaje',
+        },
+        professional: {
+          user: {
+            name: 'Profesional Test',
+          },
+        },
+        startAt: new Date('2026-10-10T15:00:00.000Z'),
+      };
+
+      // Simula la búsqueda del turno necesaria para enviar la notificación.
+      //comentado por Lautaro-dev
+      repository.getAppointmentById.mockResolvedValue(appointment as any);
+
       repository.cancelAppointment.mockResolvedValue(response);
 
       const result = await service.cancelAppointment('appointment-123');
 
+      expect(repository.getAppointmentById).toHaveBeenCalledWith(
+        'appointment-123',
+      );
+
       expect(repository.cancelAppointment).toHaveBeenCalledTimes(1);
+
       expect(repository.cancelAppointment).toHaveBeenCalledWith(
         'appointment-123',
       );
+
       expect(result).toBe(response);
     });
   });
@@ -159,11 +188,27 @@ describe('AppointmentsService', () => {
 
       const appointment = {
         id: 'appointment-123',
+        user: {
+          email: 'cliente@test.com',
+          name: 'Cliente Test',
+        },
+        service: {
+          name: 'Masaje',
+        },
+        professional: {
+          user: {
+            name: 'Profesional Test',
+          },
+        },
+        startAt: new Date('2026-10-10T15:00:00.000Z'),
       };
 
-      repository.rescheduleAppointment.mockResolvedValue(
-        appointment as any,
-      );
+      repository.rescheduleAppointment.mockResolvedValue(appointment as any);
+
+      // Simula la consulta posterior con las relaciones necesarias
+      // para enviar la notificación de reprogramación.
+      //comentado por Lautaro-dev
+      repository.getAppointmentById.mockResolvedValue(appointment as any);
 
       const result = await service.rescheduleAppointment(
         'appointment-123',
@@ -177,6 +222,10 @@ describe('AppointmentsService', () => {
         dto,
       );
 
+      expect(repository.getAppointmentById).toHaveBeenCalledWith(
+        'appointment-123',
+      );
+
       expect(result).toEqual(appointment);
     });
   });
@@ -188,12 +237,9 @@ describe('AppointmentsService', () => {
         status: AppointmentStatus.COMPLETED,
       };
 
-      repository.completeAppointment.mockResolvedValue(
-        appointment as any,
-      );
+      repository.completeAppointment.mockResolvedValue(appointment as any);
 
-      const result =
-        await service.completeAppointment('appointment-123');
+      const result = await service.completeAppointment('appointment-123');
 
       expect(repository.completeAppointment).toHaveBeenCalledTimes(1);
       expect(repository.completeAppointment).toHaveBeenCalledWith(
@@ -210,9 +256,7 @@ describe('AppointmentsService', () => {
         status: AppointmentStatus.CONFIRMED,
       };
 
-      repository.updateAppointmentStatus.mockResolvedValue(
-        appointment as any,
-      );
+      repository.updateAppointmentStatus.mockResolvedValue(appointment as any);
 
       const result = await service.updateAppointmentStatus(
         'appointment-123',

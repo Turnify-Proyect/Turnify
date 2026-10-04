@@ -98,17 +98,46 @@ export class NotificationsService {
     );
   }
 
+  async sendAppointmentCancelled(
+    email: string,
+    userName: string,
+    serviceName: string,
+    professionalName: string,
+    startAt: Date,
+  ): Promise<void> {
+    // Envía al cliente la notificación de cancelación del turno.
+    //comentado por Lautaro-dev
+    await this.mailService.sendMail(
+      email,
+      'Turno cancelado - Turnify',
+      `
+      <h1>Turno cancelado</h1>
+
+      <p>Hola ${userName},</p>
+
+      <p>Tu turno fue cancelado correctamente.</p>
+
+      <p><strong>Servicio:</strong> ${serviceName}</p>
+      <p><strong>Profesional:</strong> ${professionalName}</p>
+      <p><strong>Fecha:</strong> ${this.formatDate(startAt)}</p>
+      <p><strong>Hora:</strong> ${this.formatTime(startAt)}</p>
+
+      <p>El horario correspondiente ha quedado liberado.</p>
+    `,
+    );
+  }
+
   async sendPaymentLink(
-  email: string,
-  userName: string,
-  appointments: ConfirmedAppointmentNotification[],
-  depositAmount: number,
-  checkoutUrl: string,
-  expiresAt: Date,
-): Promise<void> {
-  const appointmentsHtml = appointments
-    .map(
-      (appointment) => `
+    email: string,
+    userName: string,
+    appointments: ConfirmedAppointmentNotification[],
+    depositAmount: number,
+    checkoutUrl: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    const appointmentsHtml = appointments
+      .map(
+        (appointment) => `
         <div style="margin-bottom: 16px;">
           <p><strong>Servicio:</strong> ${appointment.serviceName}</p>
           <p><strong>Profesional:</strong> ${appointment.professionalName}</p>
@@ -117,13 +146,13 @@ export class NotificationsService {
           <p><strong>Duración:</strong> ${appointment.durationMinutes} minutos</p>
         </div>
       `,
-    )
-    .join('');
+      )
+      .join('');
 
-  await this.mailService.sendMail(
-    email,
-    'Completá el pago de tu reserva - Turnify',
-    `
+    await this.mailService.sendMail(
+      email,
+      'Completá el pago de tu reserva - Turnify',
+      `
       <h1>Reserva pendiente de confirmación</h1>
 
       <p>Hola ${userName},</p>
@@ -172,6 +201,35 @@ export class NotificationsService {
         el horario volverá a quedar disponible.
       </p>
     `,
-  );
-}
+    );
+  }
+
+  async sendAppointmentRescheduled(
+    email: string,
+    userName: string,
+    serviceName: string,
+    professionalName: string,
+    startAt: Date,
+  ): Promise<void> {
+    // Envía al cliente la confirmación de la nueva fecha y hora del turno.
+    //comentado por Lautaro-dev
+    await this.mailService.sendMail(
+      email,
+      'Turno reprogramado - Turnify',
+      `
+      <h1>Turno reprogramado</h1>
+
+      <p>Hola ${userName},</p>
+
+      <p>Tu turno fue reprogramado correctamente.</p>
+
+      <p><strong>Servicio:</strong> ${serviceName}</p>
+      <p><strong>Profesional:</strong> ${professionalName}</p>
+      <p><strong>Nueva fecha:</strong> ${this.formatDate(startAt)}</p>
+      <p><strong>Nueva hora:</strong> ${this.formatTime(startAt)}</p>
+
+      <p>Te esperamos en la nueva fecha seleccionada.</p>
+    `,
+    );
+  }
 }
