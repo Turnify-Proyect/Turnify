@@ -46,7 +46,7 @@ export class ChatbotService {
   // Construye el saludo de bienvenida y presenta las categorías disponibles.
   getWelcomeMessage(): ChatResponse {
     return this.buildCategoryMenu(
-      '¡Hola! 👋 Soy el asistente de Turnify. ¿En qué puedo ayudarte hoy?',
+      '¡Hola! 👋 Soy Lumi, el asistente de Turnify. Estoy aquí para ayudarte. ¿Qué necesitas?',
     );
   }
 
