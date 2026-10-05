@@ -1,13 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ALL_FAQ_ENTRIES, FAQ_DATABASE, FAQCategory } from './data/faq.es';
 
+// Representa un mensaje que el frontend puede mostrar en la conversación.
+// `type` indica cómo presentarlo y `payload` contiene datos para botones/categorías.
+// Comentarios de orientación agregados por dev-Mazz.
 export interface ChatMessage {
   role: 'user' | 'bot';
   content: string;
   type?: 'text' | 'buttons' | 'category';
-  payload?: unknown; // botones, categorías, etc.
+  payload?: unknown;
 }
 
+// Estructura común que devuelven todos los flujos del chatbot.
 export interface ChatResponse {
   messages: ChatMessage[];
   suggestedCategories?: FAQCategory[];
@@ -15,9 +19,11 @@ export interface ChatResponse {
 
 @Injectable()
 export class ChatbotService {
-  private readonly MIN_KEYWORD_MATCH = 2; // mínimo keywords para considerar match
+  // Evita contestar con coincidencias débiles: se requieren al menos dos keywords.
+  private readonly MIN_KEYWORD_MATCH = 2;
 
-  // Punto de entrada principal
+  // Procesa texto libre y entrega una respuesta FAQ o el menú como alternativa.
+  // userId y context se reciben para la integración, pero aún no afectan la búsqueda.
   processMessage(
     userId: string,
     text: string,
@@ -27,28 +33,25 @@ export class ChatbotService {
     void context;
 
     const normalized = this.normalize(text);
-
-    // 1. Intento match por palabras clave
     const match = this.findBestMatch(normalized);
     if (match) {
       return this.buildAnswerResponse(match);
     }
 
-    // 2. No match → muestro categorías principales
     return this.buildCategoryMenu(
       'No encontré una respuesta exacta. ¿Sobre qué tema te gustaría consultar?',
     );
   }
 
-  // Menú inicial / fallback
+  // Construye el saludo de bienvenida y presenta las categorías disponibles.
   getWelcomeMessage(): ChatResponse {
     return this.buildCategoryMenu(
       '¡Hola! 👋 Soy el asistente de Turnify. ¿En qué puedo ayudarte hoy?',
     );
   }
 
-  // ---- Lógica interna ----
-
+  // Busca la FAQ con más palabras clave coincidentes; devuelve null si no alcanza
+  // el mínimo configurado.
   private findBestMatch(input: string): {
     entry: (typeof ALL_FAQ_ENTRIES)[number];
     score: number;
@@ -69,19 +72,22 @@ export class ChatbotService {
     return best;
   }
 
+  // Cuenta cuántas keywords de una entrada aparecen en el texto normalizado.
   private keywordScore(input: string, keywords: string[]): number {
     return keywords.filter((k) => input.includes(this.normalize(k))).length;
   }
 
+  // Unifica mayúsculas, tildes y signos para comparar texto de forma consistente.
   private normalize(text: string): string {
     return text
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // quita tildes
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/[¿?¡!.,;:]/g, '')
       .trim();
   }
 
+  // Formatea la respuesta FAQ y agrega botones de seguimiento para el frontend.
   private buildAnswerResponse({
     entry,
   }: {
@@ -100,6 +106,7 @@ export class ChatbotService {
     };
   }
 
+  // Convierte el catálogo de categorías en el formato que consume la interfaz.
   private buildCategoryMenu(intro: string): ChatResponse {
     const categories = Object.entries(FAQ_DATABASE).map(([key, cat]) => ({
       id: key as FAQCategory,
@@ -121,7 +128,7 @@ export class ChatbotService {
     };
   }
 
-  // Cuando usuario elige una categoría (via botón)
+  // Devuelve el nombre de la categoría y sus preguntas como botones seleccionables.
   getCategoryContent(category: FAQCategory): ChatResponse {
     const cat = FAQ_DATABASE[category];
     if (!cat) return this.getWelcomeMessage();
@@ -149,7 +156,7 @@ export class ChatbotService {
     };
   }
 
-  // Cuando usuario elige una pregunta específica
+  // Busca la pregunta dentro de su categoría; si no existe, vuelve a mostrarla.
   getQuestionAnswer(category: FAQCategory, questionText: string): ChatResponse {
     const entry = FAQ_DATABASE[category].entries.find(
       (e) => e.question === questionText,

@@ -1,19 +1,24 @@
+// Categorías válidas que se comparten entre el FAQ, el servicio y el controlador.
+// Comentarios de orientación agregados por dev-Mazz.
 export type FAQCategory =
   'general' | 'appointments' | 'payments' | 'professionals' | 'account';
 
+// Una respuesta individual del FAQ y los términos usados para encontrarla.
 export interface FAQEntry {
   id: string;
   question: string;
   answer: string;
-  keywords: string[]; // para match por texto libre
+  keywords: string[];
 }
 
+// Datos visibles de una categoría y las preguntas que contiene.
 export interface FAQCategoryData {
   label: string;
   icon: string;
   entries: FAQEntry[];
 }
 
+// Fuente principal de contenido: agrega o edita aquí categorías y respuestas.
 export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
   general: {
     label: 'General',
@@ -142,7 +147,7 @@ export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
   },
 };
 
-// Helper: aplanar para búsqueda global
+// Lista plana utilizada por el servicio para buscar en todas las categorías.
 export const ALL_FAQ_ENTRIES: FAQEntry[] = Object.values(FAQ_DATABASE).flatMap(
   (cat) => cat.entries,
 );
