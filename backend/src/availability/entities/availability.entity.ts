@@ -1,9 +1,11 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Professional } from '../../professionals/entities/professional.entity';
 
@@ -42,4 +44,16 @@ export class Availability {
 
   @Column({ name: 'end_time', type: 'time', nullable: false })
   endTime!: string;
+  
+  @CreateDateColumn({
+    name: 'created_at',
+    type: 'timestamptz',
+  })
+  createdAt!: Date;
+
+  @UpdateDateColumn({
+    name: 'updated_at',
+    type: 'timestamptz',
+  })
+  updatedAt!: Date;
 }

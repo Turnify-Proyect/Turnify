@@ -125,25 +125,29 @@ export class AuthService {
       // a un proveedor externo como Google o Facebook.
       // comentado por: Lautaro-dev
       providerId: null,
+
+      // Autoverificado en desarrollo local para poder probar login inmediatamente
+      isEmailVerified: true,
     });
 
-    // Genera un token temporal de verificación asociado al usuario recién creado.
-    // El hash queda almacenado en la base de datos y el token original
-    // se utiliza únicamente para enviarlo al correo del usuario.
-    // comentado por: Lautaro-dev
-    const verificationToken =
-      await this.emailVerificationService.createVerificationToken(
-        createdUser.id,
-      );
+    // Intentar enviar correo de verificación; si falla por falta de SMTP en local, no bloquear registro
+    try {
+      const verificationToken =
+        await this.emailVerificationService.createVerificationToken(
+          createdUser.id,
+        );
 
-    // Envía al correo del usuario el enlace que contiene el token original.
-    // El token ya no se expone en la respuesta HTTP del registro.
-    // comentado por: Lautaro-dev
-    await this.mailService.sendVerificationEmail(email, verificationToken);
+      await this.mailService.sendVerificationEmail(email, verificationToken);
+    } catch (mailError: any) {
+      console.warn(
+        'Aviso dev local: No se pudo enviar email de verificación (SMTP no configurado):',
+        mailError?.message || mailError,
+      );
+    }
 
     return {
       message:
-        'Usuario registrado correctamente. Revisá tu correo para verificar la cuenta.',
+        'Usuario registrado correctamente. Ya podés iniciar sesión.',
       user: createdUser,
     };
   }

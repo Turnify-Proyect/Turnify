@@ -17,6 +17,8 @@ import { OrdersModule } from './orders/orders.module';
 import { MailModule } from './mail/mail.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { StatisticsModule } from './statistics/statistics.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     OrdersModule,
     MailModule,
     NotificationsModule,
+    StatisticsModule,
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -18,6 +18,7 @@ import { Service } from '../services/entities/service.entity';
 import { ProfessionalService } from '../professionals/entities/professional-service.entity';
 
 import { AvailabilityRepository } from '../availability/availability.repository';
+import { ProfessionalUnavailabilityRepository } from '../availability/professional-unavailability.repository';
 import { DayOfWeek } from '../availability/entities/availability.entity';
 import { APP_TIMEZONE } from '../common/timezone';
 
@@ -40,6 +41,7 @@ export class AppointmentsRepository {
     private readonly professionalServicesRepository: Repository<ProfessionalService>,
 
     private readonly availabilityRepository: AvailabilityRepository,
+    private readonly professionalUnavailabilityRepository: ProfessionalUnavailabilityRepository,
   ) {}
   //funcion para obtener el dia de la semana a partir de una fecha
   private getDayOfWeek(date: Date): DayOfWeek {
@@ -307,6 +309,16 @@ export class AppointmentsRepository {
 
     if (Number.isNaN(selectedDate.getTime())) {
       throw new BadRequestException('La fecha seleccionada no es válida');
+    }
+
+    const blocked =
+      await this.professionalUnavailabilityRepository.getOverlapping(
+        professionalId,
+        date,
+        date,
+      );
+    if (blocked) {
+      return { date, slots: [] };
     }
 
     const dayOfWeek = this.getDayOfWeek(selectedDate);
@@ -761,6 +773,14 @@ export class AppointmentsRepository {
       throw new ConflictException('No se puede cancelar un turno expirado');
     }
 
+    // Impide cancelar turnos cuya fecha y hora ya hayan pasado.
+    //comentado por Lautaro-dev
+    if (appointment.startAt <= new Date()) {
+      throw new ConflictException(
+        'No se puede cancelar un turno cuya fecha ya ha pasado',
+      );
+    }
+
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.expiresAt = null;
 
@@ -771,7 +791,6 @@ export class AppointmentsRepository {
     return 'El turno ha sido cancelado exitosamente';
   }
 
-  //reprogramación de turno
   async rescheduleAppointment(
     id: string,
     rescheduleAppointmentDto: RescheduleAppointmentDto,
@@ -810,15 +829,6 @@ export class AppointmentsRepository {
     }
 
     const now = new Date();
-
-    const hoursUntilAppointment =
-      (appointment.startAt.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-    if (hoursUntilAppointment < 24) {
-      throw new ConflictException(
-        'No se puede reprogramar un turno con menos de 24 horas de anticipación',
-      );
-    }
 
     const professionalId =
       rescheduleAppointmentDto.professionalId ?? appointment.professional.id;
@@ -886,6 +896,16 @@ export class AppointmentsRepository {
       );
     }
 
+    // La regla de 24 horas se aplica al NUEVO turno seleccionado.
+    const hoursUntilNewAppointment =
+      (newStartAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilNewAppointment < 24) {
+      throw new ConflictException(
+        'No se puede reprogramar un turno con menos de 24 horas de anticipación',
+      );
+    }
+
     const newEndAt = new Date(
       newStartAt.getTime() + service.durationMinutes * 60 * 1000,
     );
@@ -916,13 +936,166 @@ export class AppointmentsRepository {
     appointment.endAt = newEndAt;
     appointment.rescheduleCount += 1;
 
-    // si el turno estaba pendiente, se reinicia el tiempo de expiración
-
+    // Si el turno estaba pendiente, se reinicia el tiempo de expiración.
     if (appointment.status === AppointmentStatus.PENDING) {
       appointment.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     }
+
     return this.appointmentsRepository.save(appointment);
   }
+
+  //reprogramación de turno
+  // async rescheduleAppointment(
+  //   id: string,
+  //   rescheduleAppointmentDto: RescheduleAppointmentDto,
+  // ): Promise<Appointment> {
+  //   await this.expirePendingAppointments();
+
+  //   if (Object.keys(rescheduleAppointmentDto).length === 0) {
+  //     throw new BadRequestException(
+  //       'Debe indicar al menos un dato para reprogramar el turno',
+  //     );
+  //   }
+
+  //   const appointment = await this.appointmentsRepository.findOne({
+  //     where: {
+  //       id,
+  //       status: In([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]),
+  //     },
+  //     relations: {
+  //       user: true,
+  //       professional: true,
+  //       service: true,
+  //     },
+  //   });
+
+  //   if (!appointment) {
+  //     throw new NotFoundException(
+  //       'El turno no existe o no se encuentra en un estado válido para reprogramar',
+  //     );
+  //   }
+
+  //   if (appointment.rescheduleCount >= 2) {
+  //     throw new ConflictException({
+  //       message: 'El turno alcanzó el máximo de reprogramaciones permitidas',
+  //       canCancel: true,
+  //     });
+  //   }
+
+  //   const now = new Date();
+
+  //   const hoursUntilAppointment =
+  //     (appointment.startAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  //   if (hoursUntilAppointment < 24) {
+  //     throw new ConflictException(
+  //       'No se puede reprogramar un turno con menos de 24 horas de anticipación',
+  //     );
+  //   }
+
+  //   const professionalId =
+  //     rescheduleAppointmentDto.professionalId ?? appointment.professional.id;
+
+  //   const serviceId =
+  //     rescheduleAppointmentDto.serviceId ?? appointment.service.id;
+
+  //   const professional = await this.professionalsRepository.findOne({
+  //     where: { id: professionalId },
+  //   });
+
+  //   if (!professional) {
+  //     throw new NotFoundException(
+  //       'No existe un profesional con el ID proporcionado',
+  //     );
+  //   }
+
+  //   if (!professional.isActive) {
+  //     throw new ConflictException(
+  //       'El profesional seleccionado se encuentra inactivo',
+  //     );
+  //   }
+
+  //   const service = await this.servicesRepository.findOne({
+  //     where: { id: serviceId },
+  //   });
+
+  //   if (!service) {
+  //     throw new NotFoundException(
+  //       'No existe un servicio con el ID proporcionado',
+  //     );
+  //   }
+
+  //   if (!service.isActive) {
+  //     throw new ConflictException(
+  //       'El servicio seleccionado se encuentra inactivo',
+  //     );
+  //   }
+
+  //   const professionalService =
+  //     await this.professionalServicesRepository.findOne({
+  //       where: {
+  //         professionalId: professional.id,
+  //         serviceId: service.id,
+  //       },
+  //     });
+
+  //   if (!professionalService) {
+  //     throw new ConflictException(
+  //       'El profesional seleccionado no realiza este servicio',
+  //     );
+  //   }
+
+  //   const newStartAt = new Date(rescheduleAppointmentDto.startAt);
+
+  //   if (Number.isNaN(newStartAt.getTime())) {
+  //     throw new ConflictException(
+  //       'La nueva fecha y hora del turno no son válidas',
+  //     );
+  //   }
+
+  //   if (newStartAt <= now) {
+  //     throw new ConflictException(
+  //       'No se puede reprogramar un turno a una fecha u horario pasado',
+  //     );
+  //   }
+
+  //   const newEndAt = new Date(
+  //     newStartAt.getTime() + service.durationMinutes * 60 * 1000,
+  //   );
+
+  //   await this.validateProfessionalAvailability(
+  //     professional.id,
+  //     newStartAt,
+  //     newEndAt,
+  //   );
+
+  //   await this.validateProfessionalNoOverlap(
+  //     professional.id,
+  //     newStartAt,
+  //     newEndAt,
+  //     appointment.id,
+  //   );
+
+  //   await this.validateUserNoOverlap(
+  //     appointment.user.id,
+  //     newStartAt,
+  //     newEndAt,
+  //     appointment.id,
+  //   );
+
+  //   appointment.professional = professional;
+  //   appointment.service = service;
+  //   appointment.startAt = newStartAt;
+  //   appointment.endAt = newEndAt;
+  //   appointment.rescheduleCount += 1;
+
+  //   // si el turno estaba pendiente, se reinicia el tiempo de expiración
+
+  //   if (appointment.status === AppointmentStatus.PENDING) {
+  //     appointment.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  //   }
+  //   return this.appointmentsRepository.save(appointment);
+  // }
 
   // marcar turno como 'completado' (DESDE EL PANEL DEL PROFESIONAL)
   async completeAppointment(id: string): Promise<Appointment> {

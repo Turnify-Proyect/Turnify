@@ -155,4 +155,26 @@ export class PaymentsController {
   ): Promise<Payment> {
     return this.paymentsService.getPaymentById(id);
   }
+
+  @Post('stripe/admin/checkout-session')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+  summary:
+    'Generar enlace de pago para una reserva creada por administración',
+})
+@ApiResponse({
+  status: 201,
+  description:
+    'Enlace de pago generado correctamente',
+})
+createAdminCheckoutSession(
+  @Body() createPaymentDto: CreatePaymentDto,
+) {
+  return this.paymentsService
+    .createAdminCheckoutSession(
+      createPaymentDto.orderId,
+    );
+}
 }
