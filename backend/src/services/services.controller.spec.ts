@@ -222,8 +222,7 @@ describe('ServicesController', () => {
         professionals,
       );
 
-      const result =
-        await controller.getProfessionalsByService(serviceId);
+      const result = await controller.getProfessionalsByService(serviceId);
 
       expect(
         servicesServiceMock.getProfessionalsByService,
@@ -248,15 +247,14 @@ describe('ServicesController', () => {
         imgUrl: 'https://cloudinary.com/service.jpg',
       };
 
-      servicesServiceMock.updateServiceImage.mockResolvedValue(
-        expectedResult,
-      );
+      servicesServiceMock.updateServiceImage.mockResolvedValue(expectedResult);
 
       const result = await controller.uploadServiceImage(id, file);
 
-      expect(
-        servicesServiceMock.updateServiceImage,
-      ).toHaveBeenCalledWith(id, file);
+      expect(servicesServiceMock.updateServiceImage).toHaveBeenCalledWith(
+        id,
+        file,
+      );
 
       expect(result).toEqual(expectedResult);
     });
@@ -274,13 +272,14 @@ describe('ServicesController', () => {
 
       servicesServiceMock.updateServiceImage.mockRejectedValue(error);
 
-      await expect(
-        controller.uploadServiceImage(id, file),
-      ).rejects.toThrow('Error al subir imagen');
+      await expect(controller.uploadServiceImage(id, file)).rejects.toThrow(
+        'Error al subir imagen',
+      );
 
-      expect(
-        servicesServiceMock.updateServiceImage,
-      ).toHaveBeenCalledWith(id, file);
+      expect(servicesServiceMock.updateServiceImage).toHaveBeenCalledWith(
+        id,
+        file,
+      );
     });
   });
 });

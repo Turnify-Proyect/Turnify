@@ -111,9 +111,7 @@ describe('AuthService', () => {
     it('debería lanzar UnauthorizedException si el usuario no existe', async () => {
       usersRepository.getUserByEmail.mockResolvedValue(null);
 
-      await expect(
-        service.signIn('test@test.com', 'password'),
-      ).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(
         new UnauthorizedException('Credenciales incorrectas'),
       );
 
@@ -128,9 +126,7 @@ describe('AuthService', () => {
         password_hash: null,
       });
 
-      await expect(
-        service.signIn('test@test.com', 'password'),
-      ).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(
         new UnauthorizedException('Credenciales incorrectas'),
       );
 
@@ -144,9 +140,7 @@ describe('AuthService', () => {
 
       await expect(
         service.signIn('test@test.com', 'password-incorrecta'),
-      ).rejects.toThrow(
-        new UnauthorizedException('Credenciales incorrectas'),
-      );
+      ).rejects.toThrow(new UnauthorizedException('Credenciales incorrectas'));
 
       expect(bcrypt.compare).toHaveBeenCalledWith(
         'password-incorrecta',
@@ -162,9 +156,7 @@ describe('AuthService', () => {
 
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(
-        service.signIn('test@test.com', 'password'),
-      ).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(
         new ForbiddenException(
           'Debes verificar tu correo electrónico antes de iniciar sesión',
         ),
@@ -269,8 +261,7 @@ describe('AuthService', () => {
       });
 
       expect(result).toEqual({
-        message:
-          'Usuario registrado correctamente. Ya podés iniciar sesión.',
+        message: 'Usuario registrado correctamente. Ya podés iniciar sesión.',
         user: createdUser,
       });
     });
@@ -330,9 +321,9 @@ describe('AuthService', () => {
         .spyOn(googleClient, 'verifyIdToken')
         .mockRejectedValue(new Error('Invalid token'));
 
-      await expect(
-        service.googleSignIn('invalid-token'),
-      ).rejects.toThrow('Invalid token');
+      await expect(service.googleSignIn('invalid-token')).rejects.toThrow(
+        'Invalid token',
+      );
     });
 
     it('debería rechazar si Google no devuelve payload', async () => {
@@ -342,9 +333,7 @@ describe('AuthService', () => {
         getPayload: () => null,
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new UnauthorizedException('Token de Google inválido'),
       );
     });
@@ -360,9 +349,7 @@ describe('AuthService', () => {
         }),
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new UnauthorizedException(
           'El correo asociado a la cuenta de Google no está verificado',
         ),
@@ -386,9 +373,7 @@ describe('AuthService', () => {
         authProvider: AuthProvider.LOCAL,
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new ConflictException(
           'Este email ya está registrado mediante autenticación local',
         ),
@@ -413,9 +398,7 @@ describe('AuthService', () => {
         providerId: 'otro-google-id',
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new UnauthorizedException(
           'La cuenta de Google no coincide con el usuario registrado',
         ),
@@ -503,9 +486,7 @@ describe('AuthService', () => {
       await expect(
         service.googleCompleteSignUp('invalid-token', '123456'),
       ).rejects.toThrow(
-        new UnauthorizedException(
-          'El registro expiró, intentá de nuevo.',
-        ),
+        new UnauthorizedException('El registro expiró, intentá de nuevo.'),
       );
     });
 
@@ -536,9 +517,7 @@ describe('AuthService', () => {
 
       await expect(
         service.googleCompleteSignUp('token', '123456'),
-      ).rejects.toThrow(
-        new ConflictException('El email ya está registrado'),
-      );
+      ).rejects.toThrow(new ConflictException('El email ya está registrado'));
 
       expect(usersRepository.getUserByPhone).not.toHaveBeenCalled();
     });
@@ -637,10 +616,7 @@ describe('AuthService', () => {
       usersRepository.getUserByPhone.mockResolvedValue(null);
       jwtService.sign.mockReturnValue('google-jwt');
 
-      await service.googleCompleteSignUp(
-        'registration-token',
-        '123456',
-      );
+      await service.googleCompleteSignUp('registration-token', '123456');
 
       expect(usersRepository.createUser).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -665,9 +641,7 @@ describe('AuthService', () => {
 
       await expect(
         service.googleCompleteSignUp('token', '123456'),
-      ).rejects.toThrow(
-        new UnauthorizedException('Error al crear el usuario'),
-      );
+      ).rejects.toThrow(new UnauthorizedException('Error al crear el usuario'));
     });
   });
 
@@ -681,9 +655,9 @@ describe('AuthService', () => {
 
       await service.verifyEmail('verification-token');
 
-      expect(
-        emailVerificationService.verifyEmail,
-      ).toHaveBeenCalledWith('verification-token');
+      expect(emailVerificationService.verifyEmail).toHaveBeenCalledWith(
+        'verification-token',
+      );
     });
 
     it('debería propagar el error del EmailVerificationService', async () => {
@@ -691,9 +665,7 @@ describe('AuthService', () => {
         new UnauthorizedException('Token inválido'),
       );
 
-      await expect(
-        service.verifyEmail('invalid-token'),
-      ).rejects.toThrow(
+      await expect(service.verifyEmail('invalid-token')).rejects.toThrow(
         new UnauthorizedException('Token inválido'),
       );
     });

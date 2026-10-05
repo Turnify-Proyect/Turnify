@@ -76,9 +76,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       expect(result).toBe(true);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.findOne).not.toHaveBeenCalled();
     });
 
     it('debería permitir el acceso aunque el turno no exista', async () => {
@@ -94,9 +92,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       expect(result).toBe(true);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.findOne).not.toHaveBeenCalled();
     });
   });
 
@@ -144,9 +140,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       await guard.canActivate(context);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledWith({
+      expect(appointmentsRepository.findOne).toHaveBeenCalledWith({
         where: {
           id: 'appointment-123',
         },
@@ -178,12 +172,8 @@ describe('AppointmentOwnerOrAdminGuard', () => {
         'appointment-1',
       );
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(
-        new ForbiddenException(
-          'No tienes permiso para acceder a este turno',
-        ),
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        new ForbiddenException('No tienes permiso para acceder a este turno'),
       );
     });
 
@@ -203,9 +193,9 @@ describe('AppointmentOwnerOrAdminGuard', () => {
         'appointment-1',
       );
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -225,9 +215,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
         'appointment-inexistente',
       );
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(
+      await expect(guard.canActivate(context)).rejects.toThrow(
         new NotFoundException('Turno no encontrado'),
       );
     });
@@ -243,9 +231,9 @@ describe('AppointmentOwnerOrAdminGuard', () => {
         'appointment-inexistente',
       );
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(NotFoundException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -258,10 +246,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
       const context = createExecutionContext(
         {
           id: 'admin-1',
-          roles: [
-            UserRole.CLIENT,
-            UserRole.ADMIN,
-          ],
+          roles: [UserRole.CLIENT, UserRole.ADMIN],
         },
         'appointment-1',
       );
@@ -270,9 +255,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       expect(result).toBe(true);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.findOne).not.toHaveBeenCalled();
     });
 
     it('debería consultar el turno si el usuario no tiene rol ADMIN', async () => {
@@ -293,9 +276,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       await guard.canActivate(context);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.findOne).toHaveBeenCalledTimes(1);
     });
   });
 });

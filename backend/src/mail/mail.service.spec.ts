@@ -198,23 +198,14 @@ describe('MailService', () => {
     });
 
     it('debería propagar el error al enviar la plantilla', async () => {
-      (fs.readFile as jest.Mock).mockResolvedValue(
-        '<h1>Hola {{name}}</h1>',
-      );
+      (fs.readFile as jest.Mock).mockResolvedValue('<h1>Hola {{name}}</h1>');
 
-      sendMailMock.mockRejectedValue(
-        new Error('Error enviando plantilla'),
-      );
+      sendMailMock.mockRejectedValue(new Error('Error enviando plantilla'));
 
       await expect(
-        service.sendMailWithTemplate(
-          'cliente@test.com',
-          'Test',
-          'template',
-          {
-            name: 'Juan',
-          },
-        ),
+        service.sendMailWithTemplate('cliente@test.com', 'Test', 'template', {
+          name: 'Juan',
+        }),
       ).rejects.toThrow('Error enviando plantilla');
     });
   });
@@ -227,14 +218,9 @@ describe('MailService', () => {
         .spyOn(service, 'sendMail')
         .mockResolvedValue(undefined);
 
-      await service.sendVerificationEmail(
-        'cliente@test.com',
-        'abc123',
-      );
+      await service.sendVerificationEmail('cliente@test.com', 'abc123');
 
-      expect(configServiceMock.get).toHaveBeenCalledWith(
-        'FRONTEND_URL',
-      );
+      expect(configServiceMock.get).toHaveBeenCalledWith('FRONTEND_URL');
 
       expect(sendMailSpy).toHaveBeenCalledTimes(1);
 
@@ -267,17 +253,11 @@ describe('MailService', () => {
     it('debería propagar el error al enviar el correo de verificación', async () => {
       jest
         .spyOn(service, 'sendMail')
-        .mockRejectedValue(
-          new Error('Error enviando verificación'),
-        );
+        .mockRejectedValue(new Error('Error enviando verificación'));
 
       await expect(
-        service.sendVerificationEmail(
-          'cliente@test.com',
-          'abc123',
-        ),
+        service.sendVerificationEmail('cliente@test.com', 'abc123'),
       ).rejects.toThrow('Error enviando verificación');
     });
   });
 });
-

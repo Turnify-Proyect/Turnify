@@ -13,6 +13,12 @@ import {
   MaxFileSizeValidator,
   FileTypeValidator,
 } from '@nestjs/common';
+import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
+import { ApiSuccessCreatedResponse } from '../common/api/api-success-created-response.decorator';
+import { Professional } from 'src/professionals/entities/professional.entity';
+import { Service } from './entities/service.entity';
+import { ApiSuccessResponse } from '../common/api/api-success-response.decorator';
+import { ApiSuccessArrayResponse } from '../common/api/api-success-array-response.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -43,14 +49,9 @@ export class ServicesController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de servicios activos e inactivos',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder',
-  })
+  @ApiSuccessArrayResponse(Service)
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
   getAll() {
     return this.servicesService.getAll();
   }
@@ -60,14 +61,7 @@ export class ServicesController {
   // Es la consulta principal para clientes o vistas públicas.
   //coemntado por:Lautaro-dev
   @Get()
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de Servicios activos',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Error al acceder a la lista de servicios activos',
-  })
+  @ApiSuccessArrayResponse(Service)
   getAllActive() {
     return this.servicesService.getAllActive();
   }
@@ -81,14 +75,9 @@ export class ServicesController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de un servicios',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'No existe el servicio con ese id',
-  })
+  @ApiSuccessResponse(Service)
+  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
+  @ApiErrorSwaggerResponse(404, 'No existe el servicio con ese ID')
   getById(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.getById(id);
   }
@@ -105,14 +94,15 @@ export class ServicesController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Servicio actualizado',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'No existe el servicio con ese id',
-  })
+  @ApiSuccessResponse(Service)
+  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para actualizar servicios')
+  @ApiErrorSwaggerResponse(404, 'No existe el servicio o la categoría indicada')
+  @ApiErrorSwaggerResponse(
+    409,
+    'El nombre del servicio ya existe o la categoría seleccionada está inactiva',
+  )
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() data: UpdateServiceDto,
@@ -126,14 +116,15 @@ export class ServicesController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiResponse({
-    status: 201,
-    description: 'Servicio creado con exito',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'El servicio no pudo ser creado',
-  })
+  @ApiSuccessCreatedResponse(Service)
+  @ApiErrorSwaggerResponse(400, 'Los datos enviados no son válidos')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para crear servicios')
+  @ApiErrorSwaggerResponse(404, 'La categoría seleccionada no existe')
+  @ApiErrorSwaggerResponse(
+    409,
+    'Ya existe un servicio con ese nombre o la categoría seleccionada está inactiva',
+  )
   create(@Body() data: CreateServiceDto) {
     return this.servicesService.create(data);
   }
@@ -152,14 +143,11 @@ export class ServicesController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Servicio desactivado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'No existe el servicio con ese id',
-  })
+  @ApiSuccessResponse(Service)
+  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para desactivar servicios')
+  @ApiErrorSwaggerResponse(404, 'No existe el servicio con ese ID')
   deactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.deactivate(id);
   }
@@ -176,19 +164,21 @@ export class ServicesController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Servicio reactivado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'No existe el servicio con ese id',
-  })
+  @ApiSuccessResponse(Service)
+  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para reactivar servicios')
+  @ApiErrorSwaggerResponse(404, 'No existe el servicio con ese ID')
   reactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.servicesService.reactivate(id);
   }
 
   @Get(':serviceId/professionals')
+  @ApiSuccessArrayResponse(Professional)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID del servicio no tiene un formato UUID válido',
+  )
   async getProfessionalsByService(
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
   ) {
@@ -222,19 +212,17 @@ export class ServicesController {
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Imagen del servicio actualizada correctamente en Cloudinary',
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'El archivo excede 5MB o no cumple con el formato permitido (jpg, jpeg, png, webp)',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'No existe un servicio con el ID especificado',
-  })
+  @ApiSuccessResponse(Service)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID, archivo, tamaño o formato de imagen no son válidos',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(
+    403,
+    'Sin permisos para modificar la imagen del servicio',
+  )
+  @ApiErrorSwaggerResponse(404, 'No existe un servicio con el ID especificado')
   uploadServiceImage(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile(

@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -74,13 +71,9 @@ describe('ProfessionalsRepository', () => {
       ],
     }).compile();
 
-    repository = module.get<ProfessionalsRepository>(
-      ProfessionalsRepository,
-    );
+    repository = module.get<ProfessionalsRepository>(ProfessionalsRepository);
 
-    professionalsRepository = module.get(
-      getRepositoryToken(Professional),
-    );
+    professionalsRepository = module.get(getRepositoryToken(Professional));
 
     usersRepository = module.get(getRepositoryToken(User));
 
@@ -190,9 +183,7 @@ describe('ProfessionalsRepository', () => {
 
       await expect(
         repository.getProfessionalById(professionalId),
-      ).rejects.toThrow(
-        'No existe un profesional con el ID proporcionado',
-      );
+      ).rejects.toThrow('No existe un profesional con el ID proporcionado');
     });
   });
 
@@ -252,9 +243,7 @@ describe('ProfessionalsRepository', () => {
         },
       });
 
-      expect(professionalsRepository.save).toHaveBeenCalledWith(
-        professional,
-      );
+      expect(professionalsRepository.save).toHaveBeenCalledWith(professional);
 
       expect(user.roles).toEqual([UserRole.PROFESSIONAL]);
 
@@ -317,13 +306,11 @@ describe('ProfessionalsRepository', () => {
     it('should throw NotFoundException when user does not exist', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.createProfessional(dto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.createProfessional(dto)).rejects.toThrow(
+        NotFoundException,
+      );
 
-      await expect(
-        repository.createProfessional(dto),
-      ).rejects.toThrow(
+      await expect(repository.createProfessional(dto)).rejects.toThrow(
         'No existe un usuario con el ID proporcionado',
       );
 
@@ -342,17 +329,13 @@ describe('ProfessionalsRepository', () => {
       } as Professional;
 
       usersRepository.findOne.mockResolvedValue(user);
-      professionalsRepository.findOne.mockResolvedValue(
-        existingProfessional,
+      professionalsRepository.findOne.mockResolvedValue(existingProfessional);
+
+      await expect(repository.createProfessional(dto)).rejects.toThrow(
+        ConflictException,
       );
 
-      await expect(
-        repository.createProfessional(dto),
-      ).rejects.toThrow(ConflictException);
-
-      await expect(
-        repository.createProfessional(dto),
-      ).rejects.toThrow(
+      await expect(repository.createProfessional(dto)).rejects.toThrow(
         'Ya existe un profesional para este usuario',
       );
 
@@ -380,10 +363,7 @@ describe('ProfessionalsRepository', () => {
         raw: [],
       });
 
-      const result = await repository.updateProfessional(
-        professionalId,
-        dto,
-      );
+      const result = await repository.updateProfessional(professionalId, dto);
 
       expect(result).toEqual({
         message: 'Profesional actualizado exitosamente',
@@ -425,8 +405,7 @@ describe('ProfessionalsRepository', () => {
         raw: [],
       });
 
-      const result =
-        await repository.softDeleteProfessional(professionalId);
+      const result = await repository.softDeleteProfessional(professionalId);
 
       expect(result).toEqual({
         message: 'Profesional eliminado correctamente',
@@ -464,8 +443,7 @@ describe('ProfessionalsRepository', () => {
         raw: [],
       });
 
-      const result =
-        await repository.activateProfessional(professionalId);
+      const result = await repository.activateProfessional(professionalId);
 
       expect(result).toEqual({
         message: 'Profesional activado correctamente',
@@ -551,9 +529,9 @@ describe('ProfessionalsRepository', () => {
         service,
       });
 
-      expect(
-        professionalServicesRepository.save,
-      ).toHaveBeenCalledWith(professionalService);
+      expect(professionalServicesRepository.save).toHaveBeenCalledWith(
+        professionalService,
+      );
     });
 
     it('should throw NotFoundException when professional does not exist', async () => {
@@ -564,9 +542,7 @@ describe('ProfessionalsRepository', () => {
       ).rejects.toThrow(NotFoundException);
 
       expect(servicesRepository.findOne).not.toHaveBeenCalled();
-      expect(
-        professionalServicesRepository.create,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.create).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException when professional is inactive', async () => {
@@ -600,9 +576,7 @@ describe('ProfessionalsRepository', () => {
         repository.associateService(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalServicesRepository.create,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.create).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException when service is inactive', async () => {
@@ -622,13 +596,9 @@ describe('ProfessionalsRepository', () => {
 
       await expect(
         repository.associateService(professionalId, serviceId),
-      ).rejects.toThrow(
-        'No se puede asociar un servicio inactivo',
-      );
+      ).rejects.toThrow('No se puede asociar un servicio inactivo');
 
-      expect(
-        professionalServicesRepository.findOne,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.findOne).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException when association already exists', async () => {
@@ -653,17 +623,11 @@ describe('ProfessionalsRepository', () => {
 
       await expect(
         repository.associateService(professionalId, serviceId),
-      ).rejects.toThrow(
-        'El servicio ya se encuentra asociado al profesional',
-      );
+      ).rejects.toThrow('El servicio ya se encuentra asociado al profesional');
 
-      expect(
-        professionalServicesRepository.create,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.create).not.toHaveBeenCalled();
 
-      expect(
-        professionalServicesRepository.save,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -689,8 +653,7 @@ describe('ProfessionalsRepository', () => {
       professionalsRepository.findOne.mockResolvedValue(professional);
       professionalServicesRepository.find.mockResolvedValue(associations);
 
-      const result =
-        await repository.getServicesByProfessional(professionalId);
+      const result = await repository.getServicesByProfessional(professionalId);
 
       expect(result).toEqual(associations);
 
@@ -709,9 +672,7 @@ describe('ProfessionalsRepository', () => {
         repository.getServicesByProfessional(professionalId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalServicesRepository.find,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.find).not.toHaveBeenCalled();
     });
   });
 
@@ -735,36 +696,28 @@ describe('ProfessionalsRepository', () => {
 
       professionalsRepository.findOne.mockResolvedValue(professional);
       servicesRepository.findOne.mockResolvedValue(service);
-      professionalServicesRepository.findOne.mockResolvedValue(
-        association,
-      );
-      professionalServicesRepository.remove.mockResolvedValue(
-        association,
-      );
+      professionalServicesRepository.findOne.mockResolvedValue(association);
+      professionalServicesRepository.remove.mockResolvedValue(association);
 
-      const result =
-        await repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        );
+      const result = await repository.removeServiceFromProfessional(
+        professionalId,
+        serviceId,
+      );
 
       expect(result).toEqual({
         message: 'Servicio desvinculado del profesional exitosamente',
       });
 
-      expect(
-        professionalServicesRepository.remove,
-      ).toHaveBeenCalledWith(association);
+      expect(professionalServicesRepository.remove).toHaveBeenCalledWith(
+        association,
+      );
     });
 
     it('should throw NotFoundException when professional does not exist', async () => {
       professionalsRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
+        repository.removeServiceFromProfessional(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
       expect(servicesRepository.findOne).not.toHaveBeenCalled();
@@ -778,15 +731,10 @@ describe('ProfessionalsRepository', () => {
       servicesRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
+        repository.removeServiceFromProfessional(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalServicesRepository.findOne,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.findOne).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when association does not exist', async () => {
@@ -801,24 +749,14 @@ describe('ProfessionalsRepository', () => {
       professionalServicesRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
+        repository.removeServiceFromProfessional(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
-      ).rejects.toThrow(
-        'El servicio no se encuentra asociado al profesional',
-      );
+        repository.removeServiceFromProfessional(professionalId, serviceId),
+      ).rejects.toThrow('El servicio no se encuentra asociado al profesional');
 
-      expect(
-        professionalServicesRepository.remove,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepository.remove).not.toHaveBeenCalled();
     });
   });
 });

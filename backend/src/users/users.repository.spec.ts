@@ -105,13 +105,7 @@ describe('UsersRepository', () => {
         queryBuilder as any,
       );
 
-      await repository.getAllUsers(
-        2,
-        10,
-        'juan',
-        UserRole.CLIENT,
-        true,
-      );
+      await repository.getAllUsers(2, 10, 'juan', UserRole.CLIENT, true);
 
       expect(queryBuilder.skip).toHaveBeenCalledWith(10);
       expect(queryBuilder.take).toHaveBeenCalledWith(10);
@@ -189,9 +183,9 @@ describe('UsersRepository', () => {
     it('debería lanzar NotFoundException si el usuario no existe', async () => {
       ormUsersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.getUserById('user-inexistente'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.getUserById('user-inexistente')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -336,15 +330,13 @@ describe('UsersRepository', () => {
         }),
       ).rejects.toThrow(ConflictException);
 
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        1,
-        { id: 'user-1' },
-      );
+      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(1, {
+        id: 'user-1',
+      });
 
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        2,
-        { phone: '3412222222' },
-      );
+      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(2, {
+        phone: '3412222222',
+      });
 
       expect(ormUsersRepository.save).not.toHaveBeenCalled();
     });
@@ -370,15 +362,13 @@ describe('UsersRepository', () => {
         }),
       ).rejects.toThrow(ConflictException);
 
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        1,
-        { id: 'user-1' },
-      );
+      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(1, {
+        id: 'user-1',
+      });
 
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        2,
-        { email: 'otro@test.com' },
-      );
+      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(2, {
+        email: 'otro@test.com',
+      });
 
       expect(ormUsersRepository.save).not.toHaveBeenCalled();
     });
@@ -479,9 +469,9 @@ describe('UsersRepository', () => {
     it('debería lanzar NotFoundException si no existe', async () => {
       ormUsersRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        repository.removeUser('user-inexistente'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.removeUser('user-inexistente')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('debería rechazar la baja si ya está inactivo', async () => {
@@ -523,9 +513,9 @@ describe('UsersRepository', () => {
     it('debería lanzar NotFoundException si no existe', async () => {
       ormUsersRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        repository.activateUser('user-inexistente'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.activateUser('user-inexistente')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('debería rechazar la activación si ya está activo', async () => {
@@ -579,9 +569,7 @@ describe('UsersRepository', () => {
       ormUsersRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
-        repository.updateUserRoles('user-inexistente', [
-          UserRole.CLIENT,
-        ]),
+        repository.updateUserRoles('user-inexistente', [UserRole.CLIENT]),
       ).rejects.toThrow(NotFoundException);
     });
   });

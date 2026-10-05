@@ -307,16 +307,11 @@ describe('ServicesRepository', () => {
       serviceRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
-        repository.update(
-          'service-1',
-          {
-            name: 'Corte',
-          } as any,
-        ),
+        repository.update('service-1', {
+          name: 'Corte',
+        } as any),
       ).rejects.toThrow(
-        new NotFoundException(
-          'No existe un servicio con el ID proporcionado',
-        ),
+        new NotFoundException('No existe un servicio con el ID proporcionado'),
       );
 
       expect(serviceRepository.save).not.toHaveBeenCalled();
@@ -432,9 +427,7 @@ describe('ServicesRepository', () => {
       await expect(
         repository.getProfessionalsByService('service-1'),
       ).rejects.toThrow(
-        new NotFoundException(
-          'No existe un servicio con el ID proporcionado',
-        ),
+        new NotFoundException('No existe un servicio con el ID proporcionado'),
       );
 
       expect(professionalServicesRepository.find).not.toHaveBeenCalled();
@@ -477,9 +470,7 @@ describe('ServicesRepository', () => {
 
       expect(result).toEqual(updatedService);
 
-      expect(service.imageUrl).toBe(
-        'https://cloudinary.com/service-image.jpg',
-      );
+      expect(service.imageUrl).toBe('https://cloudinary.com/service-image.jpg');
 
       expect(serviceRepository.save).toHaveBeenCalledWith(service);
     });
@@ -493,9 +484,7 @@ describe('ServicesRepository', () => {
           'https://cloudinary.com/image.jpg',
         ),
       ).rejects.toThrow(
-        new NotFoundException(
-          'No existe un servicio con el ID proporcionado',
-        ),
+        new NotFoundException('No existe un servicio con el ID proporcionado'),
       );
 
       expect(serviceRepository.save).not.toHaveBeenCalled();

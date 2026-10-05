@@ -198,10 +198,7 @@ describe('ProfessionalsService', () => {
 
       repository.associateService.mockResolvedValue(expectedResult as any);
 
-      const result = await service.associateService(
-        professionalId,
-        serviceId,
-      );
+      const result = await service.associateService(professionalId, serviceId);
 
       expect(repository.associateService).toHaveBeenCalledWith(
         professionalId,
@@ -231,8 +228,7 @@ describe('ProfessionalsService', () => {
         expectedResult as any,
       );
 
-      const result =
-        await service.getServicesByProfessional(professionalId);
+      const result = await service.getServicesByProfessional(professionalId);
 
       expect(repository.getServicesByProfessional).toHaveBeenCalledWith(
         professionalId,
@@ -264,9 +260,7 @@ describe('ProfessionalsService', () => {
         professionalId,
         serviceId,
       );
-      expect(repository.removeServiceFromProfessional).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(repository.removeServiceFromProfessional).toHaveBeenCalledTimes(1);
       expect(result).toEqual(expectedResult);
     });
   });

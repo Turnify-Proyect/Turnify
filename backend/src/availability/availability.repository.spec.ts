@@ -85,8 +85,7 @@ describe('AvailabilityRepository', () => {
 
       ormRepository.find.mockResolvedValue(availabilities);
 
-      const result =
-        await repository.getByProfessionalId('professional-1');
+      const result = await repository.getByProfessionalId('professional-1');
 
       expect(ormRepository.find).toHaveBeenCalledWith({
         where: {
@@ -102,8 +101,7 @@ describe('AvailabilityRepository', () => {
     it('should return an empty array when the professional has no availabilities', async () => {
       ormRepository.find.mockResolvedValue([]);
 
-      const result =
-        await repository.getByProfessionalId('professional-1');
+      const result = await repository.getByProfessionalId('professional-1');
 
       expect(result).toEqual([]);
     });
@@ -122,11 +120,10 @@ describe('AvailabilityRepository', () => {
 
       ormRepository.find.mockResolvedValue(availabilities);
 
-      const result =
-        await repository.getByProfessionalAndDay(
-          'professional-1',
-          DayOfWeek.MONDAY,
-        );
+      const result = await repository.getByProfessionalAndDay(
+        'professional-1',
+        DayOfWeek.MONDAY,
+      );
 
       expect(ormRepository.find).toHaveBeenCalledWith({
         where: {
@@ -143,11 +140,10 @@ describe('AvailabilityRepository', () => {
     it('should return an empty array when there are no availabilities for that day', async () => {
       ormRepository.find.mockResolvedValue([]);
 
-      const result =
-        await repository.getByProfessionalAndDay(
-          'professional-1',
-          DayOfWeek.FRIDAY,
-        );
+      const result = await repository.getByProfessionalAndDay(
+        'professional-1',
+        DayOfWeek.FRIDAY,
+      );
 
       expect(result).toEqual([]);
     });
@@ -194,10 +190,7 @@ describe('AvailabilityRepository', () => {
       ormRepository.create.mockReturnValue(availability);
       ormRepository.save.mockResolvedValue(availability);
 
-      const result = await repository.create(
-        'professional-1',
-        createData,
-      );
+      const result = await repository.create('professional-1', createData);
 
       expect(ormRepository.create).toHaveBeenCalledWith({
         dayOfWeek: DayOfWeek.MONDAY,
@@ -208,9 +201,7 @@ describe('AvailabilityRepository', () => {
         },
       });
 
-      expect(ormRepository.save).toHaveBeenCalledWith(
-        availability,
-      );
+      expect(ormRepository.save).toHaveBeenCalledWith(availability);
 
       expect(result).toEqual(availability);
     });
@@ -225,9 +216,7 @@ describe('AvailabilityRepository', () => {
 
       await repository.delete('availability-1');
 
-      expect(ormRepository.delete).toHaveBeenCalledWith(
-        'availability-1',
-      );
+      expect(ormRepository.delete).toHaveBeenCalledWith('availability-1');
     });
   });
 });

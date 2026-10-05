@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import Stripe from 'stripe';
 
@@ -43,9 +40,8 @@ describe('PaymentsService', () => {
   };
 
   const mockProfessionalUnavailabilityRepository = {
-  getOverlapping: jest.fn().mockResolvedValue(null),
-};
-
+    getOverlapping: jest.fn().mockResolvedValue(null),
+  };
 
   const dataSource = {
     createQueryRunner: jest.fn(),
@@ -178,10 +174,7 @@ describe('PaymentsService', () => {
     } as Appointment;
   };
 
-
-  const createOrder = (
-    overrides: Partial<Order> = {},
-  ): Order => {
+  const createOrder = (overrides: Partial<Order> = {}): Order => {
     const appointment = createAppointment();
 
     return {
@@ -200,11 +193,9 @@ describe('PaymentsService', () => {
     } as Order;
   };
 
-  const createPayment = (
-    overrides: Partial<Payment> = {},
-  ): Payment => {
+  const createPayment = (overrides: Partial<Payment> = {}): Payment => {
     // Generamos una orden válida por defecto para que tenga todas las relaciones
-    const defaultOrder = createOrder(); 
+    const defaultOrder = createOrder();
 
     return {
       id: 'payment-1',
@@ -217,7 +208,6 @@ describe('PaymentsService', () => {
       ...overrides,
     } as Payment;
   };
-
 
   describe('processPayment', () => {
     it('should process a payment successfully', async () => {
@@ -452,9 +442,7 @@ describe('PaymentsService', () => {
           externalPaymentId: 'pi_test_123',
           status: PaymentStatus.PAID,
         }),
-      ).rejects.toThrow(
-        'No se puede confirmar el pago de un turno cancelado',
-      );
+      ).rejects.toThrow('No se puede confirmar el pago de un turno cancelado');
     });
 
     it('should update an existing unpaid payment', async () => {
@@ -522,9 +510,7 @@ describe('PaymentsService', () => {
           externalPaymentId: 'pi_test_123',
           status: PaymentStatus.PAID,
         }),
-      ).rejects.toThrow(
-        'Error al procesar el pago: Database error',
-      );
+      ).rejects.toThrow('Error al procesar el pago: Database error');
 
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
@@ -588,10 +574,7 @@ describe('PaymentsService', () => {
 
       repository.findOne.mockResolvedValue(order);
 
-      const result = await service.createStripeIntent(
-        'order-1',
-        'user-1',
-      );
+      const result = await service.createStripeIntent('order-1', 'user-1');
 
       expect(stripePaymentIntentsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -634,9 +617,7 @@ describe('PaymentsService', () => {
 
       await expect(
         service.createStripeIntent('order-1', 'user-1'),
-      ).rejects.toThrow(
-        'La orden no se encuentra pendiente de pago',
-      );
+      ).rejects.toThrow('La orden no se encuentra pendiente de pago');
     });
 
     it('should throw when the order has no appointments', async () => {
@@ -730,14 +711,10 @@ describe('PaymentsService', () => {
         throw new Error('Invalid signature');
       });
 
-      (service as any).stripe.webhooks.constructEvent =
-        constructEvent;
+      (service as any).stripe.webhooks.constructEvent = constructEvent;
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'invalid-signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'invalid-signature'),
       ).rejects.toThrow('Firma de webhook inválida');
     });
 
@@ -757,10 +734,7 @@ describe('PaymentsService', () => {
       );
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
       ).resolves.toEqual({
         received: true,
       });
@@ -784,18 +758,15 @@ describe('PaymentsService', () => {
       );
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
       ).resolves.toEqual({
         received: true,
       });
     });
 
     it('should throw when the order from the webhook does not exist', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
+      (service as any).stripe.webhooks.constructEvent = jest.fn(() =>
+        createWebhookEvent(),
       );
 
       const repository = dataSource.getRepository();
@@ -803,18 +774,13 @@ describe('PaymentsService', () => {
       repository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).rejects.toThrow(
-        'No se encontró la orden con ID: order-1',
-      );
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
+      ).rejects.toThrow('No se encontró la orden con ID: order-1');
     });
 
     it('should process a valid payment webhook', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
+      (service as any).stripe.webhooks.constructEvent = jest.fn(() =>
+        createWebhookEvent(),
       );
 
       const appointment = createAppointment();
@@ -854,10 +820,7 @@ describe('PaymentsService', () => {
       paymentRepository.findOne.mockResolvedValue(savedPayment);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
       ).resolves.toEqual({
         received: true,
       });
@@ -866,8 +829,8 @@ describe('PaymentsService', () => {
     });
 
     it('should refund an expired reservation', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
+      (service as any).stripe.webhooks.constructEvent = jest.fn(() =>
+        createWebhookEvent(),
       );
 
       const appointment = createAppointment({
@@ -886,10 +849,7 @@ describe('PaymentsService', () => {
       repository.findOne.mockResolvedValue(order);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
       ).resolves.toEqual({
         received: true,
       });
@@ -905,8 +865,8 @@ describe('PaymentsService', () => {
     });
 
     it('should refund a cancelled reservation', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
+      (service as any).stripe.webhooks.constructEvent = jest.fn(() =>
+        createWebhookEvent(),
       );
 
       const appointment = createAppointment({
@@ -925,10 +885,7 @@ describe('PaymentsService', () => {
       repository.findOne.mockResolvedValue(order);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
       ).resolves.toEqual({
         received: true,
       });
@@ -937,8 +894,8 @@ describe('PaymentsService', () => {
     });
 
     it('should use processPayment when the order is already paid', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
+      (service as any).stripe.webhooks.constructEvent = jest.fn(() =>
+        createWebhookEvent(),
       );
 
       const order = createOrder({
@@ -954,10 +911,7 @@ describe('PaymentsService', () => {
         .mockResolvedValue(createPayment());
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('{}'), 'signature'),
       ).resolves.toEqual({
         received: true,
       });
@@ -996,9 +950,7 @@ describe('PaymentsService', () => {
     it('should throw when payment does not exist', async () => {
       paymentRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.getPaymentById('payment-1'),
-      ).rejects.toThrow(
+      await expect(service.getPaymentById('payment-1')).rejects.toThrow(
         'No se encontró un registro de pago con el ID proporcionado',
       );
     });
@@ -1060,9 +1012,9 @@ describe('PaymentsService', () => {
         },
       });
 
-      expect(() =>
-        (service as any).getOrderDeposit(order),
-      ).toThrow('La orden no tiene un precio válido');
+      expect(() => (service as any).getOrderDeposit(order)).toThrow(
+        'La orden no tiene un precio válido',
+      );
     });
 
     it('should throw when the order total is zero', () => {
@@ -1073,9 +1025,9 @@ describe('PaymentsService', () => {
         },
       });
 
-      expect(() =>
-        (service as any).getOrderDeposit(order),
-      ).toThrow('La orden no tiene un precio válido');
+      expect(() => (service as any).getOrderDeposit(order)).toThrow(
+        'La orden no tiene un precio válido',
+      );
     });
   });
 
@@ -1103,7 +1055,7 @@ describe('PaymentsService', () => {
 
       const result = (service as any).getOrderTotal(order);
 
-      expect(result).toBe(300.50);
+      expect(result).toBe(300.5);
     });
 
     it('should throw when the total is invalid', () => {
@@ -1114,9 +1066,9 @@ describe('PaymentsService', () => {
         },
       });
 
-      expect(() =>
-        (service as any).getOrderTotal(order),
-      ).toThrow('La orden no tiene un precio válido');
+      expect(() => (service as any).getOrderTotal(order)).toThrow(
+        'La orden no tiene un precio válido',
+      );
     });
 
     it('should throw when the total is zero', () => {
@@ -1127,9 +1079,9 @@ describe('PaymentsService', () => {
         },
       });
 
-      expect(() =>
-        (service as any).getOrderTotal(order),
-      ).toThrow('La orden no tiene un precio válido');
+      expect(() => (service as any).getOrderTotal(order)).toThrow(
+        'La orden no tiene un precio válido',
+      );
     });
   });
 });

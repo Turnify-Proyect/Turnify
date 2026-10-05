@@ -40,12 +40,8 @@ describe('typeOrmConfig', () => {
   it('should have the expected entity and migration paths', () => {
     const config = typeOrmConfig();
 
-    expect(config.entities).toEqual([
-      'dist/**/*.entity{.ts,.js}',
-    ]);
+    expect(config.entities).toEqual(['dist/**/*.entity{.ts,.js}']);
 
-    expect(config.migrations).toEqual([
-      'dist/migrations/*{.ts,.js}',
-    ]);
+    expect(config.migrations).toEqual(['dist/migrations/*{.ts,.js}']);
   });
 });

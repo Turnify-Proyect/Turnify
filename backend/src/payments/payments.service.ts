@@ -534,12 +534,9 @@ export class PaymentsService {
     });
   }
 
-
   //--- checkout desde el admin, para que el admin pueda generar un link de pago para el cliente
   async createAdminCheckoutSession(orderId: string) {
-  const order = await this.dataSource
-    .getRepository(Order)
-    .findOne({
+    const order = await this.dataSource.getRepository(Order).findOne({
       where: {
         order_id: orderId,
       },
@@ -553,62 +550,49 @@ export class PaymentsService {
       ],
     });
 
-  if (!order) {
-    throw new NotFoundException(
-      'No se encontró la orden',
-    );
-  }
+    if (!order) {
+      throw new NotFoundException('No se encontró la orden');
+    }
 
-  if (order.status !== OrderStatus.PENDING) {
-    throw new BadRequestException(
-      'La orden no se encuentra pendiente de pago',
-    );
-  }
-
-  const appointments =
-    order.orderDetails?.appointments;
-
-  if (
-    !appointments ||
-    appointments.length === 0
-  ) {
-    throw new BadRequestException(
-      'La orden no tiene turnos asociados',
-    );
-  }
-
-  const now = new Date();
-
-  for (const appointment of appointments) {
-    if (
-      appointment.status !==
-        AppointmentStatus.PENDING ||
-      !appointment.expiresAt ||
-      appointment.expiresAt <= now
-    ) {
+    if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException(
-        'La reserva asociada ya no se encuentra disponible para pagar',
+        'La orden no se encuentra pendiente de pago',
       );
     }
-  }
 
-  const amount = this.getOrderDeposit(order);
+    const appointments = order.orderDetails?.appointments;
 
-  const sessionExpiresAt =
-    Math.floor(Date.now() / 1000) +
-    30 * 60;
+    if (!appointments || appointments.length === 0) {
+      throw new BadRequestException('La orden no tiene turnos asociados');
+    }
 
-  const frontendUrl =
-    process.env.FRONTEND_URL;
+    const now = new Date();
 
-  if (!frontendUrl) {
-    throw new BadRequestException(
-      'No se encuentra configurada la URL del frontend',
-    );
-  }
+    for (const appointment of appointments) {
+      if (
+        appointment.status !== AppointmentStatus.PENDING ||
+        !appointment.expiresAt ||
+        appointment.expiresAt <= now
+      ) {
+        throw new BadRequestException(
+          'La reserva asociada ya no se encuentra disponible para pagar',
+        );
+      }
+    }
 
-  const session =
-    await this.stripe.checkout.sessions.create(
+    const amount = this.getOrderDeposit(order);
+
+    const sessionExpiresAt = Math.floor(Date.now() / 1000) + 30 * 60;
+
+    const frontendUrl = process.env.FRONTEND_URL;
+
+    if (!frontendUrl) {
+      throw new BadRequestException(
+        'No se encuentra configurada la URL del frontend',
+      );
+    }
+
+    const session = await this.stripe.checkout.sessions.create(
       {
         mode: 'payment',
 
@@ -625,8 +609,7 @@ export class PaymentsService {
                 name: 'Seña de reserva - Turnify',
               },
 
-              unit_amount:
-                Math.round(amount * 100),
+              unit_amount: Math.round(amount * 100),
             },
 
             quantity: 1,
@@ -645,80 +628,63 @@ export class PaymentsService {
 
         expires_at: sessionExpiresAt,
 
-        success_url:
-          `${frontendUrl}/payment/success`,
+        success_url: `${frontendUrl}/payment/success`,
 
-        cancel_url:
-          `${frontendUrl}/payment/pending`,
+        cancel_url: `${frontendUrl}/payment/pending`,
       },
       {
-        idempotencyKey:
-          `turnify-admin-checkout-${orderId}`,
+        idempotencyKey: `turnify-admin-checkout-${orderId}`,
       },
     );
 
-  if (!session.url) {
-    throw new BadRequestException(
-      'Stripe no generó el enlace de pago',
-    );
-  }
+    if (!session.url) {
+      throw new BadRequestException('Stripe no generó el enlace de pago');
+    }
 
-  
-  const expiresAt =
-    new Date(sessionExpiresAt * 1000);
+    const expiresAt = new Date(sessionExpiresAt * 1000);
 
-  await this.dataSource.transaction(
-    async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       for (const appointment of appointments) {
         appointment.expiresAt = expiresAt;
 
-        await manager.save(
-          Appointment,
-          appointment,
-        );
+        await manager.save(Appointment, appointment);
       }
-    },
-  );
+    });
 
-  const appointmentsForNotification =
-  appointments.map((appointment) => ({
-    serviceName: appointment.service.name,
-    professionalName:
-      appointment.professional.user.name,
-    startAt: appointment.startAt,
-    durationMinutes:
-      appointment.service.durationMinutes,
-  }));
+    const appointmentsForNotification = appointments.map((appointment) => ({
+      serviceName: appointment.service.name,
+      professionalName: appointment.professional.user.name,
+      startAt: appointment.startAt,
+      durationMinutes: appointment.service.durationMinutes,
+    }));
 
-let emailSent = true;
+    let emailSent = true;
 
-try {
-  await this.notificationsService.sendPaymentLink(
-    order.user.email,
-    order.user.name,
-    appointmentsForNotification,
-    amount,
-    session.url,
-    expiresAt,
-  );
-} catch (error) {
-  emailSent = false;
+    try {
+      await this.notificationsService.sendPaymentLink(
+        order.user.email,
+        order.user.name,
+        appointmentsForNotification,
+        amount,
+        session.url,
+        expiresAt,
+      );
+    } catch (error) {
+      emailSent = false;
 
-  this.logger.error(
-    'Se generó el link de pago pero no pudo enviarse el correo',
-    error instanceof Error
-      ? error.stack
-      : undefined,
-  );
-}
+      this.logger.error(
+        'Se generó el link de pago pero no pudo enviarse el correo',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
 
-  return {
-  orderId,
-  checkoutUrl: session.url,
-  expiresAt,
-  email: order.user.email,
-  depositAmount: amount,
-  emailSent,
-};
-}
+    return {
+      orderId,
+      checkoutUrl: session.url,
+      expiresAt,
+      email: order.user.email,
+      depositAmount: amount,
+      emailSent,
+    };
+  }
 }

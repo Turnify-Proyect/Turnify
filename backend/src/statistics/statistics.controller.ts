@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 
 import {
   ApiBearerAuth,
@@ -13,42 +8,25 @@ import {
 } from '@nestjs/swagger';
 
 import { StatisticsService } from './statistics.service';
-
+import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
 import { Roles } from '../decorators/roles.decorators';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
+import { ApiSuccessResponse } from 'src/common/api';
 
 @Controller('statistics')
 export class StatisticsController {
-  constructor(
-    private readonly statisticsService: StatisticsService,
-  ) {}
+  constructor(private readonly statisticsService: StatisticsService) {}
 
   @Get('admin')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary:
-      'Obtener reportes y estadísticas del panel administrador',
+    summary: 'Obtener reportes y estadísticas del panel administrador',
     description:
       'Devuelve métricas de turnos, ingresos, servicios, profesionales y demanda dentro de un período determinado.',
-  })
-  @ApiResponse({
-    status: 200,
-    description:
-      'Estadísticas obtenidas correctamente',
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Rango de fechas inválido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Sin permisos para acceder',
   })
   @ApiQuery({
     name: 'from',
@@ -62,13 +40,11 @@ export class StatisticsController {
     example: '04/10/2026',
     description: 'Fecha final en formato DD/MM/AAAA',
   })
-  getAdminStatistics(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
-    return this.statisticsService.getAdminStatistics(
-      from,
-      to,
-    );
+  @ApiSuccessResponse(Object)
+  @ApiErrorSwaggerResponse(400, 'Rango de fechas inválido')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
+  getAdminStatistics(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.statisticsService.getAdminStatistics(from, to);
   }
 }

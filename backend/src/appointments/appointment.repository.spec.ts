@@ -142,13 +142,9 @@ describe('AppointmentsRepository', () => {
   const configureValidAppointmentDependencies = () => {
     usersRepository.findOne.mockResolvedValue(createUser());
 
-    professionalsRepository.findOne.mockResolvedValue(
-      createProfessional(),
-    );
+    professionalsRepository.findOne.mockResolvedValue(createProfessional());
 
-    servicesRepository.findOne.mockResolvedValue(
-      createService(),
-    );
+    servicesRepository.findOne.mockResolvedValue(createService());
 
     configureValidProfessionalService();
 
@@ -166,9 +162,7 @@ describe('AppointmentsRepository', () => {
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2030-10-01T12:00:00.000Z'));
 
-      professionalsRepository.findOne.mockResolvedValue(
-        createProfessional(),
-      );
+      professionalsRepository.findOne.mockResolvedValue(createProfessional());
 
       servicesRepository.findOne.mockResolvedValue(
         createService({
@@ -216,9 +210,7 @@ describe('AppointmentsRepository', () => {
           '2030-10-02',
         ),
       ).rejects.toThrow(
-        new NotFoundException(
-          'No existe el profesional seleccionado',
-        ),
+        new NotFoundException('No existe el profesional seleccionado'),
       );
 
       expect(servicesRepository.findOne).not.toHaveBeenCalled();
@@ -237,9 +229,7 @@ describe('AppointmentsRepository', () => {
           'service-1',
           '2030-10-02',
         ),
-      ).rejects.toThrow(
-        'El profesional seleccionado se encuentra inactivo',
-      );
+      ).rejects.toThrow('El profesional seleccionado se encuentra inactivo');
     });
 
     it('debería lanzar NotFoundException si el servicio no existe', async () => {
@@ -251,9 +241,7 @@ describe('AppointmentsRepository', () => {
           'service-1',
           '2030-10-02',
         ),
-      ).rejects.toThrow(
-        'No existe el servicio seleccionado',
-      );
+      ).rejects.toThrow('No existe el servicio seleccionado');
     });
 
     it('debería lanzar ConflictException si el servicio está inactivo', async () => {
@@ -269,9 +257,7 @@ describe('AppointmentsRepository', () => {
           'service-1',
           '2030-10-02',
         ),
-      ).rejects.toThrow(
-        'El servicio seleccionado se encuentra inactivo',
-      );
+      ).rejects.toThrow('El servicio seleccionado se encuentra inactivo');
     });
 
     it('debería lanzar ConflictException si el profesional no realiza el servicio', async () => {
@@ -283,9 +269,7 @@ describe('AppointmentsRepository', () => {
           'service-1',
           '2030-10-02',
         ),
-      ).rejects.toThrow(
-        'El profesional seleccionado no realiza este servicio',
-      );
+      ).rejects.toThrow('El profesional seleccionado no realiza este servicio');
     });
 
     it('debería devolver slots vacíos si el profesional no tiene disponibilidad ese día', async () => {
@@ -303,30 +287,29 @@ describe('AppointmentsRepository', () => {
       });
     });
 
-it('debería excluir slots que se superponen con turnos existentes', async () => {
-  queryBuilder.getMany.mockResolvedValue([
-    {
-      startAt: new Date('2030-10-02T12:00:00-03:00'),
-      endAt: new Date('2030-10-02T13:00:00-03:00'),
-    },
-  ]);
+    it('debería excluir slots que se superponen con turnos existentes', async () => {
+      queryBuilder.getMany.mockResolvedValue([
+        {
+          startAt: new Date('2030-10-02T12:00:00-03:00'),
+          endAt: new Date('2030-10-02T13:00:00-03:00'),
+        },
+      ]);
 
-  availabilityRepository.getByProfessionalAndDay.mockResolvedValue([
-    {
-      startTime: '09:00',
-      endTime: '14:00',
-    },
-  ]);
+      availabilityRepository.getByProfessionalAndDay.mockResolvedValue([
+        {
+          startTime: '09:00',
+          endTime: '14:00',
+        },
+      ]);
 
-  const result = await repository.getAvailableSlots(
-    'professional-1',
-    'service-1',
-    '2030-10-02',
-  );
+      const result = await repository.getAvailableSlots(
+        'professional-1',
+        'service-1',
+        '2030-10-02',
+      );
 
-  expect(result.slots).not.toContain('12:00');
-});
-
+      expect(result.slots).not.toContain('12:00');
+    });
 
     it('debería excluir el turno indicado por appointmentIdToIgnore', async () => {
       const result = await repository.getAvailableSlots(
@@ -366,12 +349,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         '2030-10-02',
       );
 
-      expect(result.slots).toEqual([
-        '09:00',
-        '09:30',
-        '10:00',
-        '10:30',
-      ]);
+      expect(result.slots).toEqual(['09:00', '09:30', '10:00', '10:30']);
     });
 
     it('debería consultar la disponibilidad usando el día de la semana correcto', async () => {
@@ -383,10 +361,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       expect(
         availabilityRepository.getByProfessionalAndDay,
-      ).toHaveBeenCalledWith(
-        'professional-1',
-        expect.anything(),
-      );
+      ).toHaveBeenCalledWith('professional-1', expect.anything());
     });
 
     it('debería consultar los turnos ocupados del profesional', async () => {
@@ -396,9 +371,9 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         '2030-10-02',
       );
 
-      expect(
-        appointmentsRepository.createQueryBuilder,
-      ).toHaveBeenCalledWith('appointment');
+      expect(appointmentsRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'appointment',
+      );
 
       expect(queryBuilder.getMany).toHaveBeenCalledTimes(1);
     });
@@ -448,25 +423,17 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         }),
       );
 
-      expect(result.startAt).toEqual(
-        new Date('2030-10-02T15:00:00.000Z'),
-      );
+      expect(result.startAt).toEqual(new Date('2030-10-02T15:00:00.000Z'));
 
-      expect(result.endAt).toEqual(
-        new Date('2030-10-02T16:00:00.000Z'),
-      );
+      expect(result.endAt).toEqual(new Date('2030-10-02T16:00:00.000Z'));
 
-      expect(result.expiresAt).toEqual(
-        new Date('2030-10-01T12:10:00.000Z'),
-      );
+      expect(result.expiresAt).toEqual(new Date('2030-10-01T12:10:00.000Z'));
     });
 
     it('debería lanzar NotFoundException si el usuario no existe', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'No existe un usuario con el ID proporcionado',
       );
     });
@@ -478,9 +445,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         }),
       );
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'Solo los usuarios con rol de cliente pueden realizar reservas',
       );
     });
@@ -488,9 +453,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
     it('debería lanzar NotFoundException si el profesional no existe', async () => {
       professionalsRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'No existe un profesional con el ID proporcionado',
       );
     });
@@ -502,9 +465,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         }),
       );
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'El profesional seleccionado se encuentra inactivo',
       );
     });
@@ -512,9 +473,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
     it('debería lanzar NotFoundException si el servicio no existe', async () => {
       servicesRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'No existe un servicio con el ID proporcionado',
       );
     });
@@ -526,9 +485,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         }),
       );
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'El servicio seleccionado se encuentra inactivo',
       );
     });
@@ -536,9 +493,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
     it('debería lanzar ConflictException si el profesional no realiza el servicio', async () => {
       professionalServicesRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'El profesional seleccionado no realiza este servicio',
       );
     });
@@ -550,9 +505,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
             startAt: 'fecha-invalida',
           }),
         ),
-      ).rejects.toThrow(
-        'La fecha y hora del turno no son válidas',
-      );
+      ).rejects.toThrow('La fecha y hora del turno no son válidas');
     });
 
     it('debería lanzar ConflictException si la fecha ya pasó', async () => {
@@ -587,13 +540,9 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
     });
 
     it('debería lanzar ConflictException si el profesional tiene un turno superpuesto', async () => {
-      queryBuilder.getOne.mockResolvedValue(
-        createAppointment(),
-      );
+      queryBuilder.getOne.mockResolvedValue(createAppointment());
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'El profesional ya tiene un turno asignado en ese horario',
       );
     });
@@ -605,9 +554,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(createAppointment());
 
-      await expect(
-        repository.prepareAppointment(createDto()),
-      ).rejects.toThrow(
+      await expect(repository.prepareAppointment(createDto())).rejects.toThrow(
         'El usuario ya tiene un turno asignado en ese horario',
       );
 
@@ -617,13 +564,9 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
     it('debería consultar disponibilidad antes de validar solapamientos', async () => {
       await repository.prepareAppointment(createDto());
 
-      expect(
-        availabilityRepository.getByProfessionalAndDay,
-      ).toHaveBeenCalled();
+      expect(availabilityRepository.getByProfessionalAndDay).toHaveBeenCalled();
 
-      expect(
-        appointmentsRepository.createQueryBuilder,
-      ).toHaveBeenCalled();
+      expect(appointmentsRepository.createQueryBuilder).toHaveBeenCalled();
     });
   });
 
@@ -672,13 +615,9 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
     it('debería devolver el turno solicitado', async () => {
       const appointment = createAppointment();
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      const result = await repository.getAppointmentById(
-        appointment.id,
-      );
+      const result = await repository.getAppointmentById(appointment.id);
 
       expect(result).toBe(appointment);
 
@@ -706,9 +645,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       await expect(
         repository.getAppointmentById('appointment-1'),
-      ).rejects.toThrow(
-        'No existe un turno con el ID proporcionado',
-      );
+      ).rejects.toThrow('No existe un turno con el ID proporcionado');
     });
   });
 
@@ -727,12 +664,9 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
       ];
 
       usersRepository.findOne.mockResolvedValue(user);
-      appointmentsRepository.find.mockResolvedValue(
-        appointments,
-      );
+      appointmentsRepository.find.mockResolvedValue(appointments);
 
-      const result =
-        await repository.getAppointmentsByUserId(user.id);
+      const result = await repository.getAppointmentsByUserId(user.id);
 
       expect(result).toBe(appointments);
 
@@ -770,9 +704,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       await expect(
         repository.getAppointmentsByUserId('user-1'),
-      ).rejects.toThrow(
-        'No existe un usuario con el ID proporcionado',
-      );
+      ).rejects.toThrow('No existe un usuario con el ID proporcionado');
 
       expect(appointmentsRepository.find).not.toHaveBeenCalled();
     });
@@ -792,24 +724,17 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         }),
       ];
 
-      professionalsRepository.findOne.mockResolvedValue(
-        professional,
-      );
+      professionalsRepository.findOne.mockResolvedValue(professional);
 
-      appointmentsRepository.find.mockResolvedValue(
-        appointments,
-      );
+      appointmentsRepository.find.mockResolvedValue(appointments);
 
-      const result =
-        await repository.getAppointmentsByProfessionalId(
-          professional.id,
-        );
+      const result = await repository.getAppointmentsByProfessionalId(
+        professional.id,
+      );
 
       expect(result).toBe(appointments);
 
-      expect(
-        professionalsRepository.findOne,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepository.findOne).toHaveBeenCalledWith({
         where: {
           id: professional.id,
         },
@@ -842,12 +767,8 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
       professionalsRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.getAppointmentsByProfessionalId(
-          'professional-1',
-        ),
-      ).rejects.toThrow(
-        'No existe un profesional con el ID proporcionado',
-      );
+        repository.getAppointmentsByProfessionalId('professional-1'),
+      ).rejects.toThrow('No existe un profesional con el ID proporcionado');
     });
   });
 
@@ -862,30 +783,19 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         expiresAt: new Date(),
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
-      const result =
-        await repository.cancelAppointment(appointment.id);
+      const result = await repository.cancelAppointment(appointment.id);
 
-      expect(appointment.status).toBe(
-        AppointmentStatus.CANCELLED,
-      );
+      expect(appointment.status).toBe(AppointmentStatus.CANCELLED);
 
       expect(appointment.expiresAt).toBeNull();
 
-      expect(appointmentsRepository.save).toHaveBeenCalledWith(
-        appointment,
-      );
+      expect(appointmentsRepository.save).toHaveBeenCalledWith(appointment);
 
-      expect(result).toBe(
-        'El turno ha sido cancelado exitosamente',
-      );
+      expect(result).toBe('El turno ha sido cancelado exitosamente');
     });
 
     it('debería lanzar NotFoundException si el turno no existe', async () => {
@@ -893,9 +803,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       await expect(
         repository.cancelAppointment('appointment-1'),
-      ).rejects.toThrow(
-        'No existe un turno con el ID proporcionado',
-      );
+      ).rejects.toThrow('No existe un turno con el ID proporcionado');
 
       expect(appointmentsRepository.save).not.toHaveBeenCalled();
     });
@@ -909,9 +817,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       await expect(
         repository.cancelAppointment('appointment-1'),
-      ).rejects.toThrow(
-        'El turno ya se encuentra cancelado',
-      );
+      ).rejects.toThrow('El turno ya se encuentra cancelado');
 
       expect(appointmentsRepository.save).not.toHaveBeenCalled();
     });
@@ -925,9 +831,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       await expect(
         repository.cancelAppointment('appointment-1'),
-      ).rejects.toThrow(
-        'No se puede cancelar un turno completado',
-      );
+      ).rejects.toThrow('No se puede cancelar un turno completado');
     });
 
     it('no debería cancelar un turno expirado', async () => {
@@ -939,9 +843,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
 
       await expect(
         repository.cancelAppointment('appointment-1'),
-      ).rejects.toThrow(
-        'No se puede cancelar un turno expirado',
-      );
+      ).rejects.toThrow('No se puede cancelar un turno expirado');
     });
   });
 
@@ -954,9 +856,7 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2030-10-01T12:00:00.000Z'));
 
-      professionalsRepository.findOne.mockResolvedValue(
-        createProfessional(),
-      );
+      professionalsRepository.findOne.mockResolvedValue(createProfessional());
 
       servicesRepository.findOne.mockResolvedValue(
         createService({
@@ -982,41 +882,29 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
         rescheduleCount: 0,
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
       const dto = {
         startAt: '2030-10-06T15:00:00.000Z',
       } as any;
 
-      const result =
-        await repository.rescheduleAppointment(
-          appointment.id,
-          dto,
-        );
-
-      expect(result.startAt).toEqual(
-        new Date('2030-10-06T15:00:00.000Z'),
+      const result = await repository.rescheduleAppointment(
+        appointment.id,
+        dto,
       );
 
-      expect(result.endAt).toEqual(
-        new Date('2030-10-06T16:00:00.000Z'),
-      );
+      expect(result.startAt).toEqual(new Date('2030-10-06T15:00:00.000Z'));
+
+      expect(result.endAt).toEqual(new Date('2030-10-06T16:00:00.000Z'));
 
       expect(result.rescheduleCount).toBe(1);
 
-      expect(appointmentsRepository.save).toHaveBeenCalledWith(
-        appointment,
-      );
+      expect(appointmentsRepository.save).toHaveBeenCalledWith(appointment);
     });
 
     it('debería rechazar un DTO vacío', async () => {
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {} as any,
-        ),
+        repository.rescheduleAppointment('appointment-1', {} as any),
       ).rejects.toThrow(
         'Debe indicar al menos un dato para reprogramar el turno',
       );
@@ -1026,12 +914,9 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
       appointmentsRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-06T15:00:00.000Z',
-          } as any,
-        ),
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-06T15:00:00.000Z',
+        } as any),
       ).rejects.toThrow(
         'El turno no existe o no se encuentra en un estado válido para reprogramar',
       );
@@ -1046,36 +931,29 @@ it('debería excluir slots que se superponen con turnos existentes', async () =>
       );
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-06T15:00:00.000Z',
-          } as any,
-        ),
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-06T15:00:00.000Z',
+        } as any),
       ).rejects.toThrow(
         'El turno alcanzó el máximo de reprogramaciones permitidas',
       );
     });
 
-it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 horas', async () => {
-  appointmentsRepository.findOne.mockResolvedValue(
-    createAppointment({
-      startAt: new Date('2030-10-05T15:00:00.000Z'),
-    }),
-  );
+    it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 horas', async () => {
+      appointmentsRepository.findOne.mockResolvedValue(
+        createAppointment({
+          startAt: new Date('2030-10-05T15:00:00.000Z'),
+        }),
+      );
 
-  await expect(
-    repository.rescheduleAppointment(
-      'appointment-1',
-      {
-        startAt: '2030-10-02T10:00:00.000Z',
-      } as any,
-    ),
-  ).rejects.toThrow(
-    'No se puede reprogramar un turno con menos de 24 horas de anticipación',
-  );
-});
-
+      await expect(
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-02T10:00:00.000Z',
+        } as any),
+      ).rejects.toThrow(
+        'No se puede reprogramar un turno con menos de 24 horas de anticipación',
+      );
+    });
 
     it('debería rechazar un profesional inexistente', async () => {
       appointmentsRepository.findOne.mockResolvedValue(
@@ -1087,15 +965,10 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
       professionalsRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-06T15:00:00.000Z',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        'No existe un profesional con el ID proporcionado',
-      );
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-06T15:00:00.000Z',
+        } as any),
+      ).rejects.toThrow('No existe un profesional con el ID proporcionado');
     });
 
     it('debería rechazar un profesional inactivo', async () => {
@@ -1112,15 +985,10 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
       );
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-06T15:00:00.000Z',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        'El profesional seleccionado se encuentra inactivo',
-      );
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-06T15:00:00.000Z',
+        } as any),
+      ).rejects.toThrow('El profesional seleccionado se encuentra inactivo');
     });
 
     it('debería rechazar un servicio inexistente', async () => {
@@ -1133,15 +1001,10 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
       servicesRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-06T15:00:00.000Z',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        'No existe un servicio con el ID proporcionado',
-      );
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-06T15:00:00.000Z',
+        } as any),
+      ).rejects.toThrow('No existe un servicio con el ID proporcionado');
     });
 
     it('debería rechazar un servicio inactivo', async () => {
@@ -1158,15 +1021,10 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
       );
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-10-06T15:00:00.000Z',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        'El servicio seleccionado se encuentra inactivo',
-      );
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-10-06T15:00:00.000Z',
+        } as any),
+      ).rejects.toThrow('El servicio seleccionado se encuentra inactivo');
     });
 
     it('debería rechazar una fecha nueva inválida', async () => {
@@ -1177,15 +1035,10 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
       );
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: 'fecha-invalida',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        'La nueva fecha y hora del turno no son válidas',
-      );
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: 'fecha-invalida',
+        } as any),
+      ).rejects.toThrow('La nueva fecha y hora del turno no son válidas');
     });
 
     it('debería rechazar una nueva fecha pasada', async () => {
@@ -1196,12 +1049,9 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
       );
 
       await expect(
-        repository.rescheduleAppointment(
-          'appointment-1',
-          {
-            startAt: '2030-09-30T15:00:00.000Z',
-          } as any,
-        ),
+        repository.rescheduleAppointment('appointment-1', {
+          startAt: '2030-09-30T15:00:00.000Z',
+        } as any),
       ).rejects.toThrow(
         'No se puede reprogramar un turno a una fecha u horario pasado',
       );
@@ -1213,16 +1063,11 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         rescheduleCount: 1,
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      await repository.rescheduleAppointment(
-        appointment.id,
-        {
-          startAt: '2030-10-06T15:00:00.000Z',
-        } as any,
-      );
+      await repository.rescheduleAppointment(appointment.id, {
+        startAt: '2030-10-06T15:00:00.000Z',
+      } as any);
 
       expect(appointment.rescheduleCount).toBe(2);
     });
@@ -1234,16 +1079,11 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         expiresAt: new Date('2030-10-05T15:10:00.000Z'),
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      await repository.rescheduleAppointment(
-        appointment.id,
-        {
-          startAt: '2030-10-06T15:00:00.000Z',
-        } as any,
-      );
+      await repository.rescheduleAppointment(appointment.id, {
+        startAt: '2030-10-06T15:00:00.000Z',
+      } as any);
 
       expect(appointment.expiresAt).toEqual(
         new Date('2030-10-01T12:10:00.000Z'),
@@ -1259,16 +1099,11 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         expiresAt,
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      await repository.rescheduleAppointment(
-        appointment.id,
-        {
-          startAt: '2030-10-06T15:00:00.000Z',
-        } as any,
-      );
+      await repository.rescheduleAppointment(appointment.id, {
+        startAt: '2030-10-06T15:00:00.000Z',
+      } as any);
 
       expect(appointment.expiresAt).toBe(expiresAt);
     });
@@ -1288,24 +1123,15 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         startAt: new Date('2030-10-02T15:00:00.000Z'),
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
-      const result =
-        await repository.completeAppointment(appointment.id);
+      const result = await repository.completeAppointment(appointment.id);
 
-      expect(appointment.status).toBe(
-        AppointmentStatus.COMPLETED,
-      );
+      expect(appointment.status).toBe(AppointmentStatus.COMPLETED);
 
-      expect(appointmentsRepository.save).toHaveBeenCalledWith(
-        appointment,
-      );
+      expect(appointmentsRepository.save).toHaveBeenCalledWith(appointment);
 
       expect(result).toBe(appointment);
     });
@@ -1315,9 +1141,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
 
       await expect(
         repository.completeAppointment('appointment-1'),
-      ).rejects.toThrow(
-        'No existe un turno con el ID proporcionado',
-      );
+      ).rejects.toThrow('No existe un turno con el ID proporcionado');
     });
 
     it('no debería completar un turno que no está confirmado', async () => {
@@ -1329,9 +1153,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
 
       await expect(
         repository.completeAppointment('appointment-1'),
-      ).rejects.toThrow(
-        'Solo se pueden completar turnos confirmados',
-      );
+      ).rejects.toThrow('Solo se pueden completar turnos confirmados');
     });
 
     it('no debería completar un turno que todavía no comenzó', async () => {
@@ -1364,29 +1186,20 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         expiresAt: new Date('2030-10-01T12:10:00.000Z'),
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
-      const result =
-        await repository.updateAppointmentStatus(
-          appointment.id,
-          AppointmentStatus.CONFIRMED,
-        );
-
-      expect(result.status).toBe(
+      const result = await repository.updateAppointmentStatus(
+        appointment.id,
         AppointmentStatus.CONFIRMED,
       );
 
+      expect(result.status).toBe(AppointmentStatus.CONFIRMED);
+
       expect(result.expiresAt).toBeNull();
 
-      expect(appointmentsRepository.save).toHaveBeenCalledWith(
-        appointment,
-      );
+      expect(appointmentsRepository.save).toHaveBeenCalledWith(appointment);
     });
 
     it('debería permitir pasar de PENDING a CANCELLED', async () => {
@@ -1394,22 +1207,16 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         status: AppointmentStatus.PENDING,
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
       await repository.updateAppointmentStatus(
         appointment.id,
         AppointmentStatus.CANCELLED,
       );
 
-      expect(appointment.status).toBe(
-        AppointmentStatus.CANCELLED,
-      );
+      expect(appointment.status).toBe(AppointmentStatus.CANCELLED);
     });
 
     it('debería permitir pasar de CONFIRMED a COMPLETED', async () => {
@@ -1417,22 +1224,16 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         status: AppointmentStatus.CONFIRMED,
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
       await repository.updateAppointmentStatus(
         appointment.id,
         AppointmentStatus.COMPLETED,
       );
 
-      expect(appointment.status).toBe(
-        AppointmentStatus.COMPLETED,
-      );
+      expect(appointment.status).toBe(AppointmentStatus.COMPLETED);
     });
 
     it('debería permitir pasar de CONFIRMED a CANCELLED', async () => {
@@ -1440,22 +1241,16 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         status: AppointmentStatus.CONFIRMED,
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
       await repository.updateAppointmentStatus(
         appointment.id,
         AppointmentStatus.CANCELLED,
       );
 
-      expect(appointment.status).toBe(
-        AppointmentStatus.CANCELLED,
-      );
+      expect(appointment.status).toBe(AppointmentStatus.CANCELLED);
     });
 
     it('debería lanzar NotFoundException si el turno no existe', async () => {
@@ -1466,9 +1261,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
           'appointment-1',
           AppointmentStatus.CONFIRMED,
         ),
-      ).rejects.toThrow(
-        'No existe un turno con el ID proporcionado',
-      );
+      ).rejects.toThrow('No existe un turno con el ID proporcionado');
     });
 
     it('no debería permitir pasar de PENDING a COMPLETED', async () => {
@@ -1483,9 +1276,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
           'appointment-1',
           AppointmentStatus.COMPLETED,
         ),
-      ).rejects.toThrow(
-        'No se puede cambiar el estado del turno',
-      );
+      ).rejects.toThrow('No se puede cambiar el estado del turno');
 
       expect(appointmentsRepository.save).not.toHaveBeenCalled();
     });
@@ -1502,9 +1293,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
           'appointment-1',
           AppointmentStatus.PENDING,
         ),
-      ).rejects.toThrow(
-        'No se puede cambiar el estado del turno',
-      );
+      ).rejects.toThrow('No se puede cambiar el estado del turno');
     });
 
     it('no debería permitir cambiar un turno CANCELLED', async () => {
@@ -1519,9 +1308,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
           'appointment-1',
           AppointmentStatus.CONFIRMED,
         ),
-      ).rejects.toThrow(
-        'No se puede cambiar el estado del turno',
-      );
+      ).rejects.toThrow('No se puede cambiar el estado del turno');
     });
 
     it('no debería permitir cambiar un turno COMPLETED', async () => {
@@ -1536,9 +1323,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
           'appointment-1',
           AppointmentStatus.CONFIRMED,
         ),
-      ).rejects.toThrow(
-        'No se puede cambiar el estado del turno',
-      );
+      ).rejects.toThrow('No se puede cambiar el estado del turno');
     });
 
     it('no debería permitir cambiar un turno EXPIRED', async () => {
@@ -1553,9 +1338,7 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
           'appointment-1',
           AppointmentStatus.CONFIRMED,
         ),
-      ).rejects.toThrow(
-        'No se puede cambiar el estado del turno',
-      );
+      ).rejects.toThrow('No se puede cambiar el estado del turno');
     });
 
     it('debería eliminar expiresAt al pasar a un estado distinto de PENDING', async () => {
@@ -1564,13 +1347,9 @@ it('debería rechazar la reprogramación si el NUEVO turno queda a menos de 24 h
         expiresAt: new Date('2030-10-01T12:10:00.000Z'),
       });
 
-      appointmentsRepository.findOne.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      appointmentsRepository.save.mockResolvedValue(
-        appointment,
-      );
+      appointmentsRepository.save.mockResolvedValue(appointment);
 
       await repository.updateAppointmentStatus(
         appointment.id,

@@ -61,13 +61,7 @@ describe('UsersController', () => {
     it('should parse pagination parameters', () => {
       usersServiceMock.getAllUsers.mockReturnValue([]);
 
-      controller.getAllUsers(
-        '2',
-        '10',
-        'Juan',
-        UserRole.CLIENT,
-        'true',
-      );
+      controller.getAllUsers('2', '10', 'Juan', UserRole.CLIENT, 'true');
 
       expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
         2,
@@ -81,13 +75,7 @@ describe('UsersController', () => {
     it('should convert isActive false correctly', () => {
       usersServiceMock.getAllUsers.mockReturnValue([]);
 
-      controller.getAllUsers(
-        '1',
-        '20',
-        undefined,
-        undefined,
-        'false',
-      );
+      controller.getAllUsers('1', '20', undefined, undefined, 'false');
 
       expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
         1,
@@ -101,13 +89,7 @@ describe('UsersController', () => {
     it('should use undefined when isActive is invalid', () => {
       usersServiceMock.getAllUsers.mockReturnValue([]);
 
-      controller.getAllUsers(
-        '1',
-        '5',
-        undefined,
-        undefined,
-        'invalid',
-      );
+      controller.getAllUsers('1', '5', undefined, undefined, 'invalid');
 
       expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
         1,
@@ -121,13 +103,7 @@ describe('UsersController', () => {
     it('should use defaults when pagination values are invalid', () => {
       usersServiceMock.getAllUsers.mockReturnValue([]);
 
-      controller.getAllUsers(
-        'abc',
-        '-10',
-        undefined,
-        undefined,
-        undefined,
-      );
+      controller.getAllUsers('abc', '-10', undefined, undefined, undefined);
 
       expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
         1,
@@ -156,9 +132,7 @@ describe('UsersController', () => {
         user,
       });
 
-      expect(usersServiceMock.getUserById).toHaveBeenCalledWith(
-        'user-123',
-      );
+      expect(usersServiceMock.getUserById).toHaveBeenCalledWith('user-123');
 
       expect(result).toBe(expectedUser);
     });
@@ -199,10 +173,7 @@ describe('UsersController', () => {
 
       const result = controller.updateUser(id, dto);
 
-      expect(usersServiceMock.updateUser).toHaveBeenCalledWith(
-        id,
-        dto,
-      );
+      expect(usersServiceMock.updateUser).toHaveBeenCalledWith(id, dto);
 
       expect(result).toBe(expectedResult);
     });
@@ -224,10 +195,7 @@ describe('UsersController', () => {
 
       const result = controller.changePassword(id, dto);
 
-      expect(usersServiceMock.changePassword).toHaveBeenCalledWith(
-        id,
-        dto,
-      );
+      expect(usersServiceMock.changePassword).toHaveBeenCalledWith(id, dto);
 
       expect(result).toBe(expectedResult);
     });
@@ -279,15 +247,11 @@ describe('UsersController', () => {
         ...dto,
       };
 
-      usersServiceMock.createUserByAdmin.mockReturnValue(
-        expectedResult,
-      );
+      usersServiceMock.createUserByAdmin.mockReturnValue(expectedResult);
 
       const result = controller.createUserByAdmin(dto);
 
-      expect(usersServiceMock.createUserByAdmin).toHaveBeenCalledWith(
-        dto,
-      );
+      expect(usersServiceMock.createUserByAdmin).toHaveBeenCalledWith(dto);
 
       expect(result).toBe(expectedResult);
     });
@@ -305,16 +269,11 @@ describe('UsersController', () => {
         message: 'Roles actualizados correctamente',
       };
 
-      usersServiceMock.updateUserRoles.mockReturnValue(
-        expectedResult,
-      );
+      usersServiceMock.updateUserRoles.mockReturnValue(expectedResult);
 
       const result = controller.updateUserRoles(id, dto);
 
-      expect(usersServiceMock.updateUserRoles).toHaveBeenCalledWith(
-        id,
-        dto,
-      );
+      expect(usersServiceMock.updateUserRoles).toHaveBeenCalledWith(id, dto);
 
       expect(result).toBe(expectedResult);
     });
@@ -335,15 +294,14 @@ describe('UsersController', () => {
         avatar: 'https://cloudinary.com/avatar.jpg',
       };
 
-      usersServiceMock.updateProfilePicture.mockReturnValue(
-        expectedResult,
-      );
+      usersServiceMock.updateProfilePicture.mockReturnValue(expectedResult);
 
       const result = controller.uploadAvatar(id, file);
 
-      expect(
-        usersServiceMock.updateProfilePicture,
-      ).toHaveBeenCalledWith(id, file);
+      expect(usersServiceMock.updateProfilePicture).toHaveBeenCalledWith(
+        id,
+        file,
+      );
 
       expect(result).toBe(expectedResult);
     });
