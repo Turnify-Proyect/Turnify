@@ -146,7 +146,8 @@ export class AuthService {
     }
 
     return {
-      message: 'Usuario registrado correctamente. Ya podés iniciar sesión.',
+      message:
+        'Usuario registrado correctamente. Ya podés iniciar sesión.',
       user: createdUser,
     };
   }

@@ -3,15 +3,12 @@ import {
   Get,
   Post,
   Body,
+  Patch,
   Param,
   Delete,
   ParseUUIDPipe,
   Put,
 } from '@nestjs/common';
-import { ApiSuccessCreatedResponse } from 'src/common/api';
-import { Service } from 'src/services/entities/service.entity';
-import { Professional } from './entities/professional.entity';
-import { ApiSuccessArrayResponse } from 'src/common/api';
 import { ProfessionalsService } from './professionals.service';
 import { CreateProfessionalDto } from './dto/create-professional.dto';
 import { UpdateProfessionalDto } from './dto/update-professional.dto';
@@ -20,11 +17,7 @@ import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
-import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
-import { ApiSuccessResponse } from 'src/common/api';
-import { ApiSuccessNoDataResponse } from 'src/common/api';
-import { ProfessionalService } from './entities/professional-service.entity';
+import { ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 @Controller('professionals')
 export class ProfessionalsController {
@@ -34,14 +27,14 @@ export class ProfessionalsController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiSuccessCreatedResponse(Professional)
-  @ApiErrorSwaggerResponse(400, 'Los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para crear un profesional')
-  @ApiErrorSwaggerResponse(
-    409,
-    'El profesional ya existe o existe un conflicto con sus datos',
-  )
+  @ApiResponse({
+    status: 201,
+    description: 'Profesional creado exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para crear un profesional',
+  })
   async createProfessional(
     @Body() createProfessionalDto: CreateProfessionalDto,
   ) {
@@ -49,7 +42,6 @@ export class ProfessionalsController {
   }
 
   @Get()
-  @ApiSuccessArrayResponse(Professional)
   async getActiveProfessionals() {
     return this.professionalsService.getActiveProfessionals();
   }
@@ -58,12 +50,14 @@ export class ProfessionalsController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiSuccessArrayResponse(Professional)
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para acceder a la lista de profesionales',
-  )
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de todos los profesionales',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para acceder a la lista de profesionales',
+  })
   async getAllProfessionals() {
     return this.professionalsService.getAllProfessionals();
   }
@@ -78,14 +72,18 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessResponse(Professional)
-  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para acceder a la información del profesional',
-  )
-  @ApiErrorSwaggerResponse(404, 'Profesional no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Profesional encontrado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para acceder a la información del profesional',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Profesional no encontrado',
+  })
   async getProfessionalById(@Param('id', ParseUUIDPipe) id: string) {
     return this.professionalsService.getProfessionalById(id);
   }
@@ -100,15 +98,18 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessNoDataResponse('Profesional actualizado exitosamente')
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para realizar esta operación')
-  @ApiErrorSwaggerResponse(404, 'Profesional no encontrado')
-  @ApiErrorSwaggerResponse(
-    409,
-    'El profesional ya existe o existe un conflicto con sus datos',
-  )
+  @ApiResponse({
+    status: 200,
+    description: 'Profesional actualizado exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para actualizar la información del profesional',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Profesional no encontrado',
+  })
   async updateProfessional(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProfessionalDto: UpdateProfessionalDto,
@@ -129,11 +130,18 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessNoDataResponse('Profesional eliminado correctamente')
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para realizar esta operación')
-  @ApiErrorSwaggerResponse(404, 'Profesional no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Profesional eliminado exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para eliminar al profesional',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Profesional no encontrado',
+  })
   async softDeleteProfessional(@Param('id', ParseUUIDPipe) id: string) {
     return this.professionalsService.softDeleteProfessional(id);
   }
@@ -148,11 +156,18 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessNoDataResponse('Profesional activado correctamente')
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para realizar esta operación')
-  @ApiErrorSwaggerResponse(404, 'Profesional no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Profesional activado exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para activar al profesional',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Profesional no encontrado',
+  })
   async activateProfessional(@Param('id', ParseUUIDPipe) id: string) {
     return this.professionalsService.activateProfessional(id);
   }
@@ -167,18 +182,18 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiSuccessCreatedResponse(ProfessionalService)
-  @ApiErrorSwaggerResponse(
-    400,
-    'Uno de los IDs no tiene un formato UUID válido',
-  )
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para asociar el servicio al profesional',
-  )
-  @ApiErrorSwaggerResponse(404, 'Profesional o servicio no encontrado')
-  @ApiErrorSwaggerResponse(409, 'El servicio ya está asociado al profesional')
+  @ApiResponse({
+    status: 200,
+    description: 'Servicio asociado al profesional exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para asociar el servicio al profesional',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Servicio no encontrado',
+  })
   async associateService(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
     @Param('serviceId', ParseUUIDPipe) serviceId: string,
@@ -190,11 +205,6 @@ export class ProfessionalsController {
   }
 
   @Get(':professionalId/services')
-  @ApiSuccessArrayResponse(ProfessionalService)
-  @ApiErrorSwaggerResponse(
-    400,
-    'El ID del profesional no tiene un formato UUID válido',
-  )
   async getServicesByProfessional(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
   ) {
@@ -211,19 +221,18 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiSuccessNoDataResponse(
-    'Servicio desvinculado del profesional exitosamente',
-  )
-  @ApiErrorSwaggerResponse(
-    400,
-    'Uno de los IDs no tiene un formato UUID válido',
-  )
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para eliminar el servicio del profesional',
-  )
-  @ApiErrorSwaggerResponse(404, 'Profesional o servicio no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Servicio eliminado del profesional exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para eliminar el servicio del profesional',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Servicio no encontrado',
+  })
   async removeServiceFromProfessional(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
     @Param('serviceId', ParseUUIDPipe) serviceId: string,

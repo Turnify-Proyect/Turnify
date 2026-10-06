@@ -21,13 +21,19 @@ import { ProfessionalUnavailabilityController } from './professional-unavailabil
       ProfessionalUnavailability,
     ]),
   ],
-  controllers: [AvailabilityController, ProfessionalUnavailabilityController],
+  controllers: [
+    AvailabilityController,
+    ProfessionalUnavailabilityController,
+  ],
   providers: [
     AvailabilityService,
     AvailabilityRepository,
     ProfessionalUnavailabilityService,
     ProfessionalUnavailabilityRepository,
   ],
-  exports: [AvailabilityRepository, ProfessionalUnavailabilityRepository],
+  exports: [
+    AvailabilityRepository,
+    ProfessionalUnavailabilityRepository,
+  ],
 })
 export class AvailabilityModule {}

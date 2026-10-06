@@ -10,7 +10,9 @@ describe('CloudinaryConfig', () => {
     process.env.CLOUDINARY_API_KEY = 'test-api-key';
     process.env.CLOUDINARY_API_SECRET = 'test-api-secret';
 
-    jest.spyOn(cloudinary, 'config').mockReturnValue(cloudinary.config());
+    jest
+      .spyOn(cloudinary, 'config')
+      .mockReturnValue(cloudinary.config());
   });
 
   afterEach(() => {
@@ -23,7 +25,9 @@ describe('CloudinaryConfig', () => {
 
   it('should provide the Cloudinary provider', () => {
     expect(CloudinaryConfig.provide).toBe('Cloudinary');
-    expect(CloudinaryConfig.useFactory).toEqual(expect.any(Function));
+    expect(CloudinaryConfig.useFactory).toEqual(
+      expect.any(Function),
+    );
   });
 
   it('should configure Cloudinary with environment variables', () => {
