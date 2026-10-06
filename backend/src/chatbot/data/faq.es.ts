@@ -49,7 +49,29 @@ export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
         question: '¿Cómo reservo una cita?',
         answer:
           '1. Inicia sesión → 2. Elige "Reservar" → 3. Filtra por servicio/profesional/fecha → 4. Elige horario → 5. Confirma y paga. Recibirás confirmación por email y notificación.',
-        keywords: ['reservar', 'cita', 'booking', 'agendar', 'pasos'],
+        keywords: [
+          'reservar',
+          'reservar turno',
+          'reservo',
+          'cita',
+          'turno',
+          'booking',
+          'agendar',
+          'agendo',
+          'agendar turno',
+          'agendo turno',
+          'como agendo',
+          'asignar',
+          'asignar turno',
+          'asignar un turno',
+          'pedir',
+          'pedir turno',
+          'sacar',
+          'sacar turno',
+          'solicitar',
+          'solicitar turno',
+          'pasos',
+        ],
       },
       {
         id: 'cancel-policy',
@@ -84,6 +106,9 @@ export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
           'MercadoPago: tarjetas de crédito/débito, dinero en cuenta, transferencia, efectivo (PagoFácil, Rapipago). Todo procesado seguro por MercadoPago.',
         keywords: [
           'pago',
+          'funcionan los pagos',
+          'como funcionan los pagos',
+          'metodos de pago',
           'tarjeta',
           'mercadopago',
           'efectivo',
@@ -129,6 +154,20 @@ export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
     label: 'Mi cuenta',
     icon: '👤',
     entries: [
+      {
+        id: 'sign-in',
+        question: '¿Cómo inicio sesión?',
+        answer:
+          'En la pantalla de inicio de Turnify, selecciona "Iniciar sesión" e ingresa el correo electrónico y la contraseña registrados en tu cuenta.',
+        keywords: [
+          'iniciar sesión',
+          'inicio sesión',
+          'sesión',
+          'login',
+          'entrar a mi cuenta',
+          'acceder a mi cuenta',
+        ],
+      },
       {
         id: 'reset-password',
         question: 'Olvidé mi contraseña',
