@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ApiExceptionFilter } from './common/api/api-exception.filter';
+import { ApiResponseInterceptor } from './common/api/api-response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
@@ -27,6 +29,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.useGlobalInterceptors(new ApiResponseInterceptor());
+
+  app.useGlobalFilters(new ApiExceptionFilter());
 
   const dataSource = app.get(DataSource);
 

@@ -44,26 +44,21 @@ describe('CloudinaryService', () => {
         },
       });
 
-      (
-        cloudinary.uploader.upload_stream as jest.Mock
-      ).mockImplementation((options, callback) => {
-        process.nextTick(() => {
-          callback(null, result);
-        });
+      (cloudinary.uploader.upload_stream as jest.Mock).mockImplementation(
+        (options, callback) => {
+          process.nextTick(() => {
+            callback(null, result);
+          });
 
-        return uploadStream;
-      });
-
-      const response = await service.uploadImage(
-        file,
-        'categories',
+          return uploadStream;
+        },
       );
+
+      const response = await service.uploadImage(file, 'categories');
 
       expect(response).toEqual(result);
 
-      expect(
-        cloudinary.uploader.upload_stream,
-      ).toHaveBeenCalledWith(
+      expect(cloudinary.uploader.upload_stream).toHaveBeenCalledWith(
         {
           folder: 'categories',
           resource_type: 'auto',
@@ -76,14 +71,10 @@ describe('CloudinaryService', () => {
       await expect(
         service.uploadImage(null as any, 'categories'),
       ).rejects.toThrow(
-        new BadRequestException(
-          'El archivo de imagen no es válido',
-        ),
+        new BadRequestException('El archivo de imagen no es válido'),
       );
 
-      expect(
-        cloudinary.uploader.upload_stream,
-      ).not.toHaveBeenCalled();
+      expect(cloudinary.uploader.upload_stream).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when file has no buffer', async () => {
@@ -91,17 +82,11 @@ describe('CloudinaryService', () => {
         buffer: undefined,
       } as Express.Multer.File;
 
-      await expect(
-        service.uploadImage(file, 'categories'),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'El archivo de imagen no es válido',
-        ),
+      await expect(service.uploadImage(file, 'categories')).rejects.toThrow(
+        new BadRequestException('El archivo de imagen no es válido'),
       );
 
-      expect(
-        cloudinary.uploader.upload_stream,
-      ).not.toHaveBeenCalled();
+      expect(cloudinary.uploader.upload_stream).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when Cloudinary returns an error', async () => {
@@ -115,30 +100,26 @@ describe('CloudinaryService', () => {
         },
       });
 
-      (
-        cloudinary.uploader.upload_stream as jest.Mock
-      ).mockImplementation((options, callback) => {
-        process.nextTick(() => {
-          callback(
-            {
-              message: 'Cloudinary upload failed',
-            },
-            null,
-          );
-        });
+      (cloudinary.uploader.upload_stream as jest.Mock).mockImplementation(
+        (options, callback) => {
+          process.nextTick(() => {
+            callback(
+              {
+                message: 'Cloudinary upload failed',
+              },
+              null,
+            );
+          });
 
-        return uploadStream;
-      });
+          return uploadStream;
+        },
+      );
 
-      await expect(
-        service.uploadImage(file, 'categories'),
-      ).rejects.toThrow(
+      await expect(service.uploadImage(file, 'categories')).rejects.toThrow(
         'Error al subir la imagen a Cloudinary: Cloudinary upload failed',
       );
 
-      expect(
-        cloudinary.uploader.upload_stream,
-      ).toHaveBeenCalled();
+      expect(cloudinary.uploader.upload_stream).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when Cloudinary returns no result', async () => {
@@ -152,25 +133,21 @@ describe('CloudinaryService', () => {
         },
       });
 
-      (
-        cloudinary.uploader.upload_stream as jest.Mock
-      ).mockImplementation((options, callback) => {
-        process.nextTick(() => {
-          callback(null, undefined);
-        });
+      (cloudinary.uploader.upload_stream as jest.Mock).mockImplementation(
+        (options, callback) => {
+          process.nextTick(() => {
+            callback(null, undefined);
+          });
 
-        return uploadStream;
-      });
+          return uploadStream;
+        },
+      );
 
-      await expect(
-        service.uploadImage(file, 'categories'),
-      ).rejects.toThrow(
+      await expect(service.uploadImage(file, 'categories')).rejects.toThrow(
         'No se obtuvo respuesta al procesar la imagen en Cloudinary',
       );
 
-      expect(
-        cloudinary.uploader.upload_stream,
-      ).toHaveBeenCalled();
+      expect(cloudinary.uploader.upload_stream).toHaveBeenCalled();
     });
   });
 
@@ -183,65 +160,43 @@ describe('CloudinaryService', () => {
         secure_url: 'https://cloudinary.com/remote-image.jpg',
       };
 
-      (
-        cloudinary.uploader.upload as jest.Mock
-      ).mockResolvedValue(result);
+      (cloudinary.uploader.upload as jest.Mock).mockResolvedValue(result);
 
-      const response = await service.uploadUrl(
-        url,
-        'categories',
-      );
+      const response = await service.uploadUrl(url, 'categories');
 
       expect(response).toEqual(result);
 
-      expect(
-        cloudinary.uploader.upload,
-      ).toHaveBeenCalledWith(url, {
+      expect(cloudinary.uploader.upload).toHaveBeenCalledWith(url, {
         folder: 'categories',
         resource_type: 'auto',
       });
     });
 
     it('should throw BadRequestException when URL is empty', async () => {
-      await expect(
-        service.uploadUrl('', 'categories'),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'La URL de la imagen no es válida',
-        ),
+      await expect(service.uploadUrl('', 'categories')).rejects.toThrow(
+        new BadRequestException('La URL de la imagen no es válida'),
       );
 
-      expect(
-        cloudinary.uploader.upload,
-      ).not.toHaveBeenCalled();
+      expect(cloudinary.uploader.upload).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when URL is not a string', async () => {
       await expect(
         service.uploadUrl(null as any, 'categories'),
       ).rejects.toThrow(
-        new BadRequestException(
-          'La URL de la imagen no es válida',
-        ),
+        new BadRequestException('La URL de la imagen no es válida'),
       );
 
-      expect(
-        cloudinary.uploader.upload,
-      ).not.toHaveBeenCalled();
+      expect(cloudinary.uploader.upload).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when Cloudinary upload fails', async () => {
-      (
-        cloudinary.uploader.upload as jest.Mock
-      ).mockRejectedValue(
+      (cloudinary.uploader.upload as jest.Mock).mockRejectedValue(
         new Error('Remote image could not be processed'),
       );
 
       await expect(
-        service.uploadUrl(
-          'https://example.com/image.jpg',
-          'categories',
-        ),
+        service.uploadUrl('https://example.com/image.jpg', 'categories'),
       ).rejects.toThrow(
         'Error al procesar la imagen remota en Cloudinary: Remote image could not be processed',
       );

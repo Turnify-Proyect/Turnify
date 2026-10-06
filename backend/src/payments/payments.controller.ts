@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiErrorSwaggerResponse, ApiSuccessArrayResponse, ApiSuccessCreatedResponse, ApiSuccessResponse } from 'src/common/api';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { PaymentsService } from './payments.service';
@@ -44,40 +45,33 @@ export class PaymentsController {
     description:
       'Actualiza el estado del pago, marca la orden como abonada y confirma automáticamente los turnos asociados.',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'El pago ha sido procesado exitosamente',
-    type: Payment,
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Datos inválidos o falla en el procesamiento de la transacción',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'La orden especificada no fue encontrada',
-  })
+  @ApiSuccessCreatedResponse(Payment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'Datos inválidos o falla en el procesamiento de la transacción',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
+  @ApiErrorSwaggerResponse(404, 'La orden especificada no fue encontrada')
   async processPayment(
     @Body() processPaymentDto: ProcessPaymentDto,
   ): Promise<Payment> {
     return this.paymentsService.processPayment(processPaymentDto);
   }
 
-  @Post('cash')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Registrar un pago en efectivo',
-    description:
-      'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Pago en efectivo registrado correctamente',
-    type: Payment,
-  })
+ @Post('cash')
+ @Roles(UserRole.ADMIN)
+ @UseGuards(AuthGuard, RolesGuard)
+ @ApiBearerAuth()
+ @ApiOperation({
+   summary: 'Registrar un pago en efectivo',
+   description:
+     'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
+ })
+ @ApiSuccessCreatedResponse(Payment)
+ @ApiErrorSwaggerResponse(400, 'Datos inválidos o falla en el procesamiento')
+ @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+ @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
   async processCashPayment(@Body() processCashPaymentDto: ProcessCashPaymentDto,): Promise<Payment> {
     return this.paymentsService.processCashPayment(processCashPaymentDto);
   }
@@ -91,19 +85,20 @@ export class PaymentsController {
     description:
       'Crea el PaymentIntent únicamente para una orden pendiente perteneciente al usuario autenticado.',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Intento de pago creado, devuelve el clientSecret',
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'La orden o la reserva ya no se encuentran disponibles para pagar',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'La orden no existe o no pertenece al usuario autenticado',
-  })
+  @ApiSuccessCreatedResponse(Object)
+  @ApiErrorSwaggerResponse(
+    400,
+    'La orden o la reserva ya no se encuentran disponibles para pagar',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(
+    403,
+    'El usuario no tiene permisos para generar este pago',
+  )
+  @ApiErrorSwaggerResponse(
+    404,
+    'La orden no existe o no pertenece al usuario autenticado',
+  )
   createStripeIntent(
     @Req() req: any,
     @Body() createPaymentDto: CreatePaymentDto,
@@ -134,16 +129,12 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'Obtener el listado de todos los pagos registrados',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista completa de transacciones de pago',
-    type: [Payment],
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Sin permisos de administrador para consultar la lista de pagos',
-  })
+  @ApiSuccessArrayResponse(Payment)
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(
+    403,
+    'Sin permisos de administrador para consultar la lista de pagos',
+  )
   async findAll(): Promise<Payment[]> {
     return this.paymentsService.findAll();
   }
@@ -160,15 +151,11 @@ export class PaymentsController {
     type: String,
     description: 'UUID del registro de pago',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Detalle del pago encontrado',
-    type: Payment,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Registro de pago no encontrado',
-  })
+  @ApiSuccessResponse(Payment)
+  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para consultar este pago')
+  @ApiErrorSwaggerResponse(404, 'Registro de pago no encontrado')
   async getPaymentById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Payment> {
@@ -180,20 +167,17 @@ export class PaymentsController {
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
-  summary:
-    'Generar enlace de pago para una reserva creada por administración',
-})
-@ApiResponse({
-  status: 201,
-  description:
-    'Enlace de pago generado correctamente',
-})
-createAdminCheckoutSession(
-  @Body() createPaymentDto: CreatePaymentDto,
-) {
-  return this.paymentsService
-    .createAdminCheckoutSession(
+    summary:
+      'Generar enlace de pago para una reserva creada por administración',
+  })
+  @ApiSuccessCreatedResponse(Object)
+  @ApiErrorSwaggerResponse(400, 'Los datos enviados no son válidos')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
+  @ApiErrorSwaggerResponse(404, 'La orden no fue encontrada')
+  createAdminCheckoutSession(@Body() createPaymentDto: CreatePaymentDto) {
+    return this.paymentsService.createAdminCheckoutSession(
       createPaymentDto.orderId,
     );
-}
+  }
 }

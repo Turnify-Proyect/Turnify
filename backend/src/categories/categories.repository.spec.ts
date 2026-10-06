@@ -263,9 +263,7 @@ describe('CategoriesRepository', () => {
         getCount,
       };
 
-      serviceRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
-      );
+      serviceRepository.createQueryBuilder.mockReturnValue(queryBuilder as any);
 
       const result = await repository.isInUse('category-1');
 
@@ -290,9 +288,7 @@ describe('CategoriesRepository', () => {
         getCount,
       };
 
-      serviceRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
-      );
+      serviceRepository.createQueryBuilder.mockReturnValue(queryBuilder as any);
 
       const result = await repository.isInUse('category-1');
 

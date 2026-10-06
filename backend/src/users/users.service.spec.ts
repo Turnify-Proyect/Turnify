@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 import { UsersService } from './users.service';
@@ -149,9 +146,7 @@ describe('UsersService', () => {
 
       usersRepository.getAllUsers.mockRejectedValue(error);
 
-      await expect(
-        service.getAllUsers(1, 10),
-      ).rejects.toThrow(error);
+      await expect(service.getAllUsers(1, 10)).rejects.toThrow(error);
     });
   });
 
@@ -178,9 +173,7 @@ describe('UsersService', () => {
 
       usersRepository.getUserById.mockRejectedValue(error);
 
-      await expect(
-        service.getUserById('user-1'),
-      ).rejects.toThrow(error);
+      await expect(service.getUserById('user-1')).rejects.toThrow(error);
     });
   });
 
@@ -197,10 +190,7 @@ describe('UsersService', () => {
 
       usersRepository.updateUser.mockResolvedValue(updatedUser);
 
-      const result = await service.updateUser(
-        'user-1',
-        updateDto as any,
-      );
+      const result = await service.updateUser('user-1', updateDto as any);
 
       expect(usersRepository.updateUser).toHaveBeenCalledTimes(1);
       expect(usersRepository.updateUser).toHaveBeenCalledWith(
@@ -212,9 +202,7 @@ describe('UsersService', () => {
     });
 
     it('should propagate repository errors', async () => {
-      const error = new ConflictException(
-        'El email ya esta registrado',
-      );
+      const error = new ConflictException('El email ya esta registrado');
 
       usersRepository.updateUser.mockRejectedValue(error);
 
@@ -241,10 +229,7 @@ describe('UsersService', () => {
       });
 
       expect(bcrypt.hash).toHaveBeenCalledTimes(1);
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        'newPassword123',
-        10,
-      );
+      expect(bcrypt.hash).toHaveBeenCalledWith('newPassword123', 10);
 
       expect(usersRepository.updatePassword).toHaveBeenCalledTimes(1);
       expect(usersRepository.updatePassword).toHaveBeenCalledWith(
@@ -252,9 +237,7 @@ describe('UsersService', () => {
         hashedPassword,
       );
 
-      expect(result).toBe(
-        'Contraseña actualizada correctamente',
-      );
+      expect(result).toBe('Contraseña actualizada correctamente');
     });
 
     it('should not update the password if hashing fails', async () => {
@@ -302,9 +285,7 @@ describe('UsersService', () => {
       const result = await service.removeUser('user-1');
 
       expect(usersRepository.removeUser).toHaveBeenCalledTimes(1);
-      expect(usersRepository.removeUser).toHaveBeenCalledWith(
-        'user-1',
-      );
+      expect(usersRepository.removeUser).toHaveBeenCalledWith('user-1');
 
       expect(result).toEqual(response);
     });
@@ -316,9 +297,7 @@ describe('UsersService', () => {
 
       usersRepository.removeUser.mockRejectedValue(error);
 
-      await expect(
-        service.removeUser('user-1'),
-      ).rejects.toThrow(error);
+      await expect(service.removeUser('user-1')).rejects.toThrow(error);
     });
   });
 
@@ -333,23 +312,17 @@ describe('UsersService', () => {
       const result = await service.activateUser('user-1');
 
       expect(usersRepository.activateUser).toHaveBeenCalledTimes(1);
-      expect(usersRepository.activateUser).toHaveBeenCalledWith(
-        'user-1',
-      );
+      expect(usersRepository.activateUser).toHaveBeenCalledWith('user-1');
 
       expect(result).toEqual(response);
     });
 
     it('should propagate repository errors', async () => {
-      const error = new ConflictException(
-        'El usuario ya se encuentra activo',
-      );
+      const error = new ConflictException('El usuario ya se encuentra activo');
 
       usersRepository.activateUser.mockRejectedValue(error);
 
-      await expect(
-        service.activateUser('user-1'),
-      ).rejects.toThrow(error);
+      await expect(service.activateUser('user-1')).rejects.toThrow(error);
     });
   });
 
@@ -381,9 +354,7 @@ describe('UsersService', () => {
 
       usersRepository.createUser.mockResolvedValue(createdUser);
 
-      const result = await service.createUserByAdmin(
-        createUserDto as any,
-      );
+      const result = await service.createUserByAdmin(createUserDto as any);
 
       expect(usersRepository.getUserByEmail).toHaveBeenCalledWith(
         createUserDto.email,
@@ -393,10 +364,7 @@ describe('UsersService', () => {
         createUserDto.phone,
       );
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        createUserDto.password,
-        10,
-      );
+      expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, 10);
 
       expect(usersRepository.createUser).toHaveBeenCalledWith({
         name: 'Juan',
@@ -419,11 +387,7 @@ describe('UsersService', () => {
 
       await expect(
         service.createUserByAdmin(createUserDto as any),
-      ).rejects.toThrow(
-        new ConflictException(
-          'El email ya esta registrado',
-        ),
-      );
+      ).rejects.toThrow(new ConflictException('El email ya esta registrado'));
 
       expect(usersRepository.getUserByPhone).not.toHaveBeenCalled();
       expect(bcrypt.hash).not.toHaveBeenCalled();
@@ -441,9 +405,7 @@ describe('UsersService', () => {
       await expect(
         service.createUserByAdmin(createUserDto as any),
       ).rejects.toThrow(
-        new ConflictException(
-          'El telefono ya esta registrado',
-        ),
+        new ConflictException('El telefono ya esta registrado'),
       );
 
       expect(bcrypt.hash).not.toHaveBeenCalled();
@@ -485,14 +447,11 @@ describe('UsersService', () => {
         roles: [UserRole.ADMIN, UserRole.ADMIN],
       });
 
-      expect(usersRepository.getUserById).toHaveBeenCalledWith(
-        'user-1',
-      );
+      expect(usersRepository.getUserById).toHaveBeenCalledWith('user-1');
 
-      expect(usersRepository.updateUserRoles).toHaveBeenCalledWith(
-        'user-1',
-        [UserRole.ADMIN],
-      );
+      expect(usersRepository.updateUserRoles).toHaveBeenCalledWith('user-1', [
+        UserRole.ADMIN,
+      ]);
 
       expect(result).toEqual(updatedUser);
     });
@@ -505,10 +464,7 @@ describe('UsersService', () => {
 
       await expect(
         service.updateUserRoles('user-1', {
-          roles: [
-            UserRole.CLIENT,
-            UserRole.PROFESSIONAL,
-          ],
+          roles: [UserRole.CLIENT, UserRole.PROFESSIONAL],
         }),
       ).rejects.toThrow(
         new BadRequestException(
@@ -516,9 +472,7 @@ describe('UsersService', () => {
         ),
       );
 
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
+      expect(usersRepository.updateUserRoles).not.toHaveBeenCalled();
     });
 
     it('should reject assigning PROFESSIONAL to a non-professional user', async () => {
@@ -537,9 +491,7 @@ describe('UsersService', () => {
         ),
       );
 
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
+      expect(usersRepository.updateUserRoles).not.toHaveBeenCalled();
     });
 
     it('should allow keeping the PROFESSIONAL role', async () => {
@@ -560,10 +512,9 @@ describe('UsersService', () => {
         roles: [UserRole.PROFESSIONAL],
       });
 
-      expect(usersRepository.updateUserRoles).toHaveBeenCalledWith(
-        'user-1',
-        [UserRole.PROFESSIONAL],
-      );
+      expect(usersRepository.updateUserRoles).toHaveBeenCalledWith('user-1', [
+        UserRole.PROFESSIONAL,
+      ]);
 
       expect(result).toEqual(updatedUser);
     });
@@ -584,9 +535,7 @@ describe('UsersService', () => {
         ),
       );
 
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
+      expect(usersRepository.updateUserRoles).not.toHaveBeenCalled();
     });
 
     it('should propagate getUserById errors', async () => {
@@ -600,9 +549,7 @@ describe('UsersService', () => {
         }),
       ).rejects.toThrow(error);
 
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
+      expect(usersRepository.updateUserRoles).not.toHaveBeenCalled();
     });
   });
 
@@ -624,33 +571,20 @@ describe('UsersService', () => {
         imgUrl: cloudinaryResult.secure_url,
       };
 
-      cloudinaryService.uploadImage.mockResolvedValue(
-        cloudinaryResult,
-      );
+      cloudinaryService.uploadImage.mockResolvedValue(cloudinaryResult);
 
-      usersRepository.updateProfilePicture.mockResolvedValue(
-        updatedUser,
-      );
+      usersRepository.updateProfilePicture.mockResolvedValue(updatedUser);
 
-      const result = await service.updateProfilePicture(
-        'user-1',
-        file,
-      );
+      const result = await service.updateProfilePicture('user-1', file);
 
-      expect(
-        cloudinaryService.uploadImage,
-      ).toHaveBeenCalledTimes(1);
+      expect(cloudinaryService.uploadImage).toHaveBeenCalledTimes(1);
 
-      expect(
-        cloudinaryService.uploadImage,
-      ).toHaveBeenCalledWith(
+      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(
         file,
         'turnify/users',
       );
 
-      expect(
-        usersRepository.updateProfilePicture,
-      ).toHaveBeenCalledWith(
+      expect(usersRepository.updateProfilePicture).toHaveBeenCalledWith(
         'user-1',
         cloudinaryResult.secure_url,
       );
@@ -667,9 +601,7 @@ describe('UsersService', () => {
         service.updateProfilePicture('user-1', file),
       ).rejects.toThrow(error);
 
-      expect(
-        usersRepository.updateProfilePicture,
-      ).not.toHaveBeenCalled();
+      expect(usersRepository.updateProfilePicture).not.toHaveBeenCalled();
     });
 
     it('should propagate repository errors', async () => {
@@ -679,21 +611,15 @@ describe('UsersService', () => {
 
       const error = new Error('Database error');
 
-      cloudinaryService.uploadImage.mockResolvedValue(
-        cloudinaryResult,
-      );
+      cloudinaryService.uploadImage.mockResolvedValue(cloudinaryResult);
 
-      usersRepository.updateProfilePicture.mockRejectedValue(
-        error,
-      );
+      usersRepository.updateProfilePicture.mockRejectedValue(error);
 
       await expect(
         service.updateProfilePicture('user-1', file),
       ).rejects.toThrow(error);
 
-      expect(
-        usersRepository.updateProfilePicture,
-      ).toHaveBeenCalledWith(
+      expect(usersRepository.updateProfilePicture).toHaveBeenCalledWith(
         'user-1',
         cloudinaryResult.secure_url,
       );
