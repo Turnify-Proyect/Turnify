@@ -19,7 +19,7 @@ export interface ChatResponse {
 
 @Injectable()
 export class ChatbotService {
-  // Evita contestar con coincidencias débiles: se requieren al menos dos keywords.
+  // Evita coincidencias débiles; una frase específica también puede bastar.
   private readonly MIN_KEYWORD_MATCH = 2;
 
   // Procesa texto libre y entrega una respuesta FAQ o el menú como alternativa.
@@ -33,6 +33,12 @@ export class ChatbotService {
     void context;
 
     const normalized = this.normalize(text);
+    if (normalized.includes('gracias')) {
+      return this.buildCategoryMenu(
+        '¡Un placer ayudarte! 😊 ¿En qué más puedo ayudarte?',
+      );
+    }
+
     const match = this.findBestMatch(normalized);
     if (match) {
       return this.buildAnswerResponse(match);
@@ -50,8 +56,7 @@ export class ChatbotService {
     );
   }
 
-  // Busca la FAQ con más palabras clave coincidentes; devuelve null si no alcanza
-  // el mínimo configurado.
+  // Busca la FAQ más relevante: exige varias keywords o una frase específica.
   private findBestMatch(input: string): {
     entry: (typeof ALL_FAQ_ENTRIES)[number];
     score: number;
@@ -64,7 +69,17 @@ export class ChatbotService {
 
     for (const entry of ALL_FAQ_ENTRIES) {
       const score = this.keywordScore(input, entry.keywords);
-      if (score > bestScore && score >= this.MIN_KEYWORD_MATCH) {
+      const hasSpecificPhraseMatch = entry.keywords.some((keyword) => {
+        const normalizedKeyword = this.normalize(keyword);
+        return (
+          normalizedKeyword.includes(' ') && input.includes(normalizedKeyword)
+        );
+      });
+
+      if (
+        score > bestScore &&
+        (score >= this.MIN_KEYWORD_MATCH || hasSpecificPhraseMatch)
+      ) {
         bestScore = score;
         best = { entry, score };
       }

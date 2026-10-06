@@ -19,6 +19,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { StatisticsModule } from './statistics/statistics.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -33,6 +35,13 @@ import { ChatbotModule } from './chatbot/chatbot.module';
         return configService.get('typeorm')!;
       },
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000, // 60 segundos
+        limit: 60, // 60 requests por minuto por IP, límite general de la API
+      },
+    ]),
     UsersModule,
     ServicesModule,
     ProfessionalsModule,
@@ -52,6 +61,12 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     ChatbotModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
