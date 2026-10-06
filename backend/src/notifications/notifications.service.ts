@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MailService } from '../mail/mail.service';
 import { APP_TIMEZONE } from '../common/timezone';
 import { ConfirmedAppointmentNotification } from './types/notification-type';
+import { PaymentType } from '../payments/entities/payment.entity';
 
 @Injectable()
 export class NotificationsService {
@@ -60,8 +61,9 @@ export class NotificationsService {
     email: string,
     userName: string,
     appointments: ConfirmedAppointmentNotification[],
-    depositAmount: number,
+    paidAmount: number,
     totalAmount: number,
+    paymentType: PaymentType | null,
   ): Promise<void> {
     // Generamos el contenido HTML de todos los turnos de la orden
     // y lo unificamos en un único string para incluirlo en el correo.
@@ -92,9 +94,17 @@ export class NotificationsService {
 
       ${appointmentsHtml}
 
-      <p><strong>Seña abonada:</strong> $${depositAmount}</p>
+      <p>
+        <strong>
+          ${paymentType === PaymentType.FULL_PAYMENT
+            ? 'Pago total abonado:'
+            : 'Seña abonada:'}
+        </strong>
+        $${paidAmount}
+      </p>
+          
       <p><strong>Total de la orden:</strong> $${totalAmount}</p>
-    `,
+          `,
     );
   }
 
@@ -230,6 +240,35 @@ export class NotificationsService {
 
       <p>Te esperamos en la nueva fecha seleccionada.</p>
     `,
+    );
+  }
+
+  //Orden confirmada desde el panel del administrador.
+  
+  async sendAppointmentConfirmedByAdmin(
+    email: string,
+    userName: string,
+    serviceName: string,
+    professionalName: string,
+    startAt: Date,
+  ): Promise<void> {
+    await this.mailService.sendMail(
+      email,
+      'Turno confirmado - Turnify',
+      `
+        <h1>Turno confirmado</h1>
+
+        <p>Hola ${userName},</p>
+
+        <p>Tu turno fue confirmado correctamente.</p>
+
+        <p><strong>Servicio:</strong> ${serviceName}</p>
+        <p><strong>Profesional:</strong> ${professionalName}</p>
+        <p><strong>Fecha:</strong> ${this.formatDate(startAt)}</p>
+        <p><strong>Hora:</strong> ${this.formatTime(startAt)}</p>
+
+        <p>Te esperamos.</p>
+      `,
     );
   }
 }

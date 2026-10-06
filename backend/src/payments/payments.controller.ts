@@ -27,6 +27,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../decorators/roles.decorators';
 import { UserRole } from '../common/userRoles.enum';
+import { ProcessCashPaymentDto } from './dto/process-cash-payment.dto';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -61,6 +62,24 @@ export class PaymentsController {
     @Body() processPaymentDto: ProcessPaymentDto,
   ): Promise<Payment> {
     return this.paymentsService.processPayment(processPaymentDto);
+  }
+
+  @Post('cash')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Registrar un pago en efectivo',
+    description:
+      'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Pago en efectivo registrado correctamente',
+    type: Payment,
+  })
+  async processCashPayment(@Body() processCashPaymentDto: ProcessCashPaymentDto,): Promise<Payment> {
+    return this.paymentsService.processCashPayment(processCashPaymentDto);
   }
 
   @Post('stripe/create-intent')
