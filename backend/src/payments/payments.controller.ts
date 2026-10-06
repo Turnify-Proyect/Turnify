@@ -92,9 +92,9 @@ export class PaymentsController {
   })
 
   async processCashPayment(
-    @Body() processCashPaymentDto: ProcessPaymentDto,
+    @Body() processCashPaymentDto: ProcessCashPaymentDto,
   ): Promise<Payment> {
-    return this.paymentsService.processPayment(processCashPaymentDto);
+    return this.paymentsService.processCashPayment(processCashPaymentDto);
   }
 
   @Post('stripe/create-intent')

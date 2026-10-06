@@ -737,4 +737,36 @@ try {
   emailSent,
 };
 }
+
+async processCashPayment(
+  processCashPaymentDto: ProcessCashPaymentDto,
+): Promise<Payment> {
+  const { orderId, paymentType } = processCashPaymentDto;
+
+  const order = await this.dataSource.getRepository(Order).findOne({
+    where: { order_id: orderId },
+    relations: ['orderDetails'],
+  });
+
+  if (!order) {
+    throw new NotFoundException(
+      `No se encontró la orden con ID: ${orderId}`,
+    );
+  }
+
+  const amount =
+    paymentType === PaymentType.DEPOSIT_PAYMENT
+      ? this.getOrderDeposit(order)
+      : this.getOrderTotal(order);
+
+  return this.processPayment({
+    orderId,
+    amount,
+    provider: 'cash',
+    externalPaymentId: undefined,
+    status: PaymentStatus.PAID,
+    paymentType,
+  });
+}
+
 }
