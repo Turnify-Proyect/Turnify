@@ -22,6 +22,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ApiSuccessArrayResponse } from 'src/common/api';
 import { ApiSuccessResponse } from 'src/common/api';
+import { ApiSuccessNoDataResponse } from 'src/common/api/api-success-no-data-response.decorator';
 
 @Controller('availability')
 export class AvailabilityController {
@@ -43,10 +44,7 @@ export class AvailabilityController {
   @ApiSuccessArrayResponse(Availability)
   @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para actualizar la disponibilidad',
-  )
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para consultar la disponibilidad')
   @ApiErrorSwaggerResponse(404, 'Disponibilidad no encontrada')
   getByProfessionalId(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
@@ -67,7 +65,7 @@ export class AvailabilityController {
     description: 'ID del bloque de disponibilidad',
     type: String,
   })
-  @ApiSuccessArrayResponse(Availability)
+  @ApiSuccessResponse(Availability)
   @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(
@@ -75,6 +73,10 @@ export class AvailabilityController {
     'Sin permisos para actualizar la disponibilidad',
   )
   @ApiErrorSwaggerResponse(404, 'Disponibilidad no encontrada')
+  @ApiErrorSwaggerResponse(
+    409,
+    'El horario se superpone con otra disponibilidad del profesional',
+  )
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() data: UpdateAvailabilityDto,
@@ -100,6 +102,10 @@ export class AvailabilityController {
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para crear la disponibilidad')
   @ApiErrorSwaggerResponse(404, 'Profesional no encontrado')
+  @ApiErrorSwaggerResponse(
+    409,
+    'El horario se superpone con otra disponibilidad del profesional',
+  )
   create(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
     @Body() data: CreateAvailabilityDto,
@@ -118,7 +124,7 @@ export class AvailabilityController {
     description: 'ID de disponibilidad',
     type: String,
   })
-  @ApiSuccessResponse(Object)
+  @ApiSuccessNoDataResponse()
   @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para eliminar la disponibilidad')

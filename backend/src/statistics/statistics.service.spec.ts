@@ -393,27 +393,24 @@ describe('StatisticsService', () => {
       ['0', 0],
       ['-50', -50],
       ['abc', NaN],
-    ])(
-      'ignora pagos con monto inválido (%s)',
-      async (amount) => {
-        repository.find.mockResolvedValue([
-          buildAppointment({
-            status: AppointmentStatus.CONFIRMED,
-            orderDetail: {
-              total_price: '1000',
-              order: {
-                payment: { status: PaymentStatus.PAID, amount },
-              },
-              appointments: [{ service: defaultService }],
+    ])('ignora pagos con monto inválido (%s)', async (amount) => {
+      repository.find.mockResolvedValue([
+        buildAppointment({
+          status: AppointmentStatus.CONFIRMED,
+          orderDetail: {
+            total_price: '1000',
+            order: {
+              payment: { status: PaymentStatus.PAID, amount },
             },
-          }),
-        ]);
+            appointments: [{ service: defaultService }],
+          },
+        }),
+      ]);
 
-        const { summary } = await service.getAdminStatistics(FROM, TO);
+      const { summary } = await service.getAdminStatistics(FROM, TO);
 
-        expect(summary.depositRevenue).toBe(0);
-      },
-    );
+      expect(summary.depositRevenue).toBe(0);
+    });
 
     it('ignora la seña si el total de la orden es 0 o inválido', async () => {
       repository.find.mockResolvedValue([

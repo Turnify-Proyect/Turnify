@@ -31,6 +31,8 @@ import { UserRole } from '../common/userRoles.enum';
 import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
 import { ApiSuccessCreatedResponse } from 'src/common/api';
 import { ApiSuccessResponse } from 'src/common/api';
+import { StripeIntentResponseDto } from './dto/stripe-intent-response.dto';
+import { AdminCheckoutSessionResponseDto } from './dto/admin-checkout-session-response.dto';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -70,7 +72,7 @@ export class PaymentsController {
     description:
       'Crea el PaymentIntent únicamente para una orden pendiente perteneciente al usuario autenticado.',
   })
-  @ApiSuccessCreatedResponse(Object)
+  @ApiSuccessCreatedResponse(StripeIntentResponseDto)
   @ApiErrorSwaggerResponse(
     400,
     'La orden o la reserva ya no se encuentran disponibles para pagar',
@@ -155,7 +157,7 @@ export class PaymentsController {
     summary:
       'Generar enlace de pago para una reserva creada por administración',
   })
-  @ApiSuccessCreatedResponse(Object)
+  @ApiSuccessCreatedResponse(AdminCheckoutSessionResponseDto)
   @ApiErrorSwaggerResponse(400, 'Los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
