@@ -212,8 +212,12 @@ describe('NotificationsService', () => {
 
       const html = mailService.sendMail.mock.calls[0][2];
 
-      expect(html).toContain('Seña abonada:</strong> $5000');
-      expect(html).toContain('Total de la orden:</strong> $10000');
+      // Se quitan las etiquetas y se normalizan los espacios para que el
+      // test no dependa del formato del HTML.
+      const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+      expect(text).toContain('Seña abonada: $5000');
+      expect(text).toContain('Total de la orden: $10000');
     });
 
     it('should send an email even when there are no appointments', async () => {

@@ -16,7 +16,12 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiErrorSwaggerResponse, ApiSuccessArrayResponse, ApiSuccessCreatedResponse, ApiSuccessResponse } from './../common/api';
+import {
+  ApiErrorSwaggerResponse,
+  ApiSuccessArrayResponse,
+  ApiSuccessCreatedResponse,
+  ApiSuccessResponse,
+} from './../common/api';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { PaymentsService } from './payments.service';
@@ -60,20 +65,22 @@ export class PaymentsController {
     return this.paymentsService.processPayment(processPaymentDto);
   }
 
- @Post('cash')
- @Roles(UserRole.ADMIN)
- @UseGuards(AuthGuard, RolesGuard)
- @ApiBearerAuth()
- @ApiOperation({
-   summary: 'Registrar un pago en efectivo',
-   description:
-     'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
- })
- @ApiSuccessCreatedResponse(Payment)
- @ApiErrorSwaggerResponse(400, 'Datos inválidos o falla en el procesamiento')
- @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
- @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
-  async processCashPayment(@Body() processCashPaymentDto: ProcessCashPaymentDto,): Promise<Payment> {
+  @Post('cash')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Registrar un pago en efectivo',
+    description:
+      'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
+  })
+  @ApiSuccessCreatedResponse(Payment)
+  @ApiErrorSwaggerResponse(400, 'Datos inválidos o falla en el procesamiento')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
+  async processCashPayment(
+    @Body() processCashPaymentDto: ProcessCashPaymentDto,
+  ): Promise<Payment> {
     return this.paymentsService.processCashPayment(processCashPaymentDto);
   }
 

@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import Stripe from 'stripe';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
-import { Payment, PaymentStatus, PaymentType} from './entities/payment.entity';
+import { Payment, PaymentStatus, PaymentType } from './entities/payment.entity';
 import { ProcessCashPaymentDto } from './dto/process-cash-payment.dto';
 import { Order } from '../orders/entities/order.entity';
 import { OrderStatus } from '../orders/enums/order-status.enum';
@@ -35,8 +35,14 @@ export class PaymentsService {
   ) {}
 
   async processPayment(processPaymentDto: ProcessPaymentDto): Promise<Payment> {
-    const { orderId, amount, provider, externalPaymentId, status, paymentType, } =
-      processPaymentDto;
+    const {
+      orderId,
+      amount,
+      provider,
+      externalPaymentId,
+      status,
+      paymentType,
+    } = processPaymentDto;
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -129,11 +135,11 @@ export class PaymentsService {
         payment.amount = amount.toString();
         payment.provider = provider;
         payment.status = status;
-      
+
         if (externalPaymentId) {
           payment.externalPaymentId = externalPaymentId;
         }
-      
+
         if (paymentType) {
           payment.paymentType = paymentType;
         }
@@ -709,9 +715,7 @@ export class PaymentsService {
     });
 
     if (!order) {
-      throw new NotFoundException(
-        `No se encontró la orden con ID: ${orderId}`,
-      );
+      throw new NotFoundException(`No se encontró la orden con ID: ${orderId}`);
     }
 
     const amount =

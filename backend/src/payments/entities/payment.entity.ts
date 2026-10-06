@@ -68,9 +68,9 @@ export class Payment {
   amount!: string;
 
   @ApiProperty({
-  enum: PaymentType,
-  description: 'Indica si el pago corresponde a una seña o al valor total',
-  nullable: true,
+    enum: PaymentType,
+    description: 'Indica si el pago corresponde a una seña o al valor total',
+    nullable: true,
   })
   @Column({
     name: 'payment_type',

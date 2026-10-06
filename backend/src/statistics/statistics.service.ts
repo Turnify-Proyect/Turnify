@@ -7,7 +7,10 @@ import {
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
 
-import { PaymentStatus, PaymentType, } from '../payments/entities/payment.entity';
+import {
+  PaymentStatus,
+  PaymentType,
+} from '../payments/entities/payment.entity';
 
 @Injectable()
 export class StatisticsService {
@@ -76,13 +79,13 @@ export class StatisticsService {
         completedAppointments,
         cancelledAppointments,
         cancellationRate,
-            
+
         depositRevenue: revenue.depositRevenue,
-            
+
         fullPaymentRevenue: revenue.fullPaymentRevenue,
-            
+
         completionRevenue: revenue.completionRevenue,
-            
+
         totalRevenue: revenue.totalRevenue,
       },
 
@@ -106,80 +109,66 @@ export class StatisticsService {
   // INGRESOS
   // =========================
 
-private calculateRevenue(appointments: Appointment[]) {
-  let depositRevenue = 0;
-  let fullPaymentRevenue = 0;
-  let completionRevenue = 0;
+  private calculateRevenue(appointments: Appointment[]) {
+    let depositRevenue = 0;
+    let fullPaymentRevenue = 0;
+    let completionRevenue = 0;
 
-  for (const appointment of appointments) {
-    const appointmentPrice =
-      this.getAppointmentBookedPrice(appointment);
+    for (const appointment of appointments) {
+      const appointmentPrice = this.getAppointmentBookedPrice(appointment);
 
-    const payment =
-      appointment.orderDetail?.order?.payment;
+      const payment = appointment.orderDetail?.order?.payment;
 
-    const paymentShare =
-      payment?.status === PaymentStatus.PAID
-        ? this.getAppointmentPaymentShare(appointment)
-        : 0;
+      const paymentShare =
+        payment?.status === PaymentStatus.PAID
+          ? this.getAppointmentPaymentShare(appointment)
+          : 0;
 
-    // =========================
-    // PAGO PREVIO
-    // =========================
+      // =========================
+      // PAGO PREVIO
+      // =========================
 
-    if (payment?.status === PaymentStatus.PAID) {
-      if (
-        payment.paymentType === PaymentType.FULL_PAYMENT
-      ) {
-        fullPaymentRevenue += paymentShare;
-      } else {
-        // Incluye:
-        // - Stripe
-        // - pagos antiguos sin paymentType
-        // - efectivo registrado como seña
-        depositRevenue += paymentShare;
+      if (payment?.status === PaymentStatus.PAID) {
+        if (payment.paymentType === PaymentType.FULL_PAYMENT) {
+          fullPaymentRevenue += paymentShare;
+        } else {
+          // Incluye:
+          // - Stripe
+          // - pagos antiguos sin paymentType
+          // - efectivo registrado como seña
+          depositRevenue += paymentShare;
+        }
+      }
+
+      // =========================
+      // TURNO COMPLETADO
+      // =========================
+
+      if (appointment.status === AppointmentStatus.COMPLETED) {
+        // Al completar el servicio se considera cobrado
+        // únicamente lo que todavía faltaba pagar.
+        const remainingAmount = Math.max(appointmentPrice - paymentShare, 0);
+
+        completionRevenue += remainingAmount;
       }
     }
 
-    // =========================
-    // TURNO COMPLETADO
-    // =========================
+    depositRevenue = this.roundMoney(depositRevenue);
 
-    if (
-      appointment.status === AppointmentStatus.COMPLETED
-    ) {
-      // Al completar el servicio se considera cobrado
-      // únicamente lo que todavía faltaba pagar.
-      const remainingAmount = Math.max(
-        appointmentPrice - paymentShare,
-        0,
-      );
+    fullPaymentRevenue = this.roundMoney(fullPaymentRevenue);
 
-      completionRevenue += remainingAmount;
-    }
+    completionRevenue = this.roundMoney(completionRevenue);
+
+    return {
+      depositRevenue,
+      fullPaymentRevenue,
+      completionRevenue,
+
+      totalRevenue: this.roundMoney(
+        depositRevenue + fullPaymentRevenue + completionRevenue,
+      ),
+    };
   }
-
-  depositRevenue =
-    this.roundMoney(depositRevenue);
-
-  fullPaymentRevenue =
-    this.roundMoney(fullPaymentRevenue);
-
-  completionRevenue =
-    this.roundMoney(completionRevenue);
-
-  return {
-    depositRevenue,
-    fullPaymentRevenue,
-    completionRevenue,
-
-    totalRevenue: this.roundMoney(
-      depositRevenue +
-        fullPaymentRevenue +
-        completionRevenue,
-    ),
-  };
-}
   // =========================
   // PRECIO DEL TURNO
   // =========================

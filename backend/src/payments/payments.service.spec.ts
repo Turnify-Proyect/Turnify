@@ -922,6 +922,7 @@ describe('PaymentsService', () => {
         provider: 'stripe',
         externalPaymentId: 'pi_test_123',
         status: PaymentStatus.PAID,
+        paymentType: 'deposit_payment',
       });
     });
   });

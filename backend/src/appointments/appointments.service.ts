@@ -113,12 +113,11 @@ export class AppointmentsService {
     return await this.appointmentsRepository.completeAppointment(id);
   }
 
-  async updateAppointmentStatus(id: string, newStatus: AppointmentStatus,) {
-    const result =
-      await this.appointmentsRepository.updateAppointmentStatus(
-        id,
-        newStatus,
-      );
+  async updateAppointmentStatus(id: string, newStatus: AppointmentStatus) {
+    const result = await this.appointmentsRepository.updateAppointmentStatus(
+      id,
+      newStatus,
+    );
 
     if (newStatus === AppointmentStatus.CONFIRMED) {
       try {

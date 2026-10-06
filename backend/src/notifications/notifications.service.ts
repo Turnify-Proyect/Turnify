@@ -96,9 +96,11 @@ export class NotificationsService {
 
       <p>
         <strong>
-          ${paymentType === PaymentType.FULL_PAYMENT
-            ? 'Pago total abonado:'
-            : 'Seña abonada:'}
+          ${
+            paymentType === PaymentType.FULL_PAYMENT
+              ? 'Pago total abonado:'
+              : 'Seña abonada:'
+          }
         </strong>
         $${paidAmount}
       </p>
@@ -244,7 +246,7 @@ export class NotificationsService {
   }
 
   //Orden confirmada desde el panel del administrador.
-  
+
   async sendAppointmentConfirmedByAdmin(
     email: string,
     userName: string,
