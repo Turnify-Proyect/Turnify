@@ -64,4 +64,16 @@ export class ProfessionalUnavailabilityService {
 
     await this.repository.delete(id);
   }
+
+  async getById(id: string) {
+  const unavailability = await this.repository.getById(id);
+
+  if (!unavailability) {
+    throw new NotFoundException(
+      `No se encontró el bloqueo con id ${id}`,
+    );
+  }
+
+  return unavailability;
+}
 }

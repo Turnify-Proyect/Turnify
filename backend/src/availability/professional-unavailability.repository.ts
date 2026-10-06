@@ -6,6 +6,7 @@ import { ProfessionalUnavailability } from './entities/professional-unavailabili
 import { Professional } from '../professionals/entities/professional.entity';
 import { CreateProfessionalUnavailabilityDto } from './dto/create-professional-unavailability.dto';
 
+
 @Injectable()
 export class ProfessionalUnavailabilityRepository {
   constructor(
