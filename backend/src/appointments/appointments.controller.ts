@@ -16,12 +16,7 @@ import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
 import { ApiErrorSwaggerResponse } from '../common/api/api-error-response.decorator';
 import { ApiSuccessResponse } from 'src/common/api';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { Appointment } from './entities/appointment.entity';
 import { ApiSuccessArrayResponse } from 'src/common/api';
 import { Roles } from '../decorators/roles.decorators';
@@ -29,6 +24,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
 import { AppointmentOwnerOrAdminGuard } from '../auth/guards/appointment-owner-or-admin.guard';
+import { AvailableSlotsResponseDto } from './dto/available-slots-response.dto';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -68,7 +64,7 @@ export class AppointmentsController {
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiSuccessResponse(String)
+  @ApiSuccessResponse(AvailableSlotsResponseDto)
   @ApiErrorSwaggerResponse(400, 'Parámetros inválidos o UUID incorrecto')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para consultar disponibilidad')
@@ -159,7 +155,7 @@ export class AppointmentsController {
     description: 'ID del turno a cancelar',
     type: String,
   })
-  @ApiSuccessResponse(Appointment)
+  @ApiSuccessResponse(String)
   @ApiErrorSwaggerResponse(
     400,
     'El ID del turno no tiene un formato UUID válido',

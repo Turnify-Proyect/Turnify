@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
 import { ApiSuccessCreatedResponse } from '../common/api/api-success-created-response.decorator';
-import { Professional } from 'src/professionals/entities/professional.entity';
+import { ProfessionalService } from 'src/professionals/entities/professional-service.entity';
 import { Service } from './entities/service.entity';
 import { ApiSuccessResponse } from '../common/api/api-success-response.decorator';
 import { ApiSuccessArrayResponse } from '../common/api/api-success-array-response.decorator';
@@ -30,7 +30,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
 import {
   ApiBearerAuth,
-  ApiResponse,
   ApiParam,
   ApiConsumes,
   ApiBody,
@@ -174,7 +173,7 @@ export class ServicesController {
   }
 
   @Get(':serviceId/professionals')
-  @ApiSuccessArrayResponse(Professional)
+  @ApiSuccessArrayResponse(ProfessionalService)
   @ApiErrorSwaggerResponse(
     400,
     'El ID del servicio no tiene un formato UUID válido',

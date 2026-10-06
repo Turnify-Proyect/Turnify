@@ -1,4 +1,8 @@
-import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { RequestMethod, BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 

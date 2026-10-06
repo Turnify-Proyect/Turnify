@@ -20,9 +20,11 @@ import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
-import { ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
 import { ApiSuccessResponse } from 'src/common/api';
+import { ApiSuccessNoDataResponse } from 'src/common/api';
+import { ProfessionalService } from './entities/professional-service.entity';
 
 @Controller('professionals')
 export class ProfessionalsController {
@@ -98,7 +100,7 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessResponse(Professional)
+  @ApiSuccessNoDataResponse('Profesional actualizado exitosamente')
   @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para realizar esta operación')
@@ -127,7 +129,7 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessResponse(Professional)
+  @ApiSuccessNoDataResponse('Profesional eliminado correctamente')
   @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para realizar esta operación')
@@ -146,7 +148,7 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del profesional',
   })
-  @ApiSuccessResponse(Professional)
+  @ApiSuccessNoDataResponse('Profesional activado correctamente')
   @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para realizar esta operación')
@@ -156,7 +158,7 @@ export class ProfessionalsController {
   }
 
   @Post(':professionalId/services/:serviceId')
-  @Roles(UserRole.ADMIN, UserRole.CLIENT)
+  @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({
@@ -165,7 +167,7 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiSuccessResponse(Object)
+  @ApiSuccessCreatedResponse(ProfessionalService)
   @ApiErrorSwaggerResponse(
     400,
     'Uno de los IDs no tiene un formato UUID válido',
@@ -188,7 +190,7 @@ export class ProfessionalsController {
   }
 
   @Get(':professionalId/services')
-  @ApiSuccessArrayResponse(Service)
+  @ApiSuccessArrayResponse(ProfessionalService)
   @ApiErrorSwaggerResponse(
     400,
     'El ID del profesional no tiene un formato UUID válido',
@@ -209,7 +211,9 @@ export class ProfessionalsController {
     type: String,
     description: 'ID del servicio',
   })
-  @ApiSuccessResponse(Object)
+  @ApiSuccessNoDataResponse(
+    'Servicio desvinculado del profesional exitosamente',
+  )
   @ApiErrorSwaggerResponse(
     400,
     'Uno de los IDs no tiene un formato UUID válido',

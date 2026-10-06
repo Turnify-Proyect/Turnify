@@ -8,10 +8,12 @@ const ERROR_CODES: Record<number, string> = {
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
   409: 'CONFLICT',
+  422: 'UNPROCESSABLE_ENTITY',
+  429: 'TOO_MANY_REQUESTS',
 };
 
 export function ApiErrorSwaggerResponse(status: number, description: string) {
-  const errorCode = ERROR_CODES[status] ?? 'INTERNAL_SERVER_ERROR';
+  const errorCode = ERROR_CODES[status] ?? 'INTERNAL_ERROR';
 
   return applyDecorators(
     ApiExtraModels(ApiErrorResponseDto),
@@ -21,18 +23,15 @@ export function ApiErrorSwaggerResponse(status: number, description: string) {
       content: {
         'application/json': {
           schema: {
-            allOf: [
-              {
-                $ref: getSchemaPath(ApiErrorResponseDto),
-              },
-            ],
-            example: {
-              success: false,
-              error: {
-                code: errorCode,
-                message: description,
-                details: [],
-              },
+            $ref: getSchemaPath(ApiErrorResponseDto),
+          },
+          example: {
+            success: false,
+            message: description,
+            data: null,
+            errors: {
+              code: errorCode,
+              statusCode: status,
             },
           },
         },

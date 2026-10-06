@@ -1,22 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class ApiErrorDetailDto {
-  @ApiPropertyOptional({
-    example: 'email',
-  })
-  field?: string;
-
-  @ApiPropertyOptional({
-    example: 'INVALID_EMAIL',
-  })
-  code?: string;
-
-  @ApiProperty({
-    example: 'El email no tiene un formato válido',
-  })
-  message!: string;
-}
-
 export class ApiErrorDto {
   @ApiProperty({
     example: 'VALIDATION_ERROR',
@@ -24,24 +7,42 @@ export class ApiErrorDto {
   code!: string;
 
   @ApiProperty({
-    example: 'Hay errores de validación',
+    example: 400,
   })
-  message!: string;
+  statusCode!: number;
 
   @ApiPropertyOptional({
-    type: [ApiErrorDetailDto],
+    type: [String],
+    example: [
+      'email must be an email',
+      'password must be longer than or equal to 8 characters',
+    ],
   })
-  details?: ApiErrorDetailDto[];
+  details?: string[];
 }
 
 export class ApiErrorResponseDto {
   @ApiProperty({
+    type: Boolean,
     example: false,
   })
   success!: false;
 
   @ApiProperty({
+    example: 'Hay errores de validación en los datos enviados',
+  })
+  message!: string;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+    example: null,
+  })
+  data!: null;
+
+  @ApiProperty({
     type: ApiErrorDto,
   })
-  error!: ApiErrorDto;
+  errors!: ApiErrorDto;
 }

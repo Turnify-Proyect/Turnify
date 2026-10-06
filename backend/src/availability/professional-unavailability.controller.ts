@@ -19,7 +19,7 @@ import { UserRole } from '../common/userRoles.enum';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { ApiSuccessArrayResponse } from 'src/common/api';
-import { ApiSuccessResponse } from 'src/common/api';
+import { ApiSuccessNoDataResponse } from 'src/common/api/api-success-no-data-response.decorator';
 
 @Controller('availability/blocks')
 export class ProfessionalUnavailabilityController {
@@ -77,7 +77,7 @@ export class ProfessionalUnavailabilityController {
     name: 'id',
     type: String,
   })
-  @ApiSuccessResponse(Object)
+  @ApiSuccessNoDataResponse()
   @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para eliminar el bloqueo')

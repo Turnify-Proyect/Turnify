@@ -101,7 +101,11 @@ describe('ApiResponseInterceptor', () => {
   describe('respuestas con "message"', () => {
     it('usa el message como mensaje y lo quita de data', async () => {
       await expect(
-        run({ message: 'Turno creado correctamente', id: 5, status: 'PENDING' }),
+        run({
+          message: 'Turno creado correctamente',
+          id: 5,
+          status: 'PENDING',
+        }),
       ).resolves.toEqual({
         success: true,
         message: 'Turno creado correctamente',

@@ -62,6 +62,10 @@ export class CategoriesController {
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para desactivar categorías')
   @ApiErrorSwaggerResponse(404, 'Categoría no encontrada')
+  @ApiErrorSwaggerResponse(
+    409,
+    'No se puede desactivar la categoría porque está asociada a uno o más servicios',
+  )
   deactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.categoriesService.deactivateCategory(id);
   }

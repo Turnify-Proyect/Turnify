@@ -14,10 +14,9 @@ import {
   ApiExcludeEndpoint,
   ApiOperation,
   ApiParam,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiErrorSwaggerResponse, ApiSuccessArrayResponse, ApiSuccessCreatedResponse, ApiSuccessResponse } from 'src/common/api';
+import { ApiErrorSwaggerResponse, ApiSuccessArrayResponse, ApiSuccessCreatedResponse, ApiSuccessResponse } from './../common/api';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { PaymentsService } from './payments.service';
@@ -29,6 +28,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../decorators/roles.decorators';
 import { UserRole } from '../common/userRoles.enum';
 import { ProcessCashPaymentDto } from './dto/process-cash-payment.dto';
+import { StripeIntentResponseDto } from './dto/stripe-intent-response.dto';
+import { AdminCheckoutSessionResponseDto } from './dto/admin-checkout-session-response.dto';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -85,7 +86,7 @@ export class PaymentsController {
     description:
       'Crea el PaymentIntent únicamente para una orden pendiente perteneciente al usuario autenticado.',
   })
-  @ApiSuccessCreatedResponse(Object)
+  @ApiSuccessCreatedResponse(StripeIntentResponseDto)
   @ApiErrorSwaggerResponse(
     400,
     'La orden o la reserva ya no se encuentran disponibles para pagar',
@@ -170,7 +171,7 @@ export class PaymentsController {
     summary:
       'Generar enlace de pago para una reserva creada por administración',
   })
-  @ApiSuccessCreatedResponse(Object)
+  @ApiSuccessCreatedResponse(AdminCheckoutSessionResponseDto)
   @ApiErrorSwaggerResponse(400, 'Los datos enviados no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')

@@ -22,6 +22,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '../decorators/roles.decorators';
 import { UseGuards } from '@nestjs/common';
@@ -33,7 +34,6 @@ import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import {
   ApiBearerAuth,
   ApiQuery,
-  ApiResponse,
   ApiParam,
   ApiOperation,
   ApiConsumes,
@@ -41,6 +41,7 @@ import {
 } from '@nestjs/swagger';
 import { UserOwnerOrAdminGuard } from '../auth/guards/user-owner-or-admin.guard';
 import { ApiSuccessResponse } from 'src/common/api';
+import { ApiSuccessNoDataResponse } from 'src/common/api';
 
 @Controller('users')
 export class UsersController {
@@ -80,7 +81,7 @@ export class UsersController {
     type: Boolean,
     description: 'Filtrar usuarios por estado activo o inactivo',
   })
-  @ApiSuccessResponse(Object)
+  @ApiSuccessResponse(PaginatedUsersResponseDto)
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
   getAllUsers(
@@ -184,7 +185,7 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a cambiar contraseña',
   })
-  @ApiSuccessResponse(Object)
+  @ApiSuccessResponse(String)
   @ApiErrorSwaggerResponse(400, 'La contraseña o el ID no son válidos')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para modificar esta cuenta')
@@ -206,7 +207,7 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a eliminar',
   })
-  @ApiSuccessResponse(User)
+  @ApiSuccessNoDataResponse('Usuario desactivado correctamente')
   @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para eliminar usuarios')
@@ -225,7 +226,7 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a activar',
   })
-  @ApiSuccessResponse(User)
+  @ApiSuccessNoDataResponse('Usuario activado correctamente')
   @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
   @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
   @ApiErrorSwaggerResponse(403, 'Sin permisos para activar usuarios')

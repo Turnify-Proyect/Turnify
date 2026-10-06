@@ -9,3 +9,4 @@ export * from './api-success-array-response.decorator';
 export * from './api-success-created-response.decorator';
 export * from './api-error-response.dto';
 export * from './api-error-response.decorator';
+export * from './api-success-no-data-response.decorator';
