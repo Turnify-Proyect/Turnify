@@ -62,9 +62,7 @@ describe('EmailVerificationService', () => {
       ],
     }).compile();
 
-    service = module.get<EmailVerificationService>(
-      EmailVerificationService,
-    );
+    service = module.get<EmailVerificationService>(EmailVerificationService);
   });
 
   afterEach(() => {
@@ -135,9 +133,7 @@ describe('EmailVerificationService', () => {
       const createArgument =
         emailVerificationTokenRepository.create.mock.calls[0][0];
 
-      const expectedHash = createHash('sha256')
-        .update(result)
-        .digest('hex');
+      const expectedHash = createHash('sha256').update(result).digest('hex');
 
       expect(createArgument.tokenHash).toBe(expectedHash);
 
@@ -164,22 +160,16 @@ describe('EmailVerificationService', () => {
 
       const expiresAt = createArgument.expiresAt.getTime();
 
-      expect(expiresAt).toBeGreaterThanOrEqual(
-        before + 30 * 60 * 1000,
-      );
+      expect(expiresAt).toBeGreaterThanOrEqual(before + 30 * 60 * 1000);
 
-      expect(expiresAt).toBeLessThanOrEqual(
-        after + 30 * 60 * 1000,
-      );
+      expect(expiresAt).toBeLessThanOrEqual(after + 30 * 60 * 1000);
     });
   });
 
   describe('verifyEmail', () => {
     const originalToken = 'token-original-123';
 
-    const tokenHash = createHash('sha256')
-      .update(originalToken)
-      .digest('hex');
+    const tokenHash = createHash('sha256').update(originalToken).digest('hex');
 
     const createVerificationToken = (
       overrides: Partial<EmailVerificationToken> = {},
@@ -220,17 +210,11 @@ describe('EmailVerificationService', () => {
     it('debería verificar el email correctamente', async () => {
       const verificationToken = createVerificationToken();
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      usersRepository.save.mockResolvedValue(
-        verificationToken.user,
-      );
+      usersRepository.save.mockResolvedValue(verificationToken.user);
 
-      verificationTokenRepository.save.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.save.mockResolvedValue(verificationToken);
 
       await service.verifyEmail(originalToken);
 
@@ -247,9 +231,7 @@ describe('EmailVerificationService', () => {
 
       expect(verificationToken.user.isEmailVerified).toBe(true);
 
-      expect(usersRepository.save).toHaveBeenCalledWith(
-        verificationToken.user,
-      );
+      expect(usersRepository.save).toHaveBeenCalledWith(verificationToken.user);
 
       expect(verificationToken.usedAt).toEqual(expect.any(Date));
 
@@ -261,9 +243,7 @@ describe('EmailVerificationService', () => {
     it('debería buscar el token utilizando su hash SHA-256', async () => {
       const verificationToken = createVerificationToken();
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
       usersRepository.save.mockResolvedValue({});
       verificationTokenRepository.save.mockResolvedValue({});
@@ -279,9 +259,7 @@ describe('EmailVerificationService', () => {
     it('debería lanzar BadRequestException si el token no existe', async () => {
       verificationTokenRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.verifyEmail(originalToken),
-      ).rejects.toThrow(
+      await expect(service.verifyEmail(originalToken)).rejects.toThrow(
         new BadRequestException('Token de verificación inválido'),
       );
 
@@ -294,16 +272,10 @@ describe('EmailVerificationService', () => {
         usedAt: new Date(),
       });
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      await expect(
-        service.verifyEmail(originalToken),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'El token de verificación ya fue utilizado',
-        ),
+      await expect(service.verifyEmail(originalToken)).rejects.toThrow(
+        new BadRequestException('El token de verificación ya fue utilizado'),
       );
 
       expect(usersRepository.save).not.toHaveBeenCalled();
@@ -315,16 +287,10 @@ describe('EmailVerificationService', () => {
         expiresAt: new Date(Date.now() - 1000),
       });
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      await expect(
-        service.verifyEmail(originalToken),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'El token de verificación ha expirado',
-        ),
+      await expect(service.verifyEmail(originalToken)).rejects.toThrow(
+        new BadRequestException('El token de verificación ha expirado'),
       );
 
       expect(usersRepository.save).not.toHaveBeenCalled();
@@ -336,13 +302,11 @@ describe('EmailVerificationService', () => {
         usedAt: new Date(),
       });
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      await expect(
-        service.verifyEmail(originalToken),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.verifyEmail(originalToken)).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(usersRepository.save).not.toHaveBeenCalled();
       expect(verificationTokenRepository.save).not.toHaveBeenCalled();
@@ -351,17 +315,11 @@ describe('EmailVerificationService', () => {
     it('debería guardar primero el usuario como verificado', async () => {
       const verificationToken = createVerificationToken();
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      usersRepository.save.mockResolvedValue(
-        verificationToken.user,
-      );
+      usersRepository.save.mockResolvedValue(verificationToken.user);
 
-      verificationTokenRepository.save.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.save.mockResolvedValue(verificationToken);
 
       await service.verifyEmail(originalToken);
 
@@ -375,42 +333,32 @@ describe('EmailVerificationService', () => {
     it('debería marcar el token como utilizado antes de guardarlo', async () => {
       const verificationToken = createVerificationToken();
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      usersRepository.save.mockResolvedValue(
-        verificationToken.user,
-      );
+      usersRepository.save.mockResolvedValue(verificationToken.user);
 
-      verificationTokenRepository.save.mockImplementation(
-        async (token) => {
-          expect(token.usedAt).toEqual(expect.any(Date));
-          return token;
-        },
-      );
+      verificationTokenRepository.save.mockImplementation(async (token) => {
+        expect(token.usedAt).toEqual(expect.any(Date));
+        return token;
+      });
 
       await service.verifyEmail(originalToken);
 
-      expect(
-        verificationTokenRepository.save,
-      ).toHaveBeenCalledTimes(1);
+      expect(verificationTokenRepository.save).toHaveBeenCalledTimes(1);
     });
 
     it('debería propagar el error si falla el guardado del usuario', async () => {
       const verificationToken = createVerificationToken();
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
       const databaseError = new Error('Database error');
 
       usersRepository.save.mockRejectedValue(databaseError);
 
-      await expect(
-        service.verifyEmail(originalToken),
-      ).rejects.toThrow('Database error');
+      await expect(service.verifyEmail(originalToken)).rejects.toThrow(
+        'Database error',
+      );
 
       expect(verificationTokenRepository.save).not.toHaveBeenCalled();
     });
@@ -418,27 +366,19 @@ describe('EmailVerificationService', () => {
     it('debería propagar el error si falla el guardado del token', async () => {
       const verificationToken = createVerificationToken();
 
-      verificationTokenRepository.findOne.mockResolvedValue(
-        verificationToken,
-      );
+      verificationTokenRepository.findOne.mockResolvedValue(verificationToken);
 
-      usersRepository.save.mockResolvedValue(
-        verificationToken.user,
-      );
+      usersRepository.save.mockResolvedValue(verificationToken.user);
 
       const databaseError = new Error('Database error');
 
-      verificationTokenRepository.save.mockRejectedValue(
-        databaseError,
+      verificationTokenRepository.save.mockRejectedValue(databaseError);
+
+      await expect(service.verifyEmail(originalToken)).rejects.toThrow(
+        'Database error',
       );
 
-      await expect(
-        service.verifyEmail(originalToken),
-      ).rejects.toThrow('Database error');
-
-      expect(usersRepository.save).toHaveBeenCalledWith(
-        verificationToken.user,
-      );
+      expect(usersRepository.save).toHaveBeenCalledWith(verificationToken.user);
     });
   });
 });

@@ -5,7 +5,6 @@ import { CreateProfessionalDto } from './dto/create-professional.dto';
 import { UpdateProfessionalDto } from './dto/update-professional.dto';
 import { JwtService } from '@nestjs/jwt';
 
-
 describe('ProfessionalsController', () => {
   let controller: ProfessionalsController;
   let service: jest.Mocked<ProfessionalsService>;
@@ -129,9 +128,7 @@ describe('ProfessionalsController', () => {
       const result = await controller.getProfessionalById(professionalId);
 
       expect(result).toEqual(expectedResult);
-      expect(service.getProfessionalById).toHaveBeenCalledWith(
-        professionalId,
-      );
+      expect(service.getProfessionalById).toHaveBeenCalledWith(professionalId);
       expect(service.getProfessionalById).toHaveBeenCalledTimes(1);
     });
   });
@@ -151,10 +148,7 @@ describe('ProfessionalsController', () => {
 
       service.updateProfessional.mockResolvedValue(expectedResult as any);
 
-      const result = await controller.updateProfessional(
-        professionalId,
-        dto,
-      );
+      const result = await controller.updateProfessional(professionalId, dto);
 
       expect(result).toEqual(expectedResult);
       expect(service.updateProfessional).toHaveBeenCalledWith(
@@ -176,8 +170,7 @@ describe('ProfessionalsController', () => {
 
       service.softDeleteProfessional.mockResolvedValue(expectedResult as any);
 
-      const result =
-        await controller.softDeleteProfessional(professionalId);
+      const result = await controller.softDeleteProfessional(professionalId);
 
       expect(result).toEqual(expectedResult);
       expect(service.softDeleteProfessional).toHaveBeenCalledWith(
@@ -198,13 +191,10 @@ describe('ProfessionalsController', () => {
 
       service.activateProfessional.mockResolvedValue(expectedResult as any);
 
-      const result =
-        await controller.activateProfessional(professionalId);
+      const result = await controller.activateProfessional(professionalId);
 
       expect(result).toEqual(expectedResult);
-      expect(service.activateProfessional).toHaveBeenCalledWith(
-        professionalId,
-      );
+      expect(service.activateProfessional).toHaveBeenCalledWith(professionalId);
       expect(service.activateProfessional).toHaveBeenCalledTimes(1);
     });
   });
@@ -254,8 +244,7 @@ describe('ProfessionalsController', () => {
         expectedResult as any,
       );
 
-      const result =
-        await controller.getServicesByProfessional(professionalId);
+      const result = await controller.getServicesByProfessional(professionalId);
 
       expect(result).toEqual(expectedResult);
       expect(service.getServicesByProfessional).toHaveBeenCalledWith(
@@ -285,12 +274,11 @@ describe('ProfessionalsController', () => {
       );
 
       expect(result).toEqual(expectedResult);
-      expect(
-        service.removeServiceFromProfessional,
-      ).toHaveBeenCalledWith(professionalId, serviceId);
-      expect(
-        service.removeServiceFromProfessional,
-      ).toHaveBeenCalledTimes(1);
+      expect(service.removeServiceFromProfessional).toHaveBeenCalledWith(
+        professionalId,
+        serviceId,
+      );
+      expect(service.removeServiceFromProfessional).toHaveBeenCalledTimes(1);
     });
   });
 });

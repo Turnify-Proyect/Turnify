@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ServicesService } from './services.service';
@@ -452,9 +449,7 @@ describe('ServicesService', () => {
           name: 'Corte premium',
         } as any),
       ).rejects.toThrow(
-        new ConflictException(
-          'Service with name Corte premium already exists',
-        ),
+        new ConflictException('Service with name Corte premium already exists'),
       );
 
       expect(servicesRepository.update).not.toHaveBeenCalled();
@@ -582,9 +577,7 @@ describe('ServicesService', () => {
 
       expect(result).toEqual(inactiveService);
 
-      expect(servicesRepository.deactivate).toHaveBeenCalledWith(
-        'service-1',
-      );
+      expect(servicesRepository.deactivate).toHaveBeenCalledWith('service-1');
 
       expect(servicesRepository.getById).toHaveBeenCalledTimes(2);
     });
@@ -592,9 +585,7 @@ describe('ServicesService', () => {
     it('should not deactivate a service that does not exist', async () => {
       servicesRepository.getById.mockResolvedValue(null);
 
-      await expect(
-        service.deactivate('service-1'),
-      ).rejects.toThrow(
+      await expect(service.deactivate('service-1')).rejects.toThrow(
         new NotFoundException('Service with id service-1 not found'),
       );
 
@@ -624,9 +615,7 @@ describe('ServicesService', () => {
 
       expect(result).toEqual(activeService);
 
-      expect(servicesRepository.reactivate).toHaveBeenCalledWith(
-        'service-1',
-      );
+      expect(servicesRepository.reactivate).toHaveBeenCalledWith('service-1');
 
       expect(servicesRepository.getById).toHaveBeenCalledTimes(2);
     });
@@ -634,9 +623,7 @@ describe('ServicesService', () => {
     it('should not reactivate a service that does not exist', async () => {
       servicesRepository.getById.mockResolvedValue(null);
 
-      await expect(
-        service.reactivate('service-1'),
-      ).rejects.toThrow(
+      await expect(service.reactivate('service-1')).rejects.toThrow(
         new NotFoundException('Service with id service-1 not found'),
       );
 
@@ -661,9 +648,9 @@ describe('ServicesService', () => {
 
       expect(result).toEqual(professionals);
 
-      expect(
-        servicesRepository.getProfessionalsByService,
-      ).toHaveBeenCalledWith('service-1');
+      expect(servicesRepository.getProfessionalsByService).toHaveBeenCalledWith(
+        'service-1',
+      );
     });
   });
 
@@ -687,9 +674,7 @@ describe('ServicesService', () => {
         secure_url: cloudinaryUrl,
       });
 
-      servicesRepository.updateServiceImage.mockResolvedValue(
-        updatedService,
-      );
+      servicesRepository.updateServiceImage.mockResolvedValue(updatedService);
 
       const result = await service.updateServiceImage('service-1', file);
 

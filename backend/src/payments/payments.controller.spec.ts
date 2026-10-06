@@ -85,13 +85,12 @@ describe('PaymentsController', () => {
 
       expect(result).toEqual(response);
 
-      expect(
-        paymentsService.createStripeIntent,
-      ).toHaveBeenCalledWith('order-1', 'user-1');
+      expect(paymentsService.createStripeIntent).toHaveBeenCalledWith(
+        'order-1',
+        'user-1',
+      );
 
-      expect(
-        paymentsService.createStripeIntent,
-      ).toHaveBeenCalledTimes(1);
+      expect(paymentsService.createStripeIntent).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -119,13 +118,12 @@ describe('PaymentsController', () => {
 
       expect(result).toEqual(response);
 
-      expect(
-        paymentsService.handleStripeWebhook,
-      ).toHaveBeenCalledWith(rawBody, signature);
+      expect(paymentsService.handleStripeWebhook).toHaveBeenCalledWith(
+        rawBody,
+        signature,
+      );
 
-      expect(
-        paymentsService.handleStripeWebhook,
-      ).toHaveBeenCalledTimes(1);
+      expect(paymentsService.handleStripeWebhook).toHaveBeenCalledTimes(1);
     });
 
     it('should pass the exact raw body and Stripe signature to the service', async () => {
@@ -143,9 +141,10 @@ describe('PaymentsController', () => {
 
       await controller.stripeWebhook(req, signature);
 
-      expect(
-        paymentsService.handleStripeWebhook,
-      ).toHaveBeenCalledWith(rawBody, signature);
+      expect(paymentsService.handleStripeWebhook).toHaveBeenCalledWith(
+        rawBody,
+        signature,
+      );
     });
   });
 
@@ -185,13 +184,9 @@ describe('PaymentsController', () => {
 
       expect(result).toEqual(payment);
 
-      expect(
-        paymentsService.getPaymentById,
-      ).toHaveBeenCalledWith('payment-1');
+      expect(paymentsService.getPaymentById).toHaveBeenCalledWith('payment-1');
 
-      expect(
-        paymentsService.getPaymentById,
-      ).toHaveBeenCalledTimes(1);
+      expect(paymentsService.getPaymentById).toHaveBeenCalledTimes(1);
     });
   });
 });

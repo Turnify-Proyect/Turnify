@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { CategoriesService } from './categories.service';
@@ -99,17 +96,13 @@ describe('CategoriesService', () => {
       const result = await service.getCategoryById('category-1');
 
       expect(result).toEqual(category);
-      expect(repository.getCategoryById).toHaveBeenCalledWith(
-        'category-1',
-      );
+      expect(repository.getCategoryById).toHaveBeenCalledWith('category-1');
     });
 
     it('should throw NotFoundException when the category does not exist', async () => {
       repository.getCategoryById.mockResolvedValue(null);
 
-      await expect(
-        service.getCategoryById('category-1'),
-      ).rejects.toThrow(
+      await expect(service.getCategoryById('category-1')).rejects.toThrow(
         new NotFoundException('No existe la categoría seleccionada'),
       );
     });
@@ -213,9 +206,7 @@ describe('CategoriesService', () => {
     it('should throw NotFoundException when the category does not exist', async () => {
       repository.getCategoryById.mockResolvedValue(null);
 
-      await expect(
-        service.deactivateCategory('category-1'),
-      ).rejects.toThrow(
+      await expect(service.deactivateCategory('category-1')).rejects.toThrow(
         new NotFoundException('No existe la categoría seleccionada'),
       );
 
@@ -248,9 +239,7 @@ describe('CategoriesService', () => {
       repository.getCategoryById.mockResolvedValue(category);
       repository.isInUse.mockResolvedValue(true);
 
-      await expect(
-        service.deactivateCategory('category-1'),
-      ).rejects.toThrow(
+      await expect(service.deactivateCategory('category-1')).rejects.toThrow(
         new ConflictException(
           'No se puede desactivar la categoría porque está asociada a uno o más servicios.',
         ),
@@ -285,9 +274,7 @@ describe('CategoriesService', () => {
     it('should throw NotFoundException when the category does not exist', async () => {
       repository.getCategoryById.mockResolvedValue(null);
 
-      await expect(
-        service.reactivateCategory('category-1'),
-      ).rejects.toThrow(
+      await expect(service.reactivateCategory('category-1')).rejects.toThrow(
         new NotFoundException('No existe la categoría seleccionada'),
       );
     });

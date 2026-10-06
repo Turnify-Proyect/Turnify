@@ -7,129 +7,125 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 describe('OrdersController', () => {
-let controller: OrdersController;
+  let controller: OrdersController;
 
-const ordersService = {
-create: jest.fn(),
-};
-
-beforeEach(async () => {
-jest.clearAllMocks();
-
-const module: TestingModule = await Test.createTestingModule({
-  controllers: [OrdersController],
-  providers: [
-    {
-      provide: OrdersService,
-      useValue: ordersService,
-    },
-  ],
-})
-  .overrideGuard(AuthGuard)
-  .useValue({
-    canActivate: jest.fn().mockReturnValue(true),
-  })
-  .overrideGuard(RolesGuard)
-  .useValue({
-    canActivate: jest.fn().mockReturnValue(true),
-  })
-  .compile();
-
-controller = module.get<OrdersController>(OrdersController);
-
-
-});
-
-describe('create', () => {
-it('should create an order using the authenticated user id', async () => {
-const req = {
-user: {
-id: 'user-1',
-},
-};
-
-  const createOrderDto = {
-    appointmentId: 'appointment-1',
-  } as any;
-
-  const order = {
-    id: 'order-1',
-    userId: 'user-1',
-    appointmentId: 'appointment-1',
-    status: 'pending',
+  const ordersService = {
+    create: jest.fn(),
   };
 
-  ordersService.create.mockResolvedValue(order);
+  beforeEach(async () => {
+    jest.clearAllMocks();
 
-  const result = await controller.create(req, createOrderDto);
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [OrdersController],
+      providers: [
+        {
+          provide: OrdersService,
+          useValue: ordersService,
+        },
+      ],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({
+        canActivate: jest.fn().mockReturnValue(true),
+      })
+      .overrideGuard(RolesGuard)
+      .useValue({
+        canActivate: jest.fn().mockReturnValue(true),
+      })
+      .compile();
 
-  expect(result).toEqual(order);
+    controller = module.get<OrdersController>(OrdersController);
+  });
 
-  expect(ordersService.create).toHaveBeenCalledWith(
-    'user-1',
-    createOrderDto,
-  );
-});
+  describe('create', () => {
+    it('should create an order using the authenticated user id', async () => {
+      const req = {
+        user: {
+          id: 'user-1',
+        },
+      };
 
-it('should use the user id from the JWT instead of the DTO', async () => {
-  const req = {
-    user: {
-      id: 'authenticated-user',
-    },
-  };
+      const createOrderDto = {
+        appointmentId: 'appointment-1',
+      } as any;
 
-  const createOrderDto = {
-    appointmentId: 'appointment-1',
-    userId: 'another-user',
-  } as any;
+      const order = {
+        id: 'order-1',
+        userId: 'user-1',
+        appointmentId: 'appointment-1',
+        status: 'pending',
+      };
 
-  const order = {
-    id: 'order-1',
-    userId: 'authenticated-user',
-  };
+      ordersService.create.mockResolvedValue(order);
 
-  ordersService.create.mockResolvedValue(order);
+      const result = await controller.create(req, createOrderDto);
 
-  const result = await controller.create(req, createOrderDto);
+      expect(result).toEqual(order);
 
-  expect(result).toEqual(order);
+      expect(ordersService.create).toHaveBeenCalledWith(
+        'user-1',
+        createOrderDto,
+      );
+    });
 
-  expect(ordersService.create).toHaveBeenCalledWith(
-    'authenticated-user',
-    createOrderDto,
-  );
+    it('should use the user id from the JWT instead of the DTO', async () => {
+      const req = {
+        user: {
+          id: 'authenticated-user',
+        },
+      };
 
-  expect(ordersService.create).not.toHaveBeenCalledWith(
-    'another-user',
-    createOrderDto,
-  );
-});
+      const createOrderDto = {
+        appointmentId: 'appointment-1',
+        userId: 'another-user',
+      } as any;
 
-it('should propagate the service error', async () => {
-  const req = {
-    user: {
-      id: 'user-1',
-    },
-  };
+      const order = {
+        id: 'order-1',
+        userId: 'authenticated-user',
+      };
 
-  const createOrderDto = {
-    appointmentId: 'appointment-1',
-  } as any;
+      ordersService.create.mockResolvedValue(order);
 
-  const error = new Error('Order creation failed');
+      const result = await controller.create(req, createOrderDto);
 
-  ordersService.create.mockRejectedValue(error);
+      expect(result).toEqual(order);
 
-  await expect(
-    controller.create(req, createOrderDto),
-  ).rejects.toThrow('Order creation failed');
+      expect(ordersService.create).toHaveBeenCalledWith(
+        'authenticated-user',
+        createOrderDto,
+      );
 
-  expect(ordersService.create).toHaveBeenCalledWith(
-    'user-1',
-    createOrderDto,
-  );
-});
+      expect(ordersService.create).not.toHaveBeenCalledWith(
+        'another-user',
+        createOrderDto,
+      );
+    });
 
+    it('should propagate the service error', async () => {
+      const req = {
+        user: {
+          id: 'user-1',
+        },
+      };
 
-});
+      const createOrderDto = {
+        appointmentId: 'appointment-1',
+      } as any;
+
+      const error = new Error('Order creation failed');
+
+      ordersService.create.mockRejectedValue(error);
+
+      await expect(controller.create(req, createOrderDto)).rejects.toThrow(
+        'Order creation failed',
+      );
+
+      expect(ordersService.create).toHaveBeenCalledWith(
+        'user-1',
+        createOrderDto,
+      );
+    });
+  });
 });

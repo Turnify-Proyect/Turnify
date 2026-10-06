@@ -14,13 +14,16 @@ import {
 import { AppointmentsService } from './appointments.service';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
-
+import { ApiErrorSwaggerResponse } from '../common/api/api-error-response.decorator';
+import { ApiSuccessResponse } from 'src/common/api';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
+import { Appointment } from './entities/appointment.entity';
+import { ApiSuccessArrayResponse } from 'src/common/api';
 import { Roles } from '../decorators/roles.decorators';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -35,14 +38,9 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de citas',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder',
-  })
+  @ApiSuccessArrayResponse(Appointment)
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
   getAllAppointments() {
     return this.appointmentsService.getAllAppointments();
   }
@@ -56,14 +54,12 @@ export class AppointmentsController {
     description:
       'Devuelve la lista de turnos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de turnos del usuario autenticado',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Token no enviado, inválido o expirado',
-  })
+  @ApiSuccessArrayResponse(Appointment)
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(
+    403,
+    'El usuario no tiene permisos para acceder a sus turnos',
+  )
   getMyAppointments(@Req() req: any) {
     return this.appointmentsService.getAppointmentsByUserId(req.user.id);
   }
@@ -72,6 +68,10 @@ export class AppointmentsController {
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiSuccessResponse(String)
+  @ApiErrorSwaggerResponse(400, 'Parámetros inválidos o UUID incorrecto')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para consultar disponibilidad')
   getAvailableSlots(
     @Query('professionalId', ParseUUIDPipe)
     professionalId: string,
@@ -103,18 +103,14 @@ export class AppointmentsController {
     description: 'ID de la cita',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Cita encontrada',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Cita no encontrada',
-  })
+  @ApiSuccessResponse(Appointment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID de la cita no tiene un formato UUID válido',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
+  @ApiErrorSwaggerResponse(404, 'Cita no encontrada')
   getAppointmentById(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.getAppointmentById(id);
   }
@@ -123,11 +119,23 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiSuccessArrayResponse(Appointment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID del usuario no tiene un formato UUID válido',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
   getAppointmentsByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.appointmentsService.getAppointmentsByUserId(userId);
   }
 
   @Get('professional/:professionalId')
+  @ApiSuccessArrayResponse(Appointment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID del profesional no tiene un formato UUID válido',
+  )
   getAppointmentsByProfessionalId(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
   ) {
@@ -151,18 +159,17 @@ export class AppointmentsController {
     description: 'ID del turno a cancelar',
     type: String,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Turno cancelado correctamente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'El usuario no tiene permiso para cancelar este turno',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Turno no encontrado',
-  })
+  @ApiSuccessResponse(Appointment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID del turno no tiene un formato UUID válido',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(
+    403,
+    'El usuario no tiene permiso para cancelar este turno',
+  )
+  @ApiErrorSwaggerResponse(404, 'Turno no encontrado')
   cancelAppointment(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.cancelAppointment(id);
   }
@@ -182,18 +189,17 @@ export class AppointmentsController {
     description:
       'Permite reprogramar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Turno reprogramado correctamente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'El usuario no tiene permiso para reprogramar este turno',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Turno no encontrado',
-  })
+  @ApiSuccessResponse(Appointment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID o los datos de reprogramación no son válidos',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(
+    403,
+    'El usuario no tiene permiso para reprogramar este turno',
+  )
+  @ApiErrorSwaggerResponse(404, 'Turno no encontrado')
   rescheduleAppointment(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() rescheduleAppointmentDto: RescheduleAppointmentDto,
@@ -208,6 +214,14 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiSuccessResponse(Appointment)
+  @ApiErrorSwaggerResponse(
+    400,
+    'El ID del turno no tiene un formato UUID válido',
+  )
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para completar el turno')
+  @ApiErrorSwaggerResponse(404, 'Turno no encontrado')
   completeAppointment(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentsService.completeAppointment(id);
   }
@@ -216,6 +230,11 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiSuccessResponse(Appointment)
+  @ApiErrorSwaggerResponse(400, 'El ID o el estado enviado no son válidos')
+  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiErrorSwaggerResponse(403, 'Sin permisos para modificar el estado')
+  @ApiErrorSwaggerResponse(404, 'Turno no encontrado')
   updateAppointmentStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') newStatus: AppointmentStatus,

@@ -52,9 +52,9 @@ describe('AvailabilityService', () => {
       const result = await service.getByProfessionalId('professional-1');
 
       expect(result).toEqual(availabilities);
-      expect(
-        availabilityRepository.getByProfessionalId,
-      ).toHaveBeenCalledWith('professional-1');
+      expect(availabilityRepository.getByProfessionalId).toHaveBeenCalledWith(
+        'professional-1',
+      );
     });
   });
 
@@ -79,10 +79,7 @@ describe('AvailabilityService', () => {
 
       expect(
         availabilityRepository.getByProfessionalAndDay,
-      ).toHaveBeenCalledWith(
-        'professional-1',
-        DayOfWeek.MONDAY,
-      );
+      ).toHaveBeenCalledWith('professional-1', DayOfWeek.MONDAY);
 
       expect(availabilityRepository.create).toHaveBeenCalledWith(
         'professional-1',
@@ -99,9 +96,7 @@ describe('AvailabilityService', () => {
         endTime: '09:00',
       };
 
-      await expect(
-        service.create('professional-1', data),
-      ).rejects.toThrow(
+      await expect(service.create('professional-1', data)).rejects.toThrow(
         new BadRequestException(
           'La hora de inicio debe ser anterior a la hora de finalización',
         ),
@@ -121,9 +116,7 @@ describe('AvailabilityService', () => {
         endTime: '09:00',
       };
 
-      await expect(
-        service.create('professional-1', data),
-      ).rejects.toThrow(
+      await expect(service.create('professional-1', data)).rejects.toThrow(
         'La hora de inicio debe ser anterior a la hora de finalización',
       );
 
@@ -149,9 +142,7 @@ describe('AvailabilityService', () => {
         endTime: '16:00',
       };
 
-      await expect(
-        service.create('professional-1', data),
-      ).rejects.toThrow(
+      await expect(service.create('professional-1', data)).rejects.toThrow(
         new ConflictException(
           'Availability overlaps with an existing time range',
         ),
@@ -233,9 +224,9 @@ describe('AvailabilityService', () => {
         endTime: '14:00:00',
       };
 
-      await expect(
-        service.create('professional-1', data),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.create('professional-1', data)).rejects.toThrow(
+        ConflictException,
+      );
 
       expect(availabilityRepository.create).not.toHaveBeenCalled();
     });
@@ -253,12 +244,8 @@ describe('AvailabilityService', () => {
     } as Availability;
 
     it('should throw BadRequestException when no data is provided', async () => {
-      await expect(
-        service.update('availability-1', {}),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'No se proporcionaron datos para actualizar',
-        ),
+      await expect(service.update('availability-1', {})).rejects.toThrow(
+        new BadRequestException('No se proporcionaron datos para actualizar'),
       );
 
       expect(availabilityRepository.getById).not.toHaveBeenCalled();
@@ -295,17 +282,11 @@ describe('AvailabilityService', () => {
         startTime: '10:00',
       };
 
-      const result = await service.update(
-        'availability-1',
-        updateData,
-      );
+      const result = await service.update('availability-1', updateData);
 
       expect(
         availabilityRepository.getByProfessionalAndDay,
-      ).toHaveBeenCalledWith(
-        'professional-1',
-        DayOfWeek.MONDAY,
-      );
+      ).toHaveBeenCalledWith('professional-1', DayOfWeek.MONDAY);
 
       expect(availabilityRepository.update).toHaveBeenCalledWith(
         'availability-1',
@@ -336,10 +317,7 @@ describe('AvailabilityService', () => {
 
       expect(
         availabilityRepository.getByProfessionalAndDay,
-      ).toHaveBeenCalledWith(
-        'professional-1',
-        DayOfWeek.TUESDAY,
-      );
+      ).toHaveBeenCalledWith('professional-1', DayOfWeek.TUESDAY);
 
       expect(availabilityRepository.update).toHaveBeenCalledWith(
         'availability-1',
@@ -361,17 +339,11 @@ describe('AvailabilityService', () => {
         endTime: '12:00',
       };
 
-      const result = await service.update(
-        'availability-1',
-        updateData,
-      );
+      const result = await service.update('availability-1', updateData);
 
       expect(
         availabilityRepository.getByProfessionalAndDay,
-      ).toHaveBeenCalledWith(
-        'professional-1',
-        DayOfWeek.MONDAY,
-      );
+      ).toHaveBeenCalledWith('professional-1', DayOfWeek.MONDAY);
 
       expect(result).toEqual(existingAvailability);
       expect(availabilityRepository.update).toHaveBeenCalledWith(
@@ -438,9 +410,7 @@ describe('AvailabilityService', () => {
 
       availabilityRepository.delete.mockResolvedValue(undefined);
 
-      await expect(
-        service.delete('availability-1'),
-      ).resolves.toBeUndefined();
+      await expect(service.delete('availability-1')).resolves.toBeUndefined();
 
       expect(availabilityRepository.getById).toHaveBeenCalledWith(
         'availability-1',
@@ -454,9 +424,7 @@ describe('AvailabilityService', () => {
     it('should throw NotFoundException when the availability does not exist', async () => {
       availabilityRepository.getById.mockResolvedValue(null);
 
-      await expect(
-        service.delete('availability-1'),
-      ).rejects.toThrow(
+      await expect(service.delete('availability-1')).rejects.toThrow(
         new NotFoundException(
           'No se encontró la disponibilidad con id availability-1',
         ),

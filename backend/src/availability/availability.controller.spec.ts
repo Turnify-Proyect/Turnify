@@ -64,9 +64,7 @@ describe('AvailabilityController', () => {
 
       const result = await controller.getByProfessionalId(professionalId);
 
-      expect(service.getByProfessionalId).toHaveBeenCalledWith(
-        professionalId,
-      );
+      expect(service.getByProfessionalId).toHaveBeenCalledWith(professionalId);
       expect(result).toEqual(availabilities);
     });
   });
@@ -93,10 +91,7 @@ describe('AvailabilityController', () => {
 
       const result = await controller.create(professionalId, data);
 
-      expect(service.create).toHaveBeenCalledWith(
-        professionalId,
-        data,
-      );
+      expect(service.create).toHaveBeenCalledWith(professionalId, data);
       expect(result).toEqual(createdAvailability);
     });
   });

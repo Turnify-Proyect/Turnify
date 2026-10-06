@@ -56,9 +56,7 @@ describe('CategoriesController', () => {
       const result = await controller.getAllActiveCategories();
 
       expect(result).toEqual(categories);
-      expect(
-        categoriesService.getAllActiveCategories,
-      ).toHaveBeenCalled();
+      expect(categoriesService.getAllActiveCategories).toHaveBeenCalled();
     });
   });
 
@@ -75,9 +73,9 @@ describe('CategoriesController', () => {
       const result = await controller.getById('category-1');
 
       expect(result).toEqual(category);
-      expect(
-        categoriesService.getCategoryById,
-      ).toHaveBeenCalledWith('category-1');
+      expect(categoriesService.getCategoryById).toHaveBeenCalledWith(
+        'category-1',
+      );
     });
   });
 
@@ -117,9 +115,9 @@ describe('CategoriesController', () => {
       const result = await controller.deactivate('category-1');
 
       expect(result).toEqual(category);
-      expect(
-        categoriesService.deactivateCategory,
-      ).toHaveBeenCalledWith('category-1');
+      expect(categoriesService.deactivateCategory).toHaveBeenCalledWith(
+        'category-1',
+      );
     });
   });
 
@@ -136,9 +134,9 @@ describe('CategoriesController', () => {
       const result = await controller.reactivate('category-1');
 
       expect(result).toEqual(category);
-      expect(
-        categoriesService.reactivateCategory,
-      ).toHaveBeenCalledWith('category-1');
+      expect(categoriesService.reactivateCategory).toHaveBeenCalledWith(
+        'category-1',
+      );
     });
   });
 });

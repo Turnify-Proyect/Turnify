@@ -57,12 +57,7 @@ describe('AppointmentCronService', () => {
           where: expect.objectContaining({
             status: AppointmentStatus.CONFIRMED,
           }),
-          relations: [
-            'user',
-            'professional',
-            'professional.user',
-            'service',
-          ],
+          relations: ['user', 'professional', 'professional.user', 'service'],
         }),
       );
 
@@ -110,9 +105,7 @@ describe('AppointmentCronService', () => {
         notificationsService.sendAppointmentReminder,
       ).toHaveBeenCalledTimes(1);
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'cliente@test.com',
         'Juan Pérez',
         'Consulta médica',
@@ -265,9 +258,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'cliente@test.com',
         'Cliente',
         'Consulta',
@@ -296,9 +287,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'cliente@test.com',
         'Juan',
         'No especificado',
@@ -325,9 +314,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'cliente@test.com',
         'Juan',
         'Consulta',
