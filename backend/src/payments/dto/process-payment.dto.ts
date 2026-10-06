@@ -8,7 +8,7 @@ import {
   IsUUID,
   Min,
 } from 'class-validator';
-import { PaymentStatus } from '../entities/payment.entity';
+import { PaymentStatus, PaymentType } from '../entities/payment.entity';
 
 export class ProcessPaymentDto {
   @ApiProperty({
@@ -27,6 +27,15 @@ export class ProcessPaymentDto {
   @IsNumber({}, { message: 'El monto debe ser un número válido' })
   @Min(0, { message: 'El monto no puede ser negativo' })
   amount!: number;
+
+  @ApiProperty({
+    enum: PaymentType,
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsEnum(PaymentType)
+  paymentType?: PaymentType;
 
   @ApiProperty({
     example: 'mercadopago',

@@ -17,7 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiSuccessArrayResponse } from 'src/common/api';
+import { ApiErrorSwaggerResponse, ApiSuccessArrayResponse, ApiSuccessCreatedResponse, ApiSuccessResponse } from 'src/common/api';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { PaymentsService } from './payments.service';
@@ -28,9 +28,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../decorators/roles.decorators';
 import { UserRole } from '../common/userRoles.enum';
-import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
-import { ApiSuccessCreatedResponse } from 'src/common/api';
-import { ApiSuccessResponse } from 'src/common/api';
+import { ProcessCashPaymentDto } from './dto/process-cash-payment.dto';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -59,6 +57,23 @@ export class PaymentsController {
     @Body() processPaymentDto: ProcessPaymentDto,
   ): Promise<Payment> {
     return this.paymentsService.processPayment(processPaymentDto);
+  }
+
+ @Post('cash')
+ @Roles(UserRole.ADMIN)
+ @UseGuards(AuthGuard, RolesGuard)
+ @ApiBearerAuth()
+ @ApiOperation({
+   summary: 'Registrar un pago en efectivo',
+   description:
+     'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
+ })
+ @ApiSuccessCreatedResponse(Payment)
+ @ApiErrorSwaggerResponse(400, 'Datos inválidos o falla en el procesamiento')
+ @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+ @ApiErrorSwaggerResponse(403, 'Sin permisos de administrador')
+  async processCashPayment(@Body() processCashPaymentDto: ProcessCashPaymentDto,): Promise<Payment> {
+    return this.paymentsService.processCashPayment(processCashPaymentDto);
   }
 
   @Post('stripe/create-intent')

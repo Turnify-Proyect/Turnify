@@ -7,7 +7,7 @@ import {
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
 
-import { PaymentStatus } from '../payments/entities/payment.entity';
+import { PaymentStatus, PaymentType, } from '../payments/entities/payment.entity';
 
 @Injectable()
 export class StatisticsService {
@@ -76,11 +76,13 @@ export class StatisticsService {
         completedAppointments,
         cancelledAppointments,
         cancellationRate,
-
+            
         depositRevenue: revenue.depositRevenue,
-
-        completedServicesRevenue: revenue.completedServicesRevenue,
-
+            
+        fullPaymentRevenue: revenue.fullPaymentRevenue,
+            
+        completionRevenue: revenue.completionRevenue,
+            
         totalRevenue: revenue.totalRevenue,
       },
 
@@ -104,49 +106,80 @@ export class StatisticsService {
   // INGRESOS
   // =========================
 
-  private calculateRevenue(appointments: Appointment[]) {
-    let depositRevenue = 0;
-    let completedServicesRevenue = 0;
+private calculateRevenue(appointments: Appointment[]) {
+  let depositRevenue = 0;
+  let fullPaymentRevenue = 0;
+  let completionRevenue = 0;
 
-    for (const appointment of appointments) {
-      const appointmentPrice = this.getAppointmentBookedPrice(appointment);
+  for (const appointment of appointments) {
+    const appointmentPrice =
+      this.getAppointmentBookedPrice(appointment);
 
-      // Si el turno fue completado,
-      // consideramos ingresado el 100 %
-      // del valor del servicio.
-      if (appointment.status === AppointmentStatus.COMPLETED) {
-        completedServicesRevenue += appointmentPrice;
+    const payment =
+      appointment.orderDetail?.order?.payment;
 
-        continue;
-      }
+    const paymentShare =
+      payment?.status === PaymentStatus.PAID
+        ? this.getAppointmentPaymentShare(appointment)
+        : 0;
 
-      const payment = appointment.orderDetail?.order?.payment;
+    // =========================
+    // PAGO PREVIO
+    // =========================
 
-      // La seña se considera cobrada
-      // únicamente si existe un Payment
-      // efectivamente abonado.
+    if (payment?.status === PaymentStatus.PAID) {
       if (
-        payment?.status === PaymentStatus.PAID &&
-        (appointment.status === AppointmentStatus.CONFIRMED ||
-          appointment.status === AppointmentStatus.CANCELLED)
+        payment.paymentType === PaymentType.FULL_PAYMENT
       ) {
-        depositRevenue += this.getAppointmentPaymentShare(appointment);
+        fullPaymentRevenue += paymentShare;
+      } else {
+        // Incluye:
+        // - Stripe
+        // - pagos antiguos sin paymentType
+        // - efectivo registrado como seña
+        depositRevenue += paymentShare;
       }
     }
 
-    depositRevenue = this.roundMoney(depositRevenue);
+    // =========================
+    // TURNO COMPLETADO
+    // =========================
 
-    completedServicesRevenue = this.roundMoney(completedServicesRevenue);
+    if (
+      appointment.status === AppointmentStatus.COMPLETED
+    ) {
+      // Al completar el servicio se considera cobrado
+      // únicamente lo que todavía faltaba pagar.
+      const remainingAmount = Math.max(
+        appointmentPrice - paymentShare,
+        0,
+      );
 
-    return {
-      depositRevenue,
-
-      completedServicesRevenue,
-
-      totalRevenue: this.roundMoney(depositRevenue + completedServicesRevenue),
-    };
+      completionRevenue += remainingAmount;
+    }
   }
 
+  depositRevenue =
+    this.roundMoney(depositRevenue);
+
+  fullPaymentRevenue =
+    this.roundMoney(fullPaymentRevenue);
+
+  completionRevenue =
+    this.roundMoney(completionRevenue);
+
+  return {
+    depositRevenue,
+    fullPaymentRevenue,
+    completionRevenue,
+
+    totalRevenue: this.roundMoney(
+      depositRevenue +
+        fullPaymentRevenue +
+        completionRevenue,
+    ),
+  };
+}
   // =========================
   // PRECIO DEL TURNO
   // =========================
