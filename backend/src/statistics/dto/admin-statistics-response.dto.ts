@@ -32,19 +32,28 @@ export class StatisticsSummaryDto {
 
   @ApiProperty({
     example: 45000,
-    description: 'Señas cobradas de turnos confirmados o cancelados',
+    description:
+      'Señas cobradas. Incluye pagos antiguos sin tipo y señas registradas en efectivo',
   })
   depositRevenue!: number;
 
   @ApiProperty({
-    example: 320000,
-    description: 'Valor total de los servicios de turnos completados',
+    example: 60000,
+    description: 'Pagos completos cobrados por adelantado',
   })
-  completedServicesRevenue!: number;
+  fullPaymentRevenue!: number;
+
+  @ApiProperty({
+    example: 260000,
+    description:
+      'Saldo cobrado al completar los turnos: precio del servicio menos lo ya pagado',
+  })
+  completionRevenue!: number;
 
   @ApiProperty({
     example: 365000,
-    description: 'Suma de señas y servicios completados',
+    description:
+      'Suma de señas, pagos completos y saldos de turnos completados',
   })
   totalRevenue!: number;
 }

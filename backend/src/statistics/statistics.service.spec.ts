@@ -7,7 +7,10 @@ import {
   Appointment,
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
-import { PaymentStatus } from '../payments/entities/payment.entity';
+import {
+  PaymentStatus,
+  PaymentType,
+} from '../payments/entities/payment.entity';
 import { StatisticsService } from './statistics.service';
 
 // ---------------------------------------------------------------
@@ -56,14 +59,35 @@ function buildAppointment(options: BuildOptions = {}): Appointment {
   return appointment as Appointment;
 }
 
-function paidPayment(amount: number) {
-  return { status: PaymentStatus.PAID, amount: String(amount) };
+/**
+ * Pago abonado. Sin paymentType se comporta como un pago antiguo,
+ * que el service cuenta como seña.
+ */
+function paidPayment(amount: number, paymentType?: PaymentType) {
+  return {
+    status: PaymentStatus.PAID,
+    amount: String(amount),
+    paymentType,
+  };
 }
 
 function unpaidPayment(amount: number) {
   return {
     status: 'NOT_PAID' as unknown as PaymentStatus,
     amount: String(amount),
+  };
+}
+
+/** Orden de un solo turno con total_price y pago indicados. */
+function singleOrder(
+  totalPrice: number,
+  payment: any,
+  service: any = defaultService,
+) {
+  return {
+    total_price: String(totalPrice),
+    order: { payment },
+    appointments: [{ service }],
   };
 }
 
@@ -184,7 +208,8 @@ describe('StatisticsService', () => {
         cancelledAppointments: 0,
         cancellationRate: 0,
         depositRevenue: 0,
-        completedServicesRevenue: 0,
+        fullPaymentRevenue: 0,
+        completionRevenue: 0,
         totalRevenue: 0,
       });
     });
@@ -223,319 +248,432 @@ describe('StatisticsService', () => {
   // =========================
 
   describe('ingresos', () => {
-    it('turno COMPLETED con una sola orden: suma el total_price histórico', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.COMPLETED,
-          // el precio actual del servicio cambió, pero se usa el histórico
-          service: { id: 's1', name: 'Masaje', price: 5000 },
-          orderDetail: {
-            total_price: '1200',
-            order: { payment: paidPayment(300) },
-            appointments: [{ service: { price: 5000 } }],
-          },
-        }),
-      ]);
+    describe('turnos completados (completionRevenue)', () => {
+      it('sin pago previo: suma el total_price histórico de la orden', async () => {
+        const serviceWithNewPrice = { id: 's1', name: 'Masaje', price: 5000 };
 
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.completedServicesRevenue).toBe(1200);
-      // un turno completado no suma además la seña
-      expect(summary.depositRevenue).toBe(0);
-      expect(summary.totalRevenue).toBe(1200);
-    });
-
-    it('turno COMPLETED en orden con varios turnos: reparte proporcionalmente al precio actual', async () => {
-      const serviceA = { id: 'sA', name: 'A', price: 100 };
-      const serviceB = { id: 'sB', name: 'B', price: 300 };
-
-      const orderDetail = {
-        total_price: '1000',
-        order: { payment: null },
-        appointments: [{ service: serviceA }, { service: serviceB }],
-      };
-
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.COMPLETED,
-          service: serviceA,
-          orderDetail,
-        }),
-        buildAppointment({
-          status: AppointmentStatus.COMPLETED,
-          service: serviceB,
-          orderDetail,
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      // A: 1000 * 100/400 = 250  |  B: 1000 * 300/400 = 750
-      expect(summary.completedServicesRevenue).toBe(1000);
-    });
-
-    it('si no hay total_price usa el precio actual del servicio', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.COMPLETED,
-          service: { id: 's1', name: 'Masaje', price: 800 },
-          orderDetail: {
-            total_price: '0',
-            order: { payment: null },
-            appointments: [],
-          },
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.completedServicesRevenue).toBe(800);
-    });
-
-    it('si no hay orderDetail usa el precio actual del servicio', async () => {
-      const appointment = buildAppointment({
-        status: AppointmentStatus.COMPLETED,
-        service: { id: 's1', name: 'Masaje', price: 650 },
-      });
-      (appointment as any).orderDetail = undefined;
-
-      repository.find.mockResolvedValue([appointment]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.completedServicesRevenue).toBe(650);
-    });
-
-    it('turno CONFIRMED con pago PAID: suma la seña', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          orderDetail: {
-            total_price: '1000',
-            order: { payment: paidPayment(300) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.depositRevenue).toBe(300);
-      expect(summary.completedServicesRevenue).toBe(0);
-      expect(summary.totalRevenue).toBe(300);
-    });
-
-    it('turno CANCELLED con pago PAID: la seña igual se considera cobrada', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CANCELLED,
-          orderDetail: {
-            total_price: '1000',
-            order: { payment: paidPayment(300) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.depositRevenue).toBe(300);
-    });
-
-    it('no suma seña si el pago no está PAID', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          orderDetail: {
-            total_price: '1000',
-            order: { payment: unpaidPayment(300) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.depositRevenue).toBe(0);
-    });
-
-    it('no suma seña si no existe pago', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({ status: AppointmentStatus.CONFIRMED }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.depositRevenue).toBe(0);
-    });
-
-    it.each([AppointmentStatus.PENDING, AppointmentStatus.EXPIRED])(
-      'no suma seña para turnos en estado %s aunque el pago esté PAID',
-      async (status) => {
         repository.find.mockResolvedValue([
           buildAppointment({
-            status,
+            status: AppointmentStatus.COMPLETED,
+            // el precio actual del servicio cambió, pero se usa el histórico
+            service: serviceWithNewPrice,
+            orderDetail: singleOrder(1200, null, serviceWithNewPrice),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.completionRevenue).toBe(1200);
+        expect(summary.depositRevenue).toBe(0);
+        expect(summary.fullPaymentRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(1200);
+      });
+
+      it('con seña pagada: solo suma como completado lo que faltaba pagar', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            orderDetail: singleOrder(1000, paidPayment(300)),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(300);
+        expect(summary.completionRevenue).toBe(700);
+        expect(summary.fullPaymentRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(1000);
+      });
+
+      it('con pago completo por adelantado: no suma nada al completar', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            orderDetail: singleOrder(
+              1000,
+              paidPayment(1000, PaymentType.FULL_PAYMENT),
+            ),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.fullPaymentRevenue).toBe(1000);
+        expect(summary.completionRevenue).toBe(0);
+        expect(summary.depositRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(1000);
+      });
+
+      it('nunca devuelve un saldo negativo si el pago supera el precio', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            orderDetail: singleOrder(1000, paidPayment(1200)),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.completionRevenue).toBe(0);
+        expect(summary.depositRevenue).toBe(1200);
+        expect(summary.totalRevenue).toBe(1200);
+      });
+
+      it('en una orden con varios turnos reparte el total proporcionalmente al precio actual', async () => {
+        const serviceA = { id: 'sA', name: 'A', price: 100 };
+        const serviceB = { id: 'sB', name: 'B', price: 300 };
+
+        const orderDetail = {
+          total_price: '1000',
+          order: { payment: null },
+          appointments: [{ service: serviceA }, { service: serviceB }],
+        };
+
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            service: serviceA,
+            orderDetail,
+          }),
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            service: serviceB,
+            orderDetail,
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        // A: 1000 * 100/400 = 250  |  B: 1000 * 300/400 = 750
+        expect(summary.completionRevenue).toBe(1000);
+      });
+
+      it('si no hay total_price usa el precio actual del servicio', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            service: { id: 's1', name: 'Masaje', price: 800 },
             orderDetail: {
-              total_price: '1000',
-              order: { payment: paidPayment(300) },
-              appointments: [{ service: defaultService }],
+              total_price: '0',
+              order: { payment: null },
+              appointments: [],
             },
           }),
         ]);
 
         const { summary } = await service.getAdminStatistics(FROM, TO);
 
-        expect(summary.depositRevenue).toBe(0);
-      },
-    );
+        expect(summary.completionRevenue).toBe(800);
+      });
 
-    it.each([
-      ['0', 0],
-      ['-50', -50],
-      ['abc', NaN],
-    ])('ignora pagos con monto inválido (%s)', async (amount) => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          orderDetail: {
-            total_price: '1000',
-            order: {
-              payment: { status: PaymentStatus.PAID, amount },
+      it('si no hay orderDetail usa el precio actual del servicio', async () => {
+        const appointment = buildAppointment({
+          status: AppointmentStatus.COMPLETED,
+          service: { id: 's1', name: 'Masaje', price: 650 },
+        });
+        (appointment as any).orderDetail = undefined;
+
+        repository.find.mockResolvedValue([appointment]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.completionRevenue).toBe(650);
+      });
+
+      it('redondea los importes a 2 decimales', async () => {
+        const serviceA = { id: 'sA', name: 'A', price: 100 };
+        const serviceB = { id: 'sB', name: 'B', price: 200 };
+
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            service: serviceA,
+            orderDetail: {
+              total_price: '100',
+              order: { payment: null },
+              appointments: [{ service: serviceA }, { service: serviceB }],
             },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-      ]);
+          }),
+        ]);
 
-      const { summary } = await service.getAdminStatistics(FROM, TO);
+        const { summary } = await service.getAdminStatistics(FROM, TO);
 
-      expect(summary.depositRevenue).toBe(0);
+        // 100 * (100/300) = 33.333... -> 33.33
+        expect(summary.completionRevenue).toBe(33.33);
+      });
     });
 
-    it('ignora la seña si el total de la orden es 0 o inválido', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          orderDetail: {
-            total_price: '0',
-            order: { payment: paidPayment(300) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-      ]);
+    describe('pagos previos (depositRevenue y fullPaymentRevenue)', () => {
+      it('turno CONFIRMED con pago PAID sin paymentType: lo cuenta como seña', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(1000, paidPayment(300)),
+          }),
+        ]);
 
-      const { summary } = await service.getAdminStatistics(FROM, TO);
+        const { summary } = await service.getAdminStatistics(FROM, TO);
 
-      expect(summary.depositRevenue).toBe(0);
+        expect(summary.depositRevenue).toBe(300);
+        expect(summary.fullPaymentRevenue).toBe(0);
+        expect(summary.completionRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(300);
+      });
+
+      it('turno con pago PAID de tipo seña: lo cuenta como seña', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(
+              1000,
+              paidPayment(300, 'deposit_payment' as unknown as PaymentType),
+            ),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(300);
+        expect(summary.fullPaymentRevenue).toBe(0);
+      });
+
+      it('turno con pago PAID de tipo FULL_PAYMENT: lo cuenta como pago completo', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(
+              1000,
+              paidPayment(1000, PaymentType.FULL_PAYMENT),
+            ),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.fullPaymentRevenue).toBe(1000);
+        expect(summary.depositRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(1000);
+      });
+
+      it('turno CANCELLED con pago PAID: el pago igual se considera cobrado', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CANCELLED,
+            orderDetail: singleOrder(1000, paidPayment(300)),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(300);
+      });
+
+      // Comportamiento actual: el pago PAID se cuenta sin mirar el estado del
+      // turno. Antes PENDING y EXPIRED no sumaban. Si no es intencional,
+      // revisar calculateRevenue() y actualizar este test.
+      it.each([AppointmentStatus.PENDING, AppointmentStatus.EXPIRED])(
+        'cuenta el pago PAID aunque el turno esté en estado %s',
+        async (status) => {
+          repository.find.mockResolvedValue([
+            buildAppointment({
+              status,
+              orderDetail: singleOrder(1000, paidPayment(300)),
+            }),
+          ]);
+
+          const { summary } = await service.getAdminStatistics(FROM, TO);
+
+          expect(summary.depositRevenue).toBe(300);
+          expect(summary.completionRevenue).toBe(0);
+        },
+      );
+
+      it('no suma si el pago no está PAID', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(1000, unpaidPayment(300)),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(0);
+      });
+
+      it('no suma un pago REFUNDED (reembolsado)', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.EXPIRED,
+            orderDetail: singleOrder(1000, {
+              status: PaymentStatus.REFUNDED,
+              amount: '300',
+            }),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(0);
+        expect(summary.totalRevenue).toBe(0);
+      });
+
+      it('no suma nada si no existe pago', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({ status: AppointmentStatus.CONFIRMED }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(0);
+        expect(summary.fullPaymentRevenue).toBe(0);
+      });
+
+      it.each(['0', '-50', 'abc'])(
+        'ignora pagos con monto inválido (%s)',
+        async (amount) => {
+          repository.find.mockResolvedValue([
+            buildAppointment({
+              status: AppointmentStatus.CONFIRMED,
+              orderDetail: singleOrder(1000, {
+                status: PaymentStatus.PAID,
+                amount,
+              }),
+            }),
+          ]);
+
+          const { summary } = await service.getAdminStatistics(FROM, TO);
+
+          expect(summary.depositRevenue).toBe(0);
+        },
+      );
+
+      it('ignora el pago si el total de la orden es 0 o inválido', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(0, paidPayment(300)),
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(0);
+      });
+
+      it('reparte el pago entre los turnos de la misma orden según su precio', async () => {
+        const serviceA = { id: 'sA', name: 'A', price: 100 };
+        const serviceB = { id: 'sB', name: 'B', price: 300 };
+
+        const orderDetail = {
+          total_price: '1000',
+          order: { payment: paidPayment(500) },
+          appointments: [{ service: serviceA }, { service: serviceB }],
+        };
+
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            service: serviceA,
+            orderDetail,
+          }),
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            service: serviceB,
+            orderDetail,
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        // A: 500 * (250/1000) = 125  |  B: 500 * (750/1000) = 375
+        expect(summary.depositRevenue).toBe(500);
+      });
+
+      it('si solo un turno de una orden múltiple entra en el rango, suma únicamente su parte', async () => {
+        const serviceA = { id: 'sA', name: 'A', price: 100 };
+        const serviceB = { id: 'sB', name: 'B', price: 300 };
+
+        const orderDetail = {
+          total_price: '1000',
+          order: { payment: paidPayment(500) },
+          appointments: [{ service: serviceA }, { service: serviceB }],
+        };
+
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            service: serviceA,
+            orderDetail,
+          }),
+        ]);
+
+        const { summary } = await service.getAdminStatistics(FROM, TO);
+
+        expect(summary.depositRevenue).toBe(125);
+      });
     });
 
-    it('reparte la seña entre los turnos de la misma orden según su precio', async () => {
-      const serviceA = { id: 'sA', name: 'A', price: 100 };
-      const serviceB = { id: 'sB', name: 'B', price: 300 };
+    describe('totalRevenue', () => {
+      it('combina señas, pagos completos y saldos de turnos completados', async () => {
+        repository.find.mockResolvedValue([
+          // Completado con seña: seña 500 + saldo 1500
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            orderDetail: singleOrder(2000, paidPayment(500)),
+          }),
+          // Confirmado con seña: 250
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(1000, paidPayment(250)),
+          }),
+          // Cancelado con seña: 100
+          buildAppointment({
+            status: AppointmentStatus.CANCELLED,
+            orderDetail: singleOrder(1000, paidPayment(100)),
+          }),
+          // Confirmado con pago completo: 800
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(
+              800,
+              paidPayment(800, PaymentType.FULL_PAYMENT),
+            ),
+          }),
+        ]);
 
-      const orderDetail = {
-        total_price: '1000',
-        order: { payment: paidPayment(500) },
-        appointments: [{ service: serviceA }, { service: serviceB }],
-      };
+        const { summary } = await service.getAdminStatistics(FROM, TO);
 
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          service: serviceA,
-          orderDetail,
-        }),
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          service: serviceB,
-          orderDetail,
-        }),
-      ]);
+        expect(summary.depositRevenue).toBe(850);
+        expect(summary.fullPaymentRevenue).toBe(800);
+        expect(summary.completionRevenue).toBe(1500);
+        expect(summary.totalRevenue).toBe(3150);
+      });
 
-      const { summary } = await service.getAdminStatistics(FROM, TO);
+      it('el total es la suma de los tres conceptos', async () => {
+        repository.find.mockResolvedValue([
+          buildAppointment({
+            status: AppointmentStatus.COMPLETED,
+            orderDetail: singleOrder(1000, paidPayment(300)),
+          }),
+          buildAppointment({
+            status: AppointmentStatus.CONFIRMED,
+            orderDetail: singleOrder(
+              600,
+              paidPayment(600, PaymentType.FULL_PAYMENT),
+            ),
+          }),
+        ]);
 
-      // A: 500 * (250/1000) = 125  |  B: 500 * (750/1000) = 375
-      expect(summary.depositRevenue).toBe(500);
-    });
+        const { summary } = await service.getAdminStatistics(FROM, TO);
 
-    it('si solo un turno de una orden múltiple entra en el rango, suma únicamente su parte de la seña', async () => {
-      const serviceA = { id: 'sA', name: 'A', price: 100 };
-      const serviceB = { id: 'sB', name: 'B', price: 300 };
-
-      const orderDetail = {
-        total_price: '1000',
-        order: { payment: paidPayment(500) },
-        appointments: [{ service: serviceA }, { service: serviceB }],
-      };
-
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          service: serviceA,
-          orderDetail,
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.depositRevenue).toBe(125);
-    });
-
-    it('combina señas y servicios completados en totalRevenue', async () => {
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.COMPLETED,
-          orderDetail: {
-            total_price: '2000',
-            order: { payment: paidPayment(500) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-        buildAppointment({
-          status: AppointmentStatus.CONFIRMED,
-          orderDetail: {
-            total_price: '1000',
-            order: { payment: paidPayment(250) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-        buildAppointment({
-          status: AppointmentStatus.CANCELLED,
-          orderDetail: {
-            total_price: '1000',
-            order: { payment: paidPayment(100) },
-            appointments: [{ service: defaultService }],
-          },
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      expect(summary.completedServicesRevenue).toBe(2000);
-      expect(summary.depositRevenue).toBe(350);
-      expect(summary.totalRevenue).toBe(2350);
-    });
-
-    it('redondea los importes a 2 decimales', async () => {
-      const serviceA = { id: 'sA', name: 'A', price: 100 };
-      const serviceB = { id: 'sB', name: 'B', price: 200 };
-
-      repository.find.mockResolvedValue([
-        buildAppointment({
-          status: AppointmentStatus.COMPLETED,
-          service: serviceA,
-          orderDetail: {
-            total_price: '100',
-            order: { payment: null },
-            appointments: [{ service: serviceA }, { service: serviceB }],
-          },
-        }),
-      ]);
-
-      const { summary } = await service.getAdminStatistics(FROM, TO);
-
-      // 100 * (100/300) = 33.333... -> 33.33
-      expect(summary.completedServicesRevenue).toBe(33.33);
+        expect(summary.totalRevenue).toBe(
+          summary.depositRevenue +
+            summary.fullPaymentRevenue +
+            summary.completionRevenue,
+        );
+      });
     });
   });
 
