@@ -12,6 +12,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { AuthProvider } from '../common/authProvider.enum';
 import { EmailVerificationService } from './email-verification/email-verification.service';
 import { MailService } from 'src/mail/mail.service';
+import { PasswordResetService } from './password-reset/password-reset.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   getAuth(): string {
@@ -301,5 +303,29 @@ export class AuthService {
   // comentado por: Lautaro-dev
   async verifyEmail(token: string): Promise<void> {
     await this.emailVerificationService.verifyEmail(token);
+  }
+
+  async forgotPassword(email: string): Promise<string> {
+    const user = await this.usersRepository.getUserByEmail(email);
+
+    if (!user) {
+      return 'Si el correo está registrado, recibirás un enlace para recuperar tu contraseña';
+    }
+
+    if (!user.password_hash) {
+      return 'Si el correo está registrado, recibirás un enlace para recuperar tu contraseña';
+    }
+
+    const token = await this.passwordResetService.createPasswordResetToken(
+      user.id,
+    );
+
+    await this.mailService.sendPasswordResetEmail(user.email, token);
+
+    return 'Si el correo está registrado, recibirás un enlace para recuperar tu contraseña';
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    return this.passwordResetService.resetPassword(token, newPassword);
   }
 }

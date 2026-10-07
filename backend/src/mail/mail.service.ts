@@ -119,4 +119,17 @@ export class MailService {
     `,
     );
   }
+
+  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
+    await this.sendMailWithTemplate(
+      email,
+      'Recuperá tu contraseña - Turnify',
+      'password.reset',
+      { resetUrl },
+    );
+  }
 }
