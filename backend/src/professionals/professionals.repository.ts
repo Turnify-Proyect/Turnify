@@ -74,6 +74,33 @@ export class ProfessionalsRepository {
     return professional;
   }
 
+  async getProfessionalByUserId(userId: string): Promise<Professional> {
+    const professional = await this.professionalsrepository.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        user: true,
+        professionalServices: {
+          service: true,
+        },
+        availabilities: true,
+      },
+    });
+  
+    if (!professional) {
+      throw new NotFoundException(
+        'No existe un profesional asociado al usuario proporcionado',
+      );
+    }
+
+    console.log('PROFESSIONAL ENCONTRADO:', professional);
+  
+    return professional;
+  }
+
   async createProfessional(
     createProfessionalDto: CreateProfessionalDto,
   ): Promise<Professional> {

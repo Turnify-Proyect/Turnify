@@ -7,6 +7,7 @@ import { AvailabilityRepository } from './availability.repository';
 import { Availability } from './entities/availability.entity';
 
 import { Professional } from '../professionals/entities/professional.entity';
+import { ProfessionalsModule } from '../professionals/professionals.module';
 
 import { ProfessionalUnavailability } from './entities/professional-unavailability.entity';
 import { ProfessionalUnavailabilityRepository } from './professional-unavailability.repository';
@@ -20,14 +21,21 @@ import { ProfessionalUnavailabilityController } from './professional-unavailabil
       Professional,
       ProfessionalUnavailability,
     ]),
+     ProfessionalsModule,
   ],
-  controllers: [AvailabilityController, ProfessionalUnavailabilityController],
+  controllers: [
+    AvailabilityController,
+    ProfessionalUnavailabilityController,
+  ],
   providers: [
     AvailabilityService,
     AvailabilityRepository,
     ProfessionalUnavailabilityService,
     ProfessionalUnavailabilityRepository,
   ],
-  exports: [AvailabilityRepository, ProfessionalUnavailabilityRepository],
+  exports: [
+    AvailabilityRepository,
+    ProfessionalUnavailabilityRepository,
+  ],
 })
 export class AvailabilityModule {}

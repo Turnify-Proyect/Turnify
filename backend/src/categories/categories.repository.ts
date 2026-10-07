@@ -77,13 +77,13 @@ export class CategoriesRepository {
   }
 
   async isInUse(categoryId: string): Promise<boolean> {
-    const count = await this.ormServiceRepository
-      .createQueryBuilder('service')
-      .where('service.category_id = :categoryId', {
-        categoryId,
-      })
-      .getCount();
+  const count = await this.ormServiceRepository
+    .createQueryBuilder('service')
+    .where('service.category_id = :categoryId', {
+      categoryId,
+    })
+    .getCount();
 
-    return count > 0;
-  }
+  return count > 0;
+}
 }

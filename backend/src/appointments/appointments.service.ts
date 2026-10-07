@@ -114,10 +114,31 @@ export class AppointmentsService {
   }
 
   async updateAppointmentStatus(id: string, newStatus: AppointmentStatus) {
-    return await this.appointmentsRepository.updateAppointmentStatus(
+    const result = await this.appointmentsRepository.updateAppointmentStatus(
       id,
       newStatus,
     );
+
+    if (newStatus === AppointmentStatus.CONFIRMED) {
+      try {
+        const appointment =
+          await this.appointmentsRepository.getAppointmentById(id);
+
+        await this.notificationsService.sendAppointmentConfirmedByAdmin(
+          appointment.user.email,
+          appointment.user.name,
+          appointment.service.name,
+          appointment.professional?.user?.name || 'No especificado',
+          appointment.startAt,
+        );
+      } catch (error) {
+        this.logger.error(
+          'El turno fue confirmado pero no se pudo enviar el correo de confirmación',
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+    return result;
   }
 
   async getAvailableSlots(

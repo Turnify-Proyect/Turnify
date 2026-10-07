@@ -16,12 +16,11 @@ import {
   MaxFileSizeValidator,
   FileTypeValidator,
 } from '@nestjs/common';
-import { User } from './entities/user.entity';
-import { ApiSuccessCreatedResponse } from 'src/common/api';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
-import { ApiErrorSwaggerResponse } from 'src/common/api/api-error-response.decorator';
+import { ApiResponse } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '../decorators/roles.decorators';
 import { UseGuards } from '@nestjs/common';
@@ -33,14 +32,12 @@ import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import {
   ApiBearerAuth,
   ApiQuery,
-  ApiResponse,
   ApiParam,
   ApiOperation,
   ApiConsumes,
   ApiBody,
 } from '@nestjs/swagger';
 import { UserOwnerOrAdminGuard } from '../auth/guards/user-owner-or-admin.guard';
-import { ApiSuccessResponse } from 'src/common/api';
 
 @Controller('users')
 export class UsersController {
@@ -80,9 +77,14 @@ export class UsersController {
     type: Boolean,
     description: 'Filtrar usuarios por estado activo o inactivo',
   })
-  @ApiSuccessResponse(Object)
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para acceder',
+  })
   getAllUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -115,8 +117,14 @@ export class UsersController {
     description:
       'Devuelve los datos del usuario correspondiente al token JWT enviado en la cabecera Authorization. No requiere enviar el ID del usuario por parámetro.',
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil del usuario autenticado obtenido correctamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token no enviado, inválido o expirado',
+  })
   getMyProfile(@Req() req: any) {
     return this.usersService.getUserById(req.user.id);
   }
@@ -131,11 +139,14 @@ export class UsersController {
     type: String,
     description: 'ID del usuario',
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para acceder')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
   getUserById(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.getUserById(id);
   }
@@ -153,12 +164,18 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a actualizar',
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para modificar esta cuenta')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
-  @ApiErrorSwaggerResponse(409, 'El email o el teléfono ya están registrados')
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado exitosamente',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El email o el teléfono ya están registrados',
+  })
   updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -184,11 +201,18 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a cambiar contraseña',
   })
-  @ApiSuccessResponse(Object)
-  @ApiErrorSwaggerResponse(400, 'La contraseña o el ID no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para modificar esta cuenta')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña actualizada correctamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'La contraseña no cumple con los requisitos de fortaleza',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos para modificar esta cuenta',
+  })
   changePassword(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -206,11 +230,14 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a eliminar',
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para eliminar usuarios')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario eliminado exitosamente',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
   removeUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.removeUser(id);
   }
@@ -225,12 +252,18 @@ export class UsersController {
     type: String,
     description: 'ID del usuario a activar',
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para activar usuarios')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
-  @ApiErrorSwaggerResponse(409, 'El usuario ya se encuentra activo')
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario activado exitosamente',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario ya se encuentra activo',
+  })
   activateUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.activateUser(id);
   }
@@ -239,11 +272,6 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiSuccessCreatedResponse(User)
-  @ApiErrorSwaggerResponse(400, 'Los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para crear usuarios')
-  @ApiErrorSwaggerResponse(409, 'El email o teléfono ya están registrados')
   createUserByAdmin(@Body() createUserDto: CreateUserByAdminDto) {
     return this.usersService.createUserByAdmin(createUserDto);
   }
@@ -261,11 +289,10 @@ export class UsersController {
     type: String,
     description: 'ID del usuario',
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(400, 'El ID o los roles enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para modificar roles')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Roles actualizados correctamente',
+  })
   updateUserRoles(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserRolesDto: UpdateUserRolesDto,
@@ -300,14 +327,15 @@ export class UsersController {
       },
     },
   })
-  @ApiSuccessResponse(User)
-  @ApiErrorSwaggerResponse(
-    400,
-    'El ID, archivo, tamaño o formato de imagen no son válidos',
-  )
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para modificar este avatar')
-  @ApiErrorSwaggerResponse(404, 'Usuario no encontrado')
+  @ApiResponse({
+    status: 200,
+    description: 'Avatar actualizado correctamente en Cloudinary',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'El archivo enviado excede los 5MB o no tiene formato de imagen permitido (jpg, jpeg, png, webp)',
+  })
   uploadAvatar(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile(

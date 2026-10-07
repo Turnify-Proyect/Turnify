@@ -8,24 +8,25 @@ import {
   Delete,
   ParseUUIDPipe,
   UseGuards,
+  ForbiddenException, 
+  Req, 
 } from '@nestjs/common';
-import { ApiErrorSwaggerResponse } from '../common/api/api-error-response.decorator';
-import { Availability } from './entities/availability.entity';
-import { ApiSuccessCreatedResponse } from 'src/common/api';
 import { AvailabilityService } from './availability.service';
+import { ProfessionalsService } from '../professionals/professionals.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { Roles } from 'src/decorators/roles.decorators';
 import { UserRole } from 'src/common/userRoles.enum';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { ApiSuccessArrayResponse } from 'src/common/api';
-import { ApiSuccessResponse } from 'src/common/api';
+import { ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 @Controller('availability')
 export class AvailabilityController {
-  constructor(private readonly availabilityService: AvailabilityService) {}
+  constructor(
+  private readonly availabilityService: AvailabilityService,
+  private readonly professionalsService: ProfessionalsService,
+)  {}
 
   // Obtiene todas las disponibilidades configuradas
   //coemntado por:Lautaro-dev
@@ -40,90 +41,111 @@ export class AvailabilityController {
     description: 'ID del profesional',
     type: String,
   })
-  @ApiSuccessArrayResponse(Availability)
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para actualizar la disponibilidad',
-  )
-  @ApiErrorSwaggerResponse(404, 'Disponibilidad no encontrada')
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de disponibilidades para el profesional',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin disponibilidad para el profesional',
+  })
   getByProfessionalId(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
   ) {
     return this.availabilityService.getByProfessionalId(professionalId);
   }
 
-  // Actualiza parcialmente una disponibilidad existente.
-  //coemntado por:Lautaro-dev
-  // El id corresponde al bloque de disponibilidad que se quiere modificar.
-  //coemntado por:Lautaro-dev
-  @Patch(':id')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiParam({
-    name: 'id',
-    description: 'ID del bloque de disponibilidad',
-    type: String,
-  })
-  @ApiSuccessArrayResponse(Availability)
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(
-    403,
-    'Sin permisos para actualizar la disponibilidad',
-  )
-  @ApiErrorSwaggerResponse(404, 'Disponibilidad no encontrada')
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() data: UpdateAvailabilityDto,
-  ) {
-    return this.availabilityService.update(id, data);
+@Patch(':id')
+@Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+@UseGuards(AuthGuard, RolesGuard)
+@ApiBearerAuth()
+async update(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body() data: UpdateAvailabilityDto,
+  @Req() request: any,
+) {
+  const availability = await this.availabilityService.getById(id);
+
+  await this.validateProfessionalOwnership(
+    availability.professional.id,
+    request.user,
+  );
+
+  return this.availabilityService.update(id, data);
+}
+
+@Post('professional/:professionalId')
+@Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+@UseGuards(AuthGuard, RolesGuard)
+@ApiBearerAuth()
+create(
+  @Param('professionalId', ParseUUIDPipe) professionalId: string,
+  @Body() data: CreateAvailabilityDto,
+  @Req() request: any,
+) {
+  return this.createAuthorized(
+    professionalId,
+    data,
+    request.user,
+  );
+}
+
+private async createAuthorized(
+  professionalId: string,
+  data: CreateAvailabilityDto,
+  user: any,
+) {
+  if (user.roles?.includes(UserRole.PROFESSIONAL)) {
+    const professional =
+      await this.professionalsService.getProfessionalByUserId(user.id);
+
+    if (professional.id !== professionalId) {
+      throw new ForbiddenException(
+        'No tenés permiso para modificar la disponibilidad de otro profesional',
+      );
+    }
   }
 
-  // Crea un nuevo bloque de disponibilidad
-  //coemntado por:Lautaro-dev
-  // asociado al profesional indicado en la URL.
-  //coemntado por:Lautaro-dev
-  @Post('professional/:professionalId')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiParam({
-    name: 'professionalId',
-    description: 'ID del profesional',
-    type: String,
-  })
-  @ApiSuccessCreatedResponse(Availability)
-  @ApiErrorSwaggerResponse(400, 'El ID o los datos enviados no son válidos')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para crear la disponibilidad')
-  @ApiErrorSwaggerResponse(404, 'Profesional no encontrado')
-  create(
-    @Param('professionalId', ParseUUIDPipe) professionalId: string,
-    @Body() data: CreateAvailabilityDto,
-  ) {
-    return this.availabilityService.create(professionalId, data);
-  }
+  return this.availabilityService.create(
+    professionalId,
+    data,
+  );
+}
 
   // Elimina una disponibilidad específica.
-  //coemntado por:Lautaro-dev
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiParam({
-    name: 'id',
-    description: 'ID de disponibilidad',
-    type: String,
-  })
-  @ApiSuccessResponse(Object)
-  @ApiErrorSwaggerResponse(400, 'El ID no tiene un formato UUID válido')
-  @ApiErrorSwaggerResponse(401, 'Token no enviado, inválido o expirado')
-  @ApiErrorSwaggerResponse(403, 'Sin permisos para eliminar la disponibilidad')
-  @ApiErrorSwaggerResponse(404, 'Disponibilidad no encontrada')
-  delete(@Param('id', ParseUUIDPipe) id: string) {
-    return this.availabilityService.delete(id);
+@Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
+@UseGuards(AuthGuard, RolesGuard)
+@ApiBearerAuth()
+async delete(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Req() request: any,
+) {
+  const availability = await this.availabilityService.getById(id);
+
+  await this.validateProfessionalOwnership(
+    availability.professional.id,
+    request.user,
+  );
+
+  return this.availabilityService.delete(id);
+}
+
+  private async validateProfessionalOwnership(
+  professionalId: string,
+  user: any,
+): Promise<void> {
+  if (!user.roles?.includes(UserRole.PROFESSIONAL)) {
+    return;
   }
+
+  const professional =
+    await this.professionalsService.getProfessionalByUserId(user.id);
+
+  if (professional.id !== professionalId) {
+    throw new ForbiddenException(
+      'No tenés permiso para modificar la disponibilidad de otro profesional',
+    );
+  }
+}
 }
