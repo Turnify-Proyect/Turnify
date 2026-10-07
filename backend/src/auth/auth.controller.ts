@@ -10,13 +10,6 @@ import { AuthService } from './auth.service';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CreateUserDto, LoginUserDto } from 'src/users/dto/create-user.dto';
 import { VerifyEmailDto } from './email-verification/dto/verify-email.dto';
-
-import { ApiErrorSwaggerResponse } from '../common/api/api-error-response.decorator';
-import { ApiSuccessResponse } from '../common/api/api-success-response.decorator';
-import { AuthSignInResponseDto } from './dto/auth-signin-response.dto';
-import { GoogleSignInResponseDto } from './dto/google-signin-response.dto';
-import { AuthSignUpResponseDto } from './dto/auth-signup-response.dto';
-import { VerifyEmailResponseDto } from './dto/verify-email-response.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
