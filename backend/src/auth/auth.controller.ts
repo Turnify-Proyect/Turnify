@@ -17,6 +17,8 @@ import { AuthSignInResponseDto } from './dto/auth-signin-response.dto';
 import { GoogleSignInResponseDto } from './dto/google-signin-response.dto';
 import { AuthSignUpResponseDto } from './dto/auth-signup-response.dto';
 import { VerifyEmailResponseDto } from './dto/verify-email-response.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -103,5 +105,18 @@ export class AuthController {
     return {
       message: 'Email verificado correctamente',
     };
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
   }
 }
