@@ -36,6 +36,11 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener todas las citas',
+    description:
+      'Devuelve la lista de todas las citas. Solo accesible para usuarios con rol de administrador o profesional.',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de citas',
@@ -73,6 +78,11 @@ export class AppointmentsController {
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener los turnos disponibles para un profesional y servicio en una fecha específica',
+    description:
+      'Devuelve la lista de turnos disponibles para un profesional y servicio en una fecha específica. Solo accesible para usuarios con rol de cliente o administrador.',
+  })
   getAvailableSlots(
     @Query('professionalId', ParseUUIDPipe)
     professionalId: string,
@@ -98,6 +108,11 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL, UserRole.CLIENT)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener una cita por ID',
+    description:
+      'Devuelve la información de una cita específica según su ID. Solo accesible para usuarios con rol de administrador, profesional o cliente.',
+  })
   @ApiParam({
     name: 'id',
     required: true,
@@ -124,11 +139,21 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener citas por ID de usuario',
+    description:
+      'Devuelve la lista de citas asociadas a un usuario específico según su ID. Solo accesible para usuarios con rol de administrador.',
+  })
   getAppointmentsByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.appointmentsService.getAppointmentsByUserId(userId);
   }
 
   @Get('professional/:professionalId')
+  @ApiOperation({
+    summary: 'Obtener citas por ID de profesional',
+    description:
+      'Devuelve la lista de citas asociadas a un profesional específico según su ID. Solo accesible para usuarios con rol de administrador o profesional.',
+  })
   getAppointmentsByProfessionalId(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
   ) {
@@ -171,6 +196,11 @@ export class AppointmentsController {
   @Put(':id/reschedule')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard, AppointmentOwnerOrAdminGuard)
+  @ApiOperation({
+    summary: 'Reprogramar un turno',
+    description:
+      'Permite reprogramar un turno existente. Solo el propietario del turno o un administrador pueden realizar esta acción.',
+  })
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -209,14 +239,44 @@ export class AppointmentsController {
   @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  completeAppointment(@Param('id', ParseUUIDPipe) id: string) {
-    return this.appointmentsService.completeAppointment(id);
+  @ApiOperation({
+    summary: 'Marcar un turno como completado',
+    description:
+      'Permite marcar un turno existente como completado. Solo accesible para usuarios con rol de administrador o profesional.',
+  })
+  completeAppointment(@Param('id', ParseUUIDPipe) id: string,@Req() req: any,) {
+  return this.appointmentsService.completeAppointment(
+    id,
+    req.user.id,
+    req.user.roles,
+    );
   }
+
+  @Patch(':id/no-show')
+  @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL,)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Marcar un turno como ausente (no show)',
+    description:
+      'Permite marcar un turno existente como no show. Solo accesible para usuarios con rol de administrador o profesional.',
+  })
+  markAppointmentNoShow(@Param('id', ParseUUIDPipe) id: string, @Req() req: any,) {
+  return this.appointmentsService.markAppointmentNoShow(
+    id,
+    req.user.id,
+    req.user.roles,
+  );}
 
   @Patch(':id/status')
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Actualizar el estado de un turno',
+    description:
+      'Permite actualizar el estado de un turno existente. Solo accesible para usuarios con rol de administrador.',
+  })
   updateAppointmentStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') newStatus: AppointmentStatus,

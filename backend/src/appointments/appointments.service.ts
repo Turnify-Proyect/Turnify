@@ -4,6 +4,7 @@ import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentStatus } from './entities/appointment.entity';
 import { APP_TIMEZONE } from '../common/timezone';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { UserRole } from 'src/common/userRoles.enum';
 
 @Injectable()
 export class AppointmentsService {
@@ -109,8 +110,12 @@ export class AppointmentsService {
 
     return result;
   }
-  async completeAppointment(id: string) {
-    return await this.appointmentsRepository.completeAppointment(id);
+  async completeAppointment(id: string, userId: string, roles: UserRole[]) {
+    return await this.appointmentsRepository.completeAppointment(id, userId, roles);
+  }
+
+  async markAppointmentNoShow(id: string, userId: string, roles: UserRole[]) {
+    return await this.appointmentsRepository.markAppointmentNoShow(id, userId, roles);
   }
 
   async updateAppointmentStatus(id: string, newStatus: AppointmentStatus) {
