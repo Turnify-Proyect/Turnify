@@ -2,6 +2,7 @@ import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentStatus } from './entities/appointment.entity';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
+import { UserRole } from '../common/userRoles.enum';
 
 describe('AppointmentsController', () => {
   let controller: AppointmentsController;
@@ -357,7 +358,14 @@ describe('AppointmentsController', () => {
   });
 
   describe('completeAppointment', () => {
-    it('should call the service with the appointment id', async () => {
+    const req = {
+      user: {
+        id: 'user-1',
+        roles: [UserRole.PROFESSIONAL],
+      },
+    };
+
+    it('should call the service with the appointment id and the authenticated user', async () => {
       const appointmentId = 'appointment-123';
 
       const completedAppointment = {
@@ -369,12 +377,14 @@ describe('AppointmentsController', () => {
         completedAppointment as any,
       );
 
-      const result = await controller.completeAppointment(appointmentId);
+      const result = await controller.completeAppointment(appointmentId, req);
 
       expect(appointmentsService.completeAppointment).toHaveBeenCalledTimes(1);
 
       expect(appointmentsService.completeAppointment).toHaveBeenCalledWith(
         appointmentId,
+        req.user.id,
+        req.user.roles,
       );
 
       expect(result).toEqual(completedAppointment);
@@ -386,7 +396,7 @@ describe('AppointmentsController', () => {
       );
 
       await expect(
-        controller.completeAppointment('appointment-123'),
+        controller.completeAppointment('appointment-123', req),
       ).rejects.toThrow('Appointment cannot be completed');
     });
   });

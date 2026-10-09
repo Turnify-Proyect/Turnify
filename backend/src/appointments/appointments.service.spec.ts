@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-
+import { UserRole } from 'src/common/userRoles.enum';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentsRepository } from './appointments.repository';
 import { NotificationsService } from 'src/notifications/notifications.service';
@@ -572,6 +572,9 @@ describe('AppointmentsService', () => {
   });
 
   describe('completeAppointment', () => {
+    const userId = 'user-1';
+    const roles = [UserRole.PROFESSIONAL];
+
     it('should complete the appointment using the repository', async () => {
       const appointmentId = 'appointment-1';
 
@@ -584,7 +587,11 @@ describe('AppointmentsService', () => {
         completedAppointment as any,
       );
 
-      const result = await service.completeAppointment(appointmentId);
+      const result = await service.completeAppointment(
+        appointmentId,
+        userId,
+        roles,
+      );
 
       expect(appointmentsRepository.completeAppointment).toHaveBeenCalledTimes(
         1,
@@ -592,6 +599,8 @@ describe('AppointmentsService', () => {
 
       expect(appointmentsRepository.completeAppointment).toHaveBeenCalledWith(
         appointmentId,
+        userId,
+        roles,
       );
 
       expect(result).toEqual(completedAppointment);
@@ -603,7 +612,7 @@ describe('AppointmentsService', () => {
       );
 
       await expect(
-        service.completeAppointment('appointment-1'),
+        service.completeAppointment('appointment-1', userId, roles),
       ).rejects.toThrow('Cannot complete appointment');
     });
   });
