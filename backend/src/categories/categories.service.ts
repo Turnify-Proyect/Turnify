@@ -32,16 +32,12 @@ export class CategoriesService {
   async createCategory(dto: CreateCategoryDto): Promise<Category> {
     const name = dto.name.trim();
 
-    const normalizedName =
-      this.normalizeName(name);
+    const normalizedName = this.normalizeName(name);
 
-    const categories =
-      await this.categoriesRepository.getAllCategories();
+    const categories = await this.categoriesRepository.getAllCategories();
 
     const existing = categories.find(
-      (category) =>
-        this.normalizeName(category.name) ===
-        normalizedName,
+      (category) => this.normalizeName(category.name) === normalizedName,
     );
 
     if (existing?.isActive) {
@@ -55,15 +51,14 @@ export class CategoriesService {
     return this.categoriesRepository.createCategory(name, dto.icon);
   }
 
-  async deactivateCategory(id: string,): Promise<Category> {
+  async deactivateCategory(id: string): Promise<Category> {
     const category = await this.getCategoryById(id);
 
     if (!category.isActive) {
       return category;
     }
 
-    const isInUse =
-      await this.categoriesRepository.isInUse(id);
+    const isInUse = await this.categoriesRepository.isInUse(id);
 
     if (isInUse) {
       throw new ConflictException(
@@ -71,9 +66,7 @@ export class CategoriesService {
       );
     }
 
-    return this.categoriesRepository.deactivateCategory(
-      category,
-    );
+    return this.categoriesRepository.deactivateCategory(category);
   }
 
   async reactivateCategory(id: string): Promise<Category> {
@@ -86,7 +79,7 @@ export class CategoriesService {
     return this.categoriesRepository.reactivateCategory(category);
   }
 
-    private normalizeName(value: string): string {
+  private normalizeName(value: string): string {
     return value
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')

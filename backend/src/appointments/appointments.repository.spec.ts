@@ -1,9 +1,8 @@
-// src/appointments/appointments.controller.spec.ts
-
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentStatus } from './entities/appointment.entity';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
+import { UserRole } from '../common/userRoles.enum';
 
 describe('AppointmentsController', () => {
   let controller: AppointmentsController;
@@ -31,10 +30,7 @@ describe('AppointmentsController', () => {
 
   describe('getAllAppointments', () => {
     it('should call appointmentsService.getAllAppointments', async () => {
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsService.getAllAppointments.mockResolvedValue(
         appointments as any,
@@ -42,9 +38,7 @@ describe('AppointmentsController', () => {
 
       const result = await controller.getAllAppointments();
 
-      expect(
-        appointmentsService.getAllAppointments,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.getAllAppointments).toHaveBeenCalledTimes(1);
 
       expect(result).toEqual(appointments);
     });
@@ -70,10 +64,7 @@ describe('AppointmentsController', () => {
         },
       };
 
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsService.getAppointmentsByUserId.mockResolvedValue(
         appointments as any,
@@ -81,13 +72,13 @@ describe('AppointmentsController', () => {
 
       const result = await controller.getMyAppointments(req);
 
-      expect(
-        appointmentsService.getAppointmentsByUserId,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.getAppointmentsByUserId).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsService.getAppointmentsByUserId,
-      ).toHaveBeenCalledWith(userId);
+      expect(appointmentsService.getAppointmentsByUserId).toHaveBeenCalledWith(
+        userId,
+      );
 
       expect(result).toEqual(appointments);
     });
@@ -116,11 +107,7 @@ describe('AppointmentsController', () => {
       const date = '2026-10-08';
       const appointmentId = 'appointment-123';
 
-      const slots = [
-        '09:00',
-        '10:00',
-        '11:00',
-      ];
+      const slots = ['09:00', '10:00', '11:00'];
 
       appointmentsService.getAvailableSlots.mockResolvedValue(slots as any);
 
@@ -131,13 +118,9 @@ describe('AppointmentsController', () => {
         appointmentId,
       );
 
-      expect(
-        appointmentsService.getAvailableSlots,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.getAvailableSlots).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsService.getAvailableSlots,
-      ).toHaveBeenCalledWith(
+      expect(appointmentsService.getAvailableSlots).toHaveBeenCalledWith(
         professionalId,
         serviceId,
         date,
@@ -160,9 +143,7 @@ describe('AppointmentsController', () => {
         date,
       );
 
-      expect(
-        appointmentsService.getAvailableSlots,
-      ).toHaveBeenCalledWith(
+      expect(appointmentsService.getAvailableSlots).toHaveBeenCalledWith(
         professionalId,
         serviceId,
         date,
@@ -202,13 +183,11 @@ describe('AppointmentsController', () => {
 
       const result = await controller.getAppointmentById(appointmentId);
 
-      expect(
-        appointmentsService.getAppointmentById,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.getAppointmentById).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsService.getAppointmentById,
-      ).toHaveBeenCalledWith(appointmentId);
+      expect(appointmentsService.getAppointmentById).toHaveBeenCalledWith(
+        appointmentId,
+      );
 
       expect(result).toEqual(appointment);
     });
@@ -228,10 +207,7 @@ describe('AppointmentsController', () => {
     it('should call the service with the user id', async () => {
       const userId = 'user-123';
 
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsService.getAppointmentsByUserId.mockResolvedValue(
         appointments as any,
@@ -239,13 +215,13 @@ describe('AppointmentsController', () => {
 
       const result = await controller.getAppointmentsByUserId(userId);
 
-      expect(
-        appointmentsService.getAppointmentsByUserId,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.getAppointmentsByUserId).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsService.getAppointmentsByUserId,
-      ).toHaveBeenCalledWith(userId);
+      expect(appointmentsService.getAppointmentsByUserId).toHaveBeenCalledWith(
+        userId,
+      );
 
       expect(result).toEqual(appointments);
     });
@@ -265,18 +241,14 @@ describe('AppointmentsController', () => {
     it('should call the service with the professional id', async () => {
       const professionalId = 'professional-123';
 
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsService.getAppointmentsByProfessionalId.mockResolvedValue(
         appointments as any,
       );
 
-      const result = await controller.getAppointmentsByProfessionalId(
-        professionalId,
-      );
+      const result =
+        await controller.getAppointmentsByProfessionalId(professionalId);
 
       expect(
         appointmentsService.getAppointmentsByProfessionalId,
@@ -315,13 +287,11 @@ describe('AppointmentsController', () => {
 
       const result = await controller.cancelAppointment(appointmentId);
 
-      expect(
-        appointmentsService.cancelAppointment,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.cancelAppointment).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsService.cancelAppointment,
-      ).toHaveBeenCalledWith(appointmentId);
+      expect(appointmentsService.cancelAppointment).toHaveBeenCalledWith(
+        appointmentId,
+      );
 
       expect(result).toEqual(cancelledAppointment);
     });
@@ -360,13 +330,11 @@ describe('AppointmentsController', () => {
         rescheduleAppointmentDto,
       );
 
-      expect(
-        appointmentsService.rescheduleAppointment,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.rescheduleAppointment).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsService.rescheduleAppointment,
-      ).toHaveBeenCalledWith(
+      expect(appointmentsService.rescheduleAppointment).toHaveBeenCalledWith(
         appointmentId,
         rescheduleAppointmentDto,
       );
@@ -384,16 +352,20 @@ describe('AppointmentsController', () => {
       );
 
       await expect(
-        controller.rescheduleAppointment(
-          'appointment-123',
-          dto,
-        ),
+        controller.rescheduleAppointment('appointment-123', dto),
       ).rejects.toThrow('Cannot reschedule appointment');
     });
   });
 
   describe('completeAppointment', () => {
-    it('should call the service with the appointment id', async () => {
+    const req = {
+      user: {
+        id: 'user-1',
+        roles: [UserRole.PROFESSIONAL],
+      },
+    };
+
+    it('should call the service with the appointment id and the authenticated user', async () => {
       const appointmentId = 'appointment-123';
 
       const completedAppointment = {
@@ -405,15 +377,15 @@ describe('AppointmentsController', () => {
         completedAppointment as any,
       );
 
-      const result = await controller.completeAppointment(appointmentId);
+      const result = await controller.completeAppointment(appointmentId, req);
 
-      expect(
-        appointmentsService.completeAppointment,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.completeAppointment).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsService.completeAppointment,
-      ).toHaveBeenCalledWith(appointmentId);
+      expect(appointmentsService.completeAppointment).toHaveBeenCalledWith(
+        appointmentId,
+        req.user.id,
+        req.user.roles,
+      );
 
       expect(result).toEqual(completedAppointment);
     });
@@ -424,7 +396,7 @@ describe('AppointmentsController', () => {
       );
 
       await expect(
-        controller.completeAppointment('appointment-123'),
+        controller.completeAppointment('appointment-123', req),
       ).rejects.toThrow('Appointment cannot be completed');
     });
   });
@@ -448,13 +420,11 @@ describe('AppointmentsController', () => {
         newStatus,
       );
 
-      expect(
-        appointmentsService.updateAppointmentStatus,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsService.updateAppointmentStatus).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsService.updateAppointmentStatus,
-      ).toHaveBeenCalledWith(
+      expect(appointmentsService.updateAppointmentStatus).toHaveBeenCalledWith(
         appointmentId,
         newStatus,
       );

@@ -44,7 +44,7 @@ export class Availability {
 
   @Column({ name: 'end_time', type: 'time', nullable: false })
   endTime!: string;
-  
+
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamptz',

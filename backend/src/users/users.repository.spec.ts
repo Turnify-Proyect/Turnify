@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { UserRole } from '../common/userRoles.enum';
 
@@ -19,9 +16,7 @@ describe('UsersRepository', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    repository = new UsersRepository(
-      ormUsersRepository as any,
-    );
+    repository = new UsersRepository(ormUsersRepository as any);
   });
 
   describe('getAllUsers', () => {
@@ -50,31 +45,20 @@ describe('UsersRepository', () => {
         take: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([
-          users,
-          2,
-        ]),
+        getManyAndCount: jest.fn().mockResolvedValue([users, 2]),
       };
 
-      ormUsersRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder,
-      );
+      ormUsersRepository.createQueryBuilder.mockReturnValue(queryBuilder);
 
-      const result = await repository.getAllUsers(
-        1,
-        5,
-      );
+      const result = await repository.getAllUsers(1, 5);
 
-      expect(
-        ormUsersRepository.createQueryBuilder,
-      ).toHaveBeenCalledWith('user');
+      expect(ormUsersRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'user',
+      );
 
       expect(queryBuilder.skip).toHaveBeenCalledWith(0);
       expect(queryBuilder.take).toHaveBeenCalledWith(5);
-      expect(queryBuilder.orderBy).toHaveBeenCalledWith(
-        'user.name',
-        'ASC',
-      );
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith('user.name', 'ASC');
 
       expect(result).toEqual({
         users: [
@@ -106,23 +90,12 @@ describe('UsersRepository', () => {
         take: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([
-          [],
-          0,
-        ]),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
       };
 
-      ormUsersRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder,
-      );
+      ormUsersRepository.createQueryBuilder.mockReturnValue(queryBuilder);
 
-      await repository.getAllUsers(
-        2,
-        10,
-        'juan',
-        UserRole.CLIENT,
-        false,
-      );
+      await repository.getAllUsers(2, 10, 'juan', UserRole.CLIENT, false);
 
       expect(queryBuilder.skip).toHaveBeenCalledWith(10);
       expect(queryBuilder.take).toHaveBeenCalledWith(10);
@@ -155,20 +128,12 @@ describe('UsersRepository', () => {
         take: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([
-          [],
-          11,
-        ]),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 11]),
       };
 
-      ormUsersRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder,
-      );
+      ormUsersRepository.createQueryBuilder.mockReturnValue(queryBuilder);
 
-      const result = await repository.getAllUsers(
-        2,
-        5,
-      );
+      const result = await repository.getAllUsers(2, 5);
 
       expect(result.totalPages).toBe(3);
     });
@@ -187,9 +152,7 @@ describe('UsersRepository', () => {
 
       const result = await repository.getUserById('1');
 
-      expect(
-        ormUsersRepository.findOne,
-      ).toHaveBeenCalledWith({
+      expect(ormUsersRepository.findOne).toHaveBeenCalledWith({
         where: { id: '1' },
       });
 
@@ -203,9 +166,9 @@ describe('UsersRepository', () => {
     it('should throw NotFoundException when user does not exist', async () => {
       ormUsersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.getUserById('invalid-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.getUserById('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -218,14 +181,9 @@ describe('UsersRepository', () => {
 
       ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      const result =
-        await repository.getUserByEmail(
-          'juan@test.com',
-        );
+      const result = await repository.getUserByEmail('juan@test.com');
 
-      expect(
-        ormUsersRepository.findOneBy,
-      ).toHaveBeenCalledWith({
+      expect(ormUsersRepository.findOneBy).toHaveBeenCalledWith({
         email: 'juan@test.com',
       });
 
@@ -242,14 +200,9 @@ describe('UsersRepository', () => {
 
       ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      const result =
-        await repository.getUserByPhone(
-          '123456789',
-        );
+      const result = await repository.getUserByPhone('123456789');
 
-      expect(
-        ormUsersRepository.findOneBy,
-      ).toHaveBeenCalledWith({
+      expect(ormUsersRepository.findOneBy).toHaveBeenCalledWith({
         phone: '123456789',
       });
 
@@ -266,32 +219,23 @@ describe('UsersRepository', () => {
         password_hash: 'hashed',
       };
 
-      ormUsersRepository.create.mockReturnValue(
-        user,
-      );
+      ormUsersRepository.create.mockReturnValue(user);
 
-      ormUsersRepository.save.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.save.mockResolvedValue(user);
 
-      const result =
-        await repository.createUser({
-          name: 'Juan',
-          email: 'juan@test.com',
-          password_hash: 'hashed',
-        } as any);
+      const result = await repository.createUser({
+        name: 'Juan',
+        email: 'juan@test.com',
+        password_hash: 'hashed',
+      } as any);
 
-      expect(
-        ormUsersRepository.create,
-      ).toHaveBeenCalledWith({
+      expect(ormUsersRepository.create).toHaveBeenCalledWith({
         name: 'Juan',
         email: 'juan@test.com',
         password_hash: 'hashed',
       });
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(user);
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
         id: '1',
@@ -314,35 +258,26 @@ describe('UsersRepository', () => {
       ormUsersRepository.findOneBy.mockResolvedValue(user);
       ormUsersRepository.save.mockResolvedValue(user);
 
-      const result =
-        await repository.updateUser('1', {
-          name: 'Juan Actualizado',
-        } as any);
+      const result = await repository.updateUser('1', {
+        name: 'Juan Actualizado',
+      } as any);
 
-      expect(
-        ormUsersRepository.findOneBy,
-      ).toHaveBeenCalledWith({
+      expect(ormUsersRepository.findOneBy).toHaveBeenCalledWith({
         id: '1',
       });
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           id: '1',
           name: 'Juan Actualizado',
         }),
       );
 
-      expect(result).not.toHaveProperty(
-        'password_hash',
-      );
+      expect(result).not.toHaveProperty('password_hash');
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        null,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
         repository.updateUser('1', {
@@ -403,44 +338,25 @@ describe('UsersRepository', () => {
         password_hash: 'old-hash',
       };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      ormUsersRepository.save.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.save.mockResolvedValue(user);
 
-      const result =
-        await repository.updatePassword(
-          '1',
-          'new-hash',
-        );
+      const result = await repository.updatePassword('1', 'new-hash');
 
-      expect(user.password_hash).toBe(
-        'new-hash',
-      );
+      expect(user.password_hash).toBe('new-hash');
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(user);
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
 
-      expect(result).toBe(
-        'Contraseña actualizada correctamente',
-      );
+      expect(result).toBe('Contraseña actualizada correctamente');
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        null,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        repository.updatePassword(
-          '1',
-          'new-hash',
-        ),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.updatePassword('1', 'new-hash')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -451,46 +367,36 @@ describe('UsersRepository', () => {
         isActive: true,
       };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      const result =
-        await repository.removeUser('1');
+      const result = await repository.removeUser('1');
 
       expect(user.isActive).toBe(false);
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(user);
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
-        message:
-          'Usuario desactivado correctamente',
+        message: 'Usuario desactivado correctamente',
       });
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        null,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        repository.removeUser('1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.removeUser('1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ConflictException when user is already inactive', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        {
-          id: '1',
-          isActive: false,
-        },
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue({
+        id: '1',
+        isActive: false,
+      });
 
-      await expect(
-        repository.removeUser('1'),
-      ).rejects.toThrow(ConflictException);
+      await expect(repository.removeUser('1')).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -501,46 +407,36 @@ describe('UsersRepository', () => {
         isActive: false,
       };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      const result =
-        await repository.activateUser('1');
+      const result = await repository.activateUser('1');
 
       expect(user.isActive).toBe(true);
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(user);
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
-        message:
-          'Usuario activado correctamente',
+        message: 'Usuario activado correctamente',
       });
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        null,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        repository.activateUser('1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.activateUser('1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ConflictException when user is already active', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        {
-          id: '1',
-          isActive: true,
-        },
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue({
+        id: '1',
+        isActive: true,
+      });
 
-      await expect(
-        repository.activateUser('1'),
-      ).rejects.toThrow(ConflictException);
+      await expect(repository.activateUser('1')).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -557,27 +453,15 @@ describe('UsersRepository', () => {
         roles: [UserRole.ADMIN],
       };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      ormUsersRepository.save.mockResolvedValue(
-        updatedUser,
-      );
+      ormUsersRepository.save.mockResolvedValue(updatedUser);
 
-      const result =
-        await repository.updateUserRoles(
-          '1',
-          [UserRole.ADMIN],
-        );
+      const result = await repository.updateUserRoles('1', [UserRole.ADMIN]);
 
-      expect(user.roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(user.roles).toEqual([UserRole.ADMIN]);
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(user);
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
         id: '1',
@@ -586,15 +470,10 @@ describe('UsersRepository', () => {
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        null,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
-        repository.updateUserRoles(
-          '1',
-          [UserRole.ADMIN],
-        ),
+        repository.updateUserRoles('1', [UserRole.ADMIN]),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -612,39 +491,27 @@ describe('UsersRepository', () => {
         imgUrl: 'https://cloudinary.com/avatar.jpg',
       };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        user,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      ormUsersRepository.save.mockResolvedValue(
-        updatedUser,
-      );
+      ormUsersRepository.save.mockResolvedValue(updatedUser);
 
-      const result =
-        await repository.updateProfilePicture(
-          '1',
-          'https://cloudinary.com/avatar.jpg',
-        );
-
-      expect(user.imgUrl).toBe(
+      const result = await repository.updateProfilePicture(
+        '1',
         'https://cloudinary.com/avatar.jpg',
       );
 
-      expect(
-        ormUsersRepository.save,
-      ).toHaveBeenCalledWith(user);
+      expect(user.imgUrl).toBe('https://cloudinary.com/avatar.jpg');
+
+      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
         id: '1',
-        imgUrl:
-          'https://cloudinary.com/avatar.jpg',
+        imgUrl: 'https://cloudinary.com/avatar.jpg',
       });
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(
-        null,
-      );
+      ormUsersRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
         repository.updateProfilePicture(

@@ -73,10 +73,6 @@ export class PaymentsService {
         ],
       });
 
-      // Stripe puede reenviar un mismo webhook.
-      // Si este pago ya fue confirmado con el mismo ID externo,
-      // devolvemos el registro existente sin procesarlo nuevamente.
-      // comentado por: Lautaro-dev
       if (payment?.status === PaymentStatus.PAID) {
         if (
           externalPaymentId &&
@@ -89,10 +85,6 @@ export class PaymentsService {
         throw new BadRequestException('La orden ya posee un pago confirmado');
       }
 
-      // Antes de confirmar un pago verificamos que los turnos asociados
-      // todavía se encuentren dentro del tiempo válido de reserva.
-      // Esto evita confirmar un turno cuyo período de pago ya venció.
-      // comentado por: Lautaro-dev
       if (status === PaymentStatus.PAID) {
         const appointments = order.orderDetails?.appointments;
 
@@ -155,9 +147,6 @@ export class PaymentsService {
           for (const appointment of order.orderDetails.appointments) {
             appointment.status = AppointmentStatus.CONFIRMED;
 
-            // Una vez confirmado el pago, el turno deja de ser una reserva temporal,
-            // por lo tanto ya no debe conservar una fecha de expiración.
-            // comentado por: Lautaro-dev
             appointment.expiresAt = null;
 
             await queryRunner.manager.save(Appointment, appointment);
@@ -169,15 +158,9 @@ export class PaymentsService {
 
       await queryRunner.commitTransaction();
 
-      // Después de confirmar la transacción volvemos a consultar el pago
-      // con sus relaciones para devolver los estados reales y actualizados
-      // de Order y Appointment.
-      // comentado por: Lautaro-dev
       const updatedPayment = await this.paymentRepository.findOne({
         where: { id: savedPayment.id },
-        // Recuperamos el pago con todas las relaciones necesarias
-        // para construir posteriormente la notificación de confirmación.
-        //comentado por Lautaro-dev
+
         relations: [
           'order',
           'order.user',
@@ -196,9 +179,6 @@ export class PaymentsService {
       }
 
       if (status === PaymentStatus.PAID) {
-        // Preparamos los datos de los turnos confirmados con la información
-        // necesaria para construir el correo de confirmación.
-        //comentado por Lautaro-dev
         const appointmentsForNotification =
           updatedPayment.order.orderDetails.appointments.map((appointment) => ({
             serviceName: appointment.service.name,
@@ -207,17 +187,12 @@ export class PaymentsService {
             durationMinutes: appointment.service.durationMinutes,
           }));
 
-        // Convertimos los valores decimales almacenados en la base de datos
-        // a number antes de enviarlos al servicio de notificaciones.
-        //comentado por Lautaro-dev
         const depositAmount = Number(updatedPayment.amount);
 
         const totalAmount = Number(
           updatedPayment.order.orderDetails.total_price,
         );
 
-        // El correo se envía únicamente cuando el pago quedó confirmado.
-        //comentado por Lautaro-dev
         try {
           await this.notificationsService.sendOrderConfirmed(
             updatedPayment.order.user.email,
@@ -237,8 +212,6 @@ export class PaymentsService {
 
       return updatedPayment;
     } catch (error) {
-      // Solo revierte la transacción si todavía continúa activa.
-      //comentado por Lautaro-dev
       if (queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();
       }
@@ -274,10 +247,6 @@ export class PaymentsService {
       );
     }
 
-    // Solo una orden pendiente puede iniciar un proceso de pago.
-    // Evita volver a generar PaymentIntents para órdenes ya pagadas
-    // o canceladas.
-    // comentado por: Lautaro-dev
     if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException(
         'La orden no se encuentra pendiente de pago',
@@ -292,9 +261,6 @@ export class PaymentsService {
 
     const now = new Date();
 
-    // El PaymentIntent solamente puede generarse mientras la reserva
-    // temporal siga vigente.
-    // comentado por: Lautaro-dev
     for (const appointment of appointments) {
       if (
         appointment.status !== AppointmentStatus.PENDING ||
@@ -309,11 +275,6 @@ export class PaymentsService {
 
     const amount = this.getOrderDeposit(order);
 
-    // Utilizamos el ID de la orden como clave de idempotencia.
-    // De esta manera, si el cliente repite la petición por doble click,
-    // refresh o problemas de red, Stripe reutiliza el mismo PaymentIntent
-    // en lugar de generar varios intentos de pago para una misma orden.
-    // comentado por: Lautaro-dev
     const intent = await this.stripe.paymentIntents.create(
       {
         amount: Math.round(amount * 100),
@@ -335,18 +296,11 @@ export class PaymentsService {
     };
   }
 
-  // Si Stripe confirma un pago después de que venció la reserva,
-  // devolvemos automáticamente el dinero y dejamos toda la operación
-  // reflejada correctamente en nuestra base de datos.
-  // comentado por: Lautaro-dev
   private async refundExpiredOrder(
     order: Order,
     paymentIntentId: string,
     amount: number,
   ): Promise<void> {
-    // La clave de idempotencia evita generar más de un reembolso
-    // si Stripe reenvía el mismo webhook.
-    // comentado por: Lautaro-dev
     await this.stripe.refunds.create(
       {
         payment_intent: paymentIntentId,
@@ -373,9 +327,6 @@ export class PaymentsService {
           amount: amount.toString(),
           status: PaymentStatus.REFUNDED,
 
-          // El dinero llegó a cobrarse antes de ser reembolsado,
-          // por eso conservamos la fecha en la que se procesó.
-          // comentado por: Lautaro-dev
           paidAt: new Date(),
         });
       } else {
@@ -421,9 +372,6 @@ export class PaymentsService {
       const intent = event.data.object as Stripe.PaymentIntent;
       const orderId = intent.metadata?.orderId;
 
-      // Ignoramos únicamente eventos de prueba genéricos que no pertenecen
-      // a una orden real de Turnify.
-      // comentado por: Lautaro-dev
       if (
         !orderId ||
         orderId.startsWith('pi_') ||
@@ -447,10 +395,6 @@ export class PaymentsService {
 
       const amount = intent.amount_received / 100;
 
-      // Si la orden ya fue pagada, delegamos nuevamente en processPayment().
-      // Ese método ya es idempotente y devolverá el mismo Payment si Stripe
-      // reenvía el mismo evento.
-      // comentado por: Lautaro-dev
       if (order.status === OrderStatus.PAID) {
         await this.processPayment({
           orderId,
@@ -479,19 +423,12 @@ export class PaymentsService {
             appointment.expiresAt <= now,
         );
 
-      // Stripe ya confirmó el cobro. Si la reserva dejó de ser válida,
-      // no podemos simplemente rechazar el webhook porque el dinero ya
-      // fue cobrado: se realiza un reembolso automático.
-      // comentado por: Lautaro-dev
       if (reservationExpiredOrUnavailable) {
         await this.refundExpiredOrder(order, intent.id, amount);
 
         return { received: true };
       }
 
-      // Reserva vigente: registramos el pago, marcamos la orden como PAID
-      // y confirmamos el turno.
-      // comentado por: Lautaro-dev
       await this.processPayment({
         orderId,
         amount,
@@ -533,7 +470,7 @@ export class PaymentsService {
 
     return payment;
   }
-  // AJUSTAR: tiene que ser el mismo porcentaje que usa el front para la seña
+
   private static readonly DEPOSIT_RATE = 0.3;
 
   private getOrderDeposit(order: Order): number {
@@ -550,12 +487,8 @@ export class PaymentsService {
     });
   }
 
-
-  //--- checkout desde el admin, para que el admin pueda generar un link de pago para el cliente
   async createAdminCheckoutSession(orderId: string) {
-  const order = await this.dataSource
-    .getRepository(Order)
-    .findOne({
+    const order = await this.dataSource.getRepository(Order).findOne({
       where: {
         order_id: orderId,
       },
@@ -569,62 +502,49 @@ export class PaymentsService {
       ],
     });
 
-  if (!order) {
-    throw new NotFoundException(
-      'No se encontró la orden',
-    );
-  }
+    if (!order) {
+      throw new NotFoundException('No se encontró la orden');
+    }
 
-  if (order.status !== OrderStatus.PENDING) {
-    throw new BadRequestException(
-      'La orden no se encuentra pendiente de pago',
-    );
-  }
-
-  const appointments =
-    order.orderDetails?.appointments;
-
-  if (
-    !appointments ||
-    appointments.length === 0
-  ) {
-    throw new BadRequestException(
-      'La orden no tiene turnos asociados',
-    );
-  }
-
-  const now = new Date();
-
-  for (const appointment of appointments) {
-    if (
-      appointment.status !==
-        AppointmentStatus.PENDING ||
-      !appointment.expiresAt ||
-      appointment.expiresAt <= now
-    ) {
+    if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException(
-        'La reserva asociada ya no se encuentra disponible para pagar',
+        'La orden no se encuentra pendiente de pago',
       );
     }
-  }
 
-  const amount = this.getOrderDeposit(order);
+    const appointments = order.orderDetails?.appointments;
 
-  const sessionExpiresAt =
-    Math.floor(Date.now() / 1000) +
-    30 * 60;
+    if (!appointments || appointments.length === 0) {
+      throw new BadRequestException('La orden no tiene turnos asociados');
+    }
 
-  const frontendUrl =
-    process.env.FRONTEND_URL;
+    const now = new Date();
 
-  if (!frontendUrl) {
-    throw new BadRequestException(
-      'No se encuentra configurada la URL del frontend',
-    );
-  }
+    for (const appointment of appointments) {
+      if (
+        appointment.status !== AppointmentStatus.PENDING ||
+        !appointment.expiresAt ||
+        appointment.expiresAt <= now
+      ) {
+        throw new BadRequestException(
+          'La reserva asociada ya no se encuentra disponible para pagar',
+        );
+      }
+    }
 
-  const session =
-    await this.stripe.checkout.sessions.create(
+    const amount = this.getOrderDeposit(order);
+
+    const sessionExpiresAt = Math.floor(Date.now() / 1000) + 30 * 60;
+
+    const frontendUrl = process.env.FRONTEND_URL;
+
+    if (!frontendUrl) {
+      throw new BadRequestException(
+        'No se encuentra configurada la URL del frontend',
+      );
+    }
+
+    const session = await this.stripe.checkout.sessions.create(
       {
         mode: 'payment',
 
@@ -641,8 +561,7 @@ export class PaymentsService {
                 name: 'Seña de reserva - Turnify',
               },
 
-              unit_amount:
-                Math.round(amount * 100),
+              unit_amount: Math.round(amount * 100),
             },
 
             quantity: 1,
@@ -661,112 +580,92 @@ export class PaymentsService {
 
         expires_at: sessionExpiresAt,
 
-        success_url:
-          `${frontendUrl}/payment/success`,
+        success_url: `${frontendUrl}/payment/success`,
 
-        cancel_url:
-          `${frontendUrl}/payment/pending`,
+        cancel_url: `${frontendUrl}/payment/pending`,
       },
       {
-        idempotencyKey:
-          `turnify-admin-checkout-${orderId}`,
+        idempotencyKey: `turnify-admin-checkout-${orderId}`,
       },
     );
 
-  if (!session.url) {
-    throw new BadRequestException(
-      'Stripe no generó el enlace de pago',
-    );
-  }
+    if (!session.url) {
+      throw new BadRequestException('Stripe no generó el enlace de pago');
+    }
 
-  
-  const expiresAt =
-    new Date(sessionExpiresAt * 1000);
+    const expiresAt = new Date(sessionExpiresAt * 1000);
 
-  await this.dataSource.transaction(
-    async (manager) => {
+    await this.dataSource.transaction(async (manager) => {
       for (const appointment of appointments) {
         appointment.expiresAt = expiresAt;
 
-        await manager.save(
-          Appointment,
-          appointment,
-        );
+        await manager.save(Appointment, appointment);
       }
-    },
-  );
+    });
 
-  const appointmentsForNotification =
-  appointments.map((appointment) => ({
-    serviceName: appointment.service.name,
-    professionalName:
-      appointment.professional.user.name,
-    startAt: appointment.startAt,
-    durationMinutes:
-      appointment.service.durationMinutes,
-  }));
+    const appointmentsForNotification = appointments.map((appointment) => ({
+      serviceName: appointment.service.name,
+      professionalName: appointment.professional.user.name,
+      startAt: appointment.startAt,
+      durationMinutes: appointment.service.durationMinutes,
+    }));
 
-let emailSent = true;
+    let emailSent = true;
 
-try {
-  await this.notificationsService.sendPaymentLink(
-    order.user.email,
-    order.user.name,
-    appointmentsForNotification,
-    amount,
-    session.url,
-    expiresAt,
-  );
-} catch (error) {
-  emailSent = false;
+    try {
+      await this.notificationsService.sendPaymentLink(
+        order.user.email,
+        order.user.name,
+        appointmentsForNotification,
+        amount,
+        session.url,
+        expiresAt,
+      );
+    } catch (error) {
+      emailSent = false;
 
-  this.logger.error(
-    'Se generó el link de pago pero no pudo enviarse el correo',
-    error instanceof Error
-      ? error.stack
-      : undefined,
-  );
-}
+      this.logger.error(
+        'Se generó el link de pago pero no pudo enviarse el correo',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
 
-  return {
-  orderId,
-  checkoutUrl: session.url,
-  expiresAt,
-  email: order.user.email,
-  depositAmount: amount,
-  emailSent,
-};
-}
-
-async processCashPayment(
-  processCashPaymentDto: ProcessCashPaymentDto,
-): Promise<Payment> {
-  const { orderId, paymentType } = processCashPaymentDto;
-
-  const order = await this.dataSource.getRepository(Order).findOne({
-    where: { order_id: orderId },
-    relations: ['orderDetails'],
-  });
-
-  if (!order) {
-    throw new NotFoundException(
-      `No se encontró la orden con ID: ${orderId}`,
-    );
+    return {
+      orderId,
+      checkoutUrl: session.url,
+      expiresAt,
+      email: order.user.email,
+      depositAmount: amount,
+      emailSent,
+    };
   }
 
-  const amount =
-    paymentType === PaymentType.DEPOSIT_PAYMENT
-      ? this.getOrderDeposit(order)
-      : this.getOrderTotal(order);
+  async processCashPayment(
+    processCashPaymentDto: ProcessCashPaymentDto,
+  ): Promise<Payment> {
+    const { orderId, paymentType } = processCashPaymentDto;
 
-  return this.processPayment({
-    orderId,
-    amount,
-    provider: 'cash',
-    externalPaymentId: undefined,
-    status: PaymentStatus.PAID,
-    paymentType,
-  });
-}
+    const order = await this.dataSource.getRepository(Order).findOne({
+      where: { order_id: orderId },
+      relations: ['orderDetails'],
+    });
 
+    if (!order) {
+      throw new NotFoundException(`No se encontró la orden con ID: ${orderId}`);
+    }
+
+    const amount =
+      paymentType === PaymentType.DEPOSIT_PAYMENT
+        ? this.getOrderDeposit(order)
+        : this.getOrderTotal(order);
+
+    return this.processPayment({
+      orderId,
+      amount,
+      provider: 'cash',
+      externalPaymentId: undefined,
+      status: PaymentStatus.PAID,
+      paymentType,
+    });
+  }
 }

@@ -70,28 +70,27 @@ describe('AuthController', () => {
   });
 
   describe('signIn', () => {
-it('should call AuthService.signIn with email and password', async () => {
-  const credentials: LoginUserDto = {
-    email: 'juan@example.com',
-    password: 'Password123!',
-  };
+    it('should call AuthService.signIn with email and password', async () => {
+      const credentials: LoginUserDto = {
+        email: 'juan@example.com',
+        password: 'Password123!',
+      };
 
-  const serviceResponse = {
-    access_token: 'jwt-token',
-  };
+      const serviceResponse = {
+        access_token: 'jwt-token',
+      };
 
-  authService.signIn.mockResolvedValue(serviceResponse);
+      authService.signIn.mockResolvedValue(serviceResponse);
 
-  const result = await controller.signIn(credentials);
+      const result = await controller.signIn(credentials);
 
-  expect(authService.signIn).toHaveBeenCalledTimes(1);
-  expect(authService.signIn).toHaveBeenCalledWith(
-    credentials.email,
-    credentials.password,
-  );
-  expect(result).toEqual(serviceResponse);
-});
-
+      expect(authService.signIn).toHaveBeenCalledTimes(1);
+      expect(authService.signIn).toHaveBeenCalledWith(
+        credentials.email,
+        credentials.password,
+      );
+      expect(result).toEqual(serviceResponse);
+    });
 
     it('should return the AuthService.signIn result', async () => {
       const credentials: LoginUserDto = {
@@ -312,15 +311,13 @@ it('should call AuthService.signIn with email and password', async () => {
         token: 'invalid-token',
       };
 
-      const error = new Error(
-        'Token inválido, expirado o ya utilizado',
-      );
+      const error = new Error('Token inválido, expirado o ya utilizado');
 
       authService.verifyEmail.mockRejectedValue(error);
 
-      await expect(
-        controller.verifyEmail(verifyEmailDto),
-      ).rejects.toThrow(error);
+      await expect(controller.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        error,
+      );
 
       expect(authService.verifyEmail).toHaveBeenCalledWith(
         verifyEmailDto.token,
@@ -399,9 +396,9 @@ it('should call AuthService.signIn with email and password', async () => {
 
       authService.resetPassword.mockRejectedValue(error);
 
-      await expect(
-        controller.resetPassword(resetPasswordDto),
-      ).rejects.toThrow(error);
+      await expect(controller.resetPassword(resetPasswordDto)).rejects.toThrow(
+        error,
+      );
 
       expect(authService.resetPassword).toHaveBeenCalledWith(
         resetPasswordDto.token,

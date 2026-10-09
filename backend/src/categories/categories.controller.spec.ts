@@ -41,8 +41,7 @@ describe('CategoriesController', () => {
       .useValue(mockRolesGuard)
       .compile();
 
-    controller =
-      module.get<CategoriesController>(CategoriesController);
+    controller = module.get<CategoriesController>(CategoriesController);
   });
 
   describe('getAllActiveCategories', () => {
@@ -64,8 +63,7 @@ describe('CategoriesController', () => {
         categories,
       );
 
-      const result =
-        await controller.getAllActiveCategories();
+      const result = await controller.getAllActiveCategories();
 
       expect(result).toEqual(categories);
 
@@ -77,8 +75,7 @@ describe('CategoriesController', () => {
     it('should return an empty array when there are no active categories', async () => {
       mockCategoriesService.getAllActiveCategories.mockResolvedValue([]);
 
-      const result =
-        await controller.getAllActiveCategories();
+      const result = await controller.getAllActiveCategories();
 
       expect(result).toEqual([]);
 
@@ -90,13 +87,9 @@ describe('CategoriesController', () => {
     it('should propagate errors from CategoriesService', async () => {
       const error = new Error('Service error');
 
-      mockCategoriesService.getAllActiveCategories.mockRejectedValue(
-        error,
-      );
+      mockCategoriesService.getAllActiveCategories.mockRejectedValue(error);
 
-      await expect(
-        controller.getAllActiveCategories(),
-      ).rejects.toThrow(error);
+      await expect(controller.getAllActiveCategories()).rejects.toThrow(error);
     });
   });
 
@@ -110,30 +103,22 @@ describe('CategoriesController', () => {
         isActive: true,
       };
 
-      mockCategoriesService.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesService.getCategoryById.mockResolvedValue(category);
 
       const result = await controller.getById(id);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesService.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesService.getCategoryById).toHaveBeenCalledWith(id);
     });
 
     it('should propagate errors from CategoriesService', async () => {
       const id = '550e8400-e29b-41d4-a716-446655440000';
       const error = new Error('Category not found');
 
-      mockCategoriesService.getCategoryById.mockRejectedValue(
-        error,
-      );
+      mockCategoriesService.getCategoryById.mockRejectedValue(error);
 
-      await expect(
-        controller.getById(id),
-      ).rejects.toThrow(error);
+      await expect(controller.getById(id)).rejects.toThrow(error);
     });
 
     it('should pass the exact id received from the route', async () => {
@@ -143,9 +128,7 @@ describe('CategoriesController', () => {
 
       await controller.getById(id);
 
-      expect(
-        mockCategoriesService.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesService.getCategoryById).toHaveBeenCalledWith(id);
     });
   });
 
@@ -161,17 +144,13 @@ describe('CategoriesController', () => {
         isActive: true,
       };
 
-      mockCategoriesService.createCategory.mockResolvedValue(
-        category,
-      );
+      mockCategoriesService.createCategory.mockResolvedValue(category);
 
       const result = await controller.create(dto);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesService.createCategory,
-      ).toHaveBeenCalledWith(dto);
+      expect(mockCategoriesService.createCategory).toHaveBeenCalledWith(dto);
     });
 
     it('should pass the same DTO object to the service', async () => {
@@ -183,13 +162,9 @@ describe('CategoriesController', () => {
 
       await controller.create(dto);
 
-      expect(
-        mockCategoriesService.createCategory,
-      ).toHaveBeenCalledWith(dto);
+      expect(mockCategoriesService.createCategory).toHaveBeenCalledWith(dto);
 
-      expect(
-        mockCategoriesService.createCategory.mock.calls[0][0],
-      ).toBe(dto);
+      expect(mockCategoriesService.createCategory.mock.calls[0][0]).toBe(dto);
     });
 
     it('should propagate errors from CategoriesService', async () => {
@@ -199,13 +174,9 @@ describe('CategoriesController', () => {
 
       const error = new Error('Service error');
 
-      mockCategoriesService.createCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesService.createCategory.mockRejectedValue(error);
 
-      await expect(
-        controller.create(dto),
-      ).rejects.toThrow(error);
+      await expect(controller.create(dto)).rejects.toThrow(error);
     });
   });
 
@@ -219,44 +190,32 @@ describe('CategoriesController', () => {
         isActive: false,
       };
 
-      mockCategoriesService.deactivateCategory.mockResolvedValue(
-        category,
-      );
+      mockCategoriesService.deactivateCategory.mockResolvedValue(category);
 
       const result = await controller.deactivate(id);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesService.deactivateCategory,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesService.deactivateCategory).toHaveBeenCalledWith(id);
     });
 
     it('should propagate errors from CategoriesService', async () => {
       const id = '550e8400-e29b-41d4-a716-446655440000';
       const error = new Error('Service error');
 
-      mockCategoriesService.deactivateCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesService.deactivateCategory.mockRejectedValue(error);
 
-      await expect(
-        controller.deactivate(id),
-      ).rejects.toThrow(error);
+      await expect(controller.deactivate(id)).rejects.toThrow(error);
     });
 
     it('should pass the exact id received from the route', async () => {
       const id = '550e8400-e29b-41d4-a716-446655440000';
 
-      mockCategoriesService.deactivateCategory.mockResolvedValue(
-        {},
-      );
+      mockCategoriesService.deactivateCategory.mockResolvedValue({});
 
       await controller.deactivate(id);
 
-      expect(
-        mockCategoriesService.deactivateCategory,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesService.deactivateCategory).toHaveBeenCalledWith(id);
     });
   });
 
@@ -270,44 +229,32 @@ describe('CategoriesController', () => {
         isActive: true,
       };
 
-      mockCategoriesService.reactivateCategory.mockResolvedValue(
-        category,
-      );
+      mockCategoriesService.reactivateCategory.mockResolvedValue(category);
 
       const result = await controller.reactivate(id);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesService.reactivateCategory,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesService.reactivateCategory).toHaveBeenCalledWith(id);
     });
 
     it('should propagate errors from CategoriesService', async () => {
       const id = '550e8400-e29b-41d4-a716-446655440000';
       const error = new Error('Service error');
 
-      mockCategoriesService.reactivateCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesService.reactivateCategory.mockRejectedValue(error);
 
-      await expect(
-        controller.reactivate(id),
-      ).rejects.toThrow(error);
+      await expect(controller.reactivate(id)).rejects.toThrow(error);
     });
 
     it('should pass the exact id received from the route', async () => {
       const id = '550e8400-e29b-41d4-a716-446655440000';
 
-      mockCategoriesService.reactivateCategory.mockResolvedValue(
-        {},
-      );
+      mockCategoriesService.reactivateCategory.mockResolvedValue({});
 
       await controller.reactivate(id);
 
-      expect(
-        mockCategoriesService.reactivateCategory,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesService.reactivateCategory).toHaveBeenCalledWith(id);
     });
   });
 });

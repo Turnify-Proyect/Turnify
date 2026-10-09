@@ -1,8 +1,6 @@
 import { ChatbotService } from './chatbot.service';
 import type { FAQCategory } from './data/faq.es';
 
-// Se reemplaza la base de FAQ real por datos controlados, así los tests
-// no se rompen cuando alguien edita las preguntas o respuestas del chatbot.
 jest.mock('./data/faq.es', () => {
   const FAQ_DATABASE = {
     turnos: {
@@ -53,10 +51,6 @@ describe('ChatbotService', () => {
   beforeEach(() => {
     service = new ChatbotService();
   });
-
-  // =========================
-  // processMessage
-  // =========================
 
   describe('processMessage', () => {
     it('responde con la FAQ cuando coinciden al menos 2 palabras clave', () => {
@@ -124,7 +118,6 @@ describe('ChatbotService', () => {
     });
 
     it('ignora tildes y la ñ al comparar', () => {
-      // La keyword es "seña"; el usuario escribe "sena" sin ñ.
       const result = service.processMessage('user-1', 'quiero pagar la sena');
 
       expect(result.messages[0].content).toBe(
@@ -133,8 +126,6 @@ describe('ChatbotService', () => {
     });
 
     it('elige la FAQ con más palabras clave coincidentes', () => {
-      // Cancelar: cancelar + turno + anular = 3
-      // Reservar: solo turno = 1 (no alcanza el mínimo)
       const result = service.processMessage(
         'user-1',
         'quiero cancelar y anular mi turno',
@@ -146,7 +137,6 @@ describe('ChatbotService', () => {
     });
 
     it('en caso de empate se queda con la primera FAQ del catálogo', () => {
-      // Reservar: reservar + turno = 2  |  Cancelar: cancelar + turno = 2
       const result = service.processMessage(
         'user-1',
         'reservar cancelar turno',
@@ -166,10 +156,6 @@ describe('ChatbotService', () => {
       expect(second).toEqual(first);
     });
   });
-
-  // =========================
-  // getWelcomeMessage
-  // =========================
 
   describe('getWelcomeMessage', () => {
     it('devuelve el saludo y el menú de categorías', () => {
@@ -198,10 +184,6 @@ describe('ChatbotService', () => {
       expect(result.suggestedCategories).toEqual([turnos, pagos]);
     });
   });
-
-  // =========================
-  // getCategoryContent
-  // =========================
 
   describe('getCategoryContent', () => {
     it('muestra la categoría, sus preguntas y el botón de volver al menú', () => {
@@ -245,10 +227,6 @@ describe('ChatbotService', () => {
     });
   });
 
-  // =========================
-  // getQuestionAnswer
-  // =========================
-
   describe('getQuestionAnswer', () => {
     it('devuelve la respuesta cuando la pregunta existe en la categoría', () => {
       const result = service.getQuestionAnswer(
@@ -288,9 +266,6 @@ describe('ChatbotService', () => {
       expect(result).toEqual(service.getCategoryContent(pagos));
     });
 
-    // Comportamiento actual: a diferencia de getCategoryContent, este método
-    // no controla que la categoría exista y lanza un TypeError.
-    // Si se corrige el service para devolver el menú, actualizar este test.
     it('lanza TypeError si la categoría no existe', () => {
       expect(() =>
         service.getQuestionAnswer(

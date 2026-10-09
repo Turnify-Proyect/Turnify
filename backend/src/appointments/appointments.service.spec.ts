@@ -1,7 +1,5 @@
-// src/appointments/appointments.service.spec.ts
-
 import { Logger } from '@nestjs/common';
-
+import { UserRole } from 'src/common/userRoles.enum';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentsRepository } from './appointments.repository';
 import { NotificationsService } from 'src/notifications/notifications.service';
@@ -45,10 +43,7 @@ describe('AppointmentsService', () => {
 
   describe('getAllAppointments', () => {
     it('should return all appointments from repository', async () => {
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsRepository.getAllAppointments.mockResolvedValue(
         appointments as any,
@@ -56,9 +51,9 @@ describe('AppointmentsService', () => {
 
       const result = await service.getAllAppointments();
 
-      expect(
-        appointmentsRepository.getAllAppointments,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.getAllAppointments).toHaveBeenCalledTimes(
+        1,
+      );
 
       expect(result).toEqual(appointments);
     });
@@ -86,13 +81,13 @@ describe('AppointmentsService', () => {
 
       const result = await service.getAppointmentById('appointment-1');
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledWith('appointment-1');
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledWith(
+        'appointment-1',
+      );
 
       expect(result).toEqual(appointment);
     });
@@ -102,9 +97,9 @@ describe('AppointmentsService', () => {
         new Error('Appointment not found'),
       );
 
-      await expect(
-        service.getAppointmentById('appointment-1'),
-      ).rejects.toThrow('Appointment not found');
+      await expect(service.getAppointmentById('appointment-1')).rejects.toThrow(
+        'Appointment not found',
+      );
     });
   });
 
@@ -112,10 +107,7 @@ describe('AppointmentsService', () => {
     it('should return appointments for the given user', async () => {
       const userId = 'user-123';
 
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsRepository.getAppointmentsByUserId.mockResolvedValue(
         appointments as any,
@@ -139,9 +131,9 @@ describe('AppointmentsService', () => {
         new Error('User not found'),
       );
 
-      await expect(
-        service.getAppointmentsByUserId('user-123'),
-      ).rejects.toThrow('User not found');
+      await expect(service.getAppointmentsByUserId('user-123')).rejects.toThrow(
+        'User not found',
+      );
     });
   });
 
@@ -149,10 +141,7 @@ describe('AppointmentsService', () => {
     it('should return appointments for the given professional', async () => {
       const professionalId = 'professional-123';
 
-      const appointments = [
-        { id: 'appointment-1' },
-        { id: 'appointment-2' },
-      ];
+      const appointments = [{ id: 'appointment-1' }, { id: 'appointment-2' }];
 
       appointmentsRepository.getAppointmentsByProfessionalId.mockResolvedValue(
         appointments as any,
@@ -221,21 +210,19 @@ describe('AppointmentsService', () => {
 
       const result = await service.cancelAppointment('appointment-1');
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledWith('appointment-1');
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledWith(
+        'appointment-1',
+      );
 
-      expect(
-        appointmentsRepository.cancelAppointment,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.cancelAppointment).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsRepository.cancelAppointment,
-      ).toHaveBeenCalledWith('appointment-1');
+      expect(appointmentsRepository.cancelAppointment).toHaveBeenCalledWith(
+        'appointment-1',
+      );
 
       expect(
         notificationsService.sendAppointmentCancelled,
@@ -261,13 +248,11 @@ describe('AppointmentsService', () => {
         appointment as any,
       );
 
-      appointmentsRepository.cancelAppointment.mockImplementation(
-        async () => {
-          calls.push('cancel');
+      appointmentsRepository.cancelAppointment.mockImplementation(async () => {
+        calls.push('cancel');
 
-          return cancelledAppointment as any;
-        },
-      );
+        return cancelledAppointment as any;
+      });
 
       notificationsService.sendAppointmentCancelled.mockImplementation(
         async () => {
@@ -338,9 +323,9 @@ describe('AppointmentsService', () => {
         'Email service unavailable',
       );
 
-      await expect(
-        service.cancelAppointment('appointment-1'),
-      ).resolves.toEqual(cancelledAppointment);
+      await expect(service.cancelAppointment('appointment-1')).resolves.toEqual(
+        cancelledAppointment,
+      );
     });
 
     it('should not send a notification when getting the appointment fails', async () => {
@@ -348,13 +333,11 @@ describe('AppointmentsService', () => {
         new Error('Appointment not found'),
       );
 
-      await expect(
-        service.cancelAppointment('appointment-1'),
-      ).rejects.toThrow('Appointment not found');
+      await expect(service.cancelAppointment('appointment-1')).rejects.toThrow(
+        'Appointment not found',
+      );
 
-      expect(
-        appointmentsRepository.cancelAppointment,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.cancelAppointment).not.toHaveBeenCalled();
 
       expect(
         notificationsService.sendAppointmentCancelled,
@@ -370,9 +353,9 @@ describe('AppointmentsService', () => {
         new Error('Cannot cancel appointment'),
       );
 
-      await expect(
-        service.cancelAppointment('appointment-1'),
-      ).rejects.toThrow('Cannot cancel appointment');
+      await expect(service.cancelAppointment('appointment-1')).rejects.toThrow(
+        'Cannot cancel appointment',
+      );
 
       expect(
         notificationsService.sendAppointmentCancelled,
@@ -422,26 +405,24 @@ describe('AppointmentsService', () => {
         undefined,
       );
 
-      const result = await service.rescheduleAppointment(
+      const result = await service.rescheduleAppointment(appointmentId, dto);
+
+      expect(
+        appointmentsRepository.rescheduleAppointment,
+      ).toHaveBeenCalledTimes(1);
+
+      expect(appointmentsRepository.rescheduleAppointment).toHaveBeenCalledWith(
         appointmentId,
         dto,
       );
 
-      expect(
-        appointmentsRepository.rescheduleAppointment,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsRepository.rescheduleAppointment,
-      ).toHaveBeenCalledWith(appointmentId, dto);
-
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledTimes(1);
-
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledWith(appointmentId);
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledWith(
+        appointmentId,
+      );
 
       expect(
         notificationsService.sendAppointmentRescheduled,
@@ -471,13 +452,11 @@ describe('AppointmentsService', () => {
         },
       );
 
-      appointmentsRepository.getAppointmentById.mockImplementation(
-        async () => {
-          calls.push('get-updated-appointment');
+      appointmentsRepository.getAppointmentById.mockImplementation(async () => {
+        calls.push('get-updated-appointment');
 
-          return updatedAppointment as any;
-        },
-      );
+        return updatedAppointment as any;
+      });
 
       notificationsService.sendAppointmentRescheduled.mockImplementation(
         async () => {
@@ -534,10 +513,7 @@ describe('AppointmentsService', () => {
         new Error('Email service unavailable'),
       );
 
-      const result = await service.rescheduleAppointment(
-        appointmentId,
-        dto,
-      );
+      const result = await service.rescheduleAppointment(appointmentId, dto);
 
       expect(result).toEqual(repositoryResult);
     });
@@ -569,9 +545,7 @@ describe('AppointmentsService', () => {
         service.rescheduleAppointment(appointmentId, dto),
       ).rejects.toThrow('Cannot reschedule appointment');
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.getAppointmentById).not.toHaveBeenCalled();
 
       expect(
         notificationsService.sendAppointmentRescheduled,
@@ -587,10 +561,7 @@ describe('AppointmentsService', () => {
         new Error('Could not retrieve updated appointment'),
       );
 
-      const result = await service.rescheduleAppointment(
-        appointmentId,
-        dto,
-      );
+      const result = await service.rescheduleAppointment(appointmentId, dto);
 
       expect(result).toEqual(repositoryResult);
 
@@ -601,6 +572,9 @@ describe('AppointmentsService', () => {
   });
 
   describe('completeAppointment', () => {
+    const userId = 'user-1';
+    const roles = [UserRole.PROFESSIONAL];
+
     it('should complete the appointment using the repository', async () => {
       const appointmentId = 'appointment-1';
 
@@ -613,15 +587,21 @@ describe('AppointmentsService', () => {
         completedAppointment as any,
       );
 
-      const result = await service.completeAppointment(appointmentId);
+      const result = await service.completeAppointment(
+        appointmentId,
+        userId,
+        roles,
+      );
 
-      expect(
-        appointmentsRepository.completeAppointment,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.completeAppointment).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        appointmentsRepository.completeAppointment,
-      ).toHaveBeenCalledWith(appointmentId);
+      expect(appointmentsRepository.completeAppointment).toHaveBeenCalledWith(
+        appointmentId,
+        userId,
+        roles,
+      );
 
       expect(result).toEqual(completedAppointment);
     });
@@ -632,7 +612,7 @@ describe('AppointmentsService', () => {
       );
 
       await expect(
-        service.completeAppointment('appointment-1'),
+        service.completeAppointment('appointment-1', userId, roles),
       ).rejects.toThrow('Cannot complete appointment');
     });
   });
@@ -678,10 +658,7 @@ describe('AppointmentsService', () => {
 
       expect(
         appointmentsRepository.updateAppointmentStatus,
-      ).toHaveBeenCalledWith(
-        appointmentId,
-        AppointmentStatus.CANCELLED,
-      );
+      ).toHaveBeenCalledWith(appointmentId, AppointmentStatus.CANCELLED);
 
       expect(result).toEqual(repositoryResult);
     });
@@ -706,18 +683,15 @@ describe('AppointmentsService', () => {
 
       expect(
         appointmentsRepository.updateAppointmentStatus,
-      ).toHaveBeenCalledWith(
-        appointmentId,
-        AppointmentStatus.CONFIRMED,
+      ).toHaveBeenCalledWith(appointmentId, AppointmentStatus.CONFIRMED);
+
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledTimes(
+        1,
       );
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledTimes(1);
-
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).toHaveBeenCalledWith(appointmentId);
+      expect(appointmentsRepository.getAppointmentById).toHaveBeenCalledWith(
+        appointmentId,
+      );
 
       expect(
         notificationsService.sendAppointmentConfirmedByAdmin,
@@ -746,9 +720,7 @@ describe('AppointmentsService', () => {
         AppointmentStatus.CANCELLED,
       );
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.getAppointmentById).not.toHaveBeenCalled();
 
       expect(
         notificationsService.sendAppointmentConfirmedByAdmin,
@@ -768,13 +740,11 @@ describe('AppointmentsService', () => {
         },
       );
 
-      appointmentsRepository.getAppointmentById.mockImplementation(
-        async () => {
-          calls.push('get-appointment');
+      appointmentsRepository.getAppointmentById.mockImplementation(async () => {
+        calls.push('get-appointment');
 
-          return appointment as any;
-        },
-      );
+        return appointment as any;
+      });
 
       notificationsService.sendAppointmentConfirmedByAdmin.mockImplementation(
         async () => {
@@ -848,9 +818,7 @@ describe('AppointmentsService', () => {
         ),
       ).rejects.toThrow('Cannot update appointment status');
 
-      expect(
-        appointmentsRepository.getAppointmentById,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.getAppointmentById).not.toHaveBeenCalled();
 
       expect(
         notificationsService.sendAppointmentConfirmedByAdmin,
@@ -886,15 +854,9 @@ describe('AppointmentsService', () => {
       const date = '2026-10-08';
       const appointmentId = 'appointment-123';
 
-      const slots = [
-        '09:00',
-        '10:00',
-        '11:00',
-      ];
+      const slots = ['09:00', '10:00', '11:00'];
 
-      appointmentsRepository.getAvailableSlots.mockResolvedValue(
-        slots as any,
-      );
+      appointmentsRepository.getAvailableSlots.mockResolvedValue(slots as any);
 
       const result = await service.getAvailableSlots(
         professionalId,
@@ -903,13 +865,9 @@ describe('AppointmentsService', () => {
         appointmentId,
       );
 
-      expect(
-        appointmentsRepository.getAvailableSlots,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.getAvailableSlots).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsRepository.getAvailableSlots,
-      ).toHaveBeenCalledWith(
+      expect(appointmentsRepository.getAvailableSlots).toHaveBeenCalledWith(
         professionalId,
         serviceId,
         date,
@@ -922,9 +880,7 @@ describe('AppointmentsService', () => {
     it('should work without appointmentId', async () => {
       const slots = ['09:00', '10:00'];
 
-      appointmentsRepository.getAvailableSlots.mockResolvedValue(
-        slots as any,
-      );
+      appointmentsRepository.getAvailableSlots.mockResolvedValue(slots as any);
 
       const result = await service.getAvailableSlots(
         'professional-123',
@@ -932,9 +888,7 @@ describe('AppointmentsService', () => {
         '2026-10-08',
       );
 
-      expect(
-        appointmentsRepository.getAvailableSlots,
-      ).toHaveBeenCalledWith(
+      expect(appointmentsRepository.getAvailableSlots).toHaveBeenCalledWith(
         'professional-123',
         'service-123',
         '2026-10-08',
@@ -997,9 +951,7 @@ describe('AppointmentsService', () => {
         appointment as any,
       );
 
-      appointmentsRepository.cancelAppointment.mockResolvedValue(
-        result as any,
-      );
+      appointmentsRepository.cancelAppointment.mockResolvedValue(result as any);
 
       notificationsService.sendAppointmentCancelled.mockRejectedValue(
         notificationError,

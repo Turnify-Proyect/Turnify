@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
@@ -52,9 +52,6 @@ export class CreateUserDto {
         'Password debe tener minimo 1 minuscula, 1 mayuscula, 1 numero y 1 simbolo',
     },
   )
-  // El DTO recibe la contraseña en texto plano como "password".
-  // "password_hash" queda reservado exclusivamente para la entidad y la DB.
-  //coemntado por:Lautaro-dev
   password!: string;
 
   @ApiProperty({
@@ -63,13 +60,8 @@ export class CreateUserDto {
   })
   @IsNotEmpty()
   @Validate(MatchPassword, ['password'])
-  // Solo se utiliza para verificar que ambas contraseñas coincidan.
-  // No se persiste ni se envía al Repository.
-  //coemntado por:Lautaro-dev
   confirmPassword!: string;
 
-  // El teléfono es obligatorio y se recibe como string porque no representa un valor matemático y puede contener prefijos, espacios o código de país.
-  //coemntado por:Lautaro-dev
   @ApiProperty({
     description: 'Telefono del usuario',
     example: '+54 343 1234567',
@@ -77,14 +69,8 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Telefono es requerido' })
   @IsString({ message: 'Telefono debe ser un string' })
   @MaxLength(20, { message: 'Telefono de no mas de 20 caracteres' })
-  // El teléfono es obligatorio y se recibe como string porque puede contener
-  // prefijos, código de país, espacios y ceros iniciales.
-  //coemntado por:Lautaro-dev
   phone!: string;
 
-  // Agregué @IsOptional() + ? y nullable:true para dejarlo como campo opcional para el usuario
-  // Cambié @ApiProperty por @ApiPropertyOptional para que swagger lo entienda como un campo opcional
-  //coemntado por:Lautaro-dev
   @ApiPropertyOptional({
     description: 'Pais del usuario',
     example: 'Argentina',
@@ -117,9 +103,18 @@ export class CreateUserDto {
 }
 
 export class LoginUserDto {
+  @ApiProperty({
+    description: 'Correo electrónico registrado en la aplicación',
+    example: 'admin@admin.com',
+  })
   @IsEmail({}, { message: 'Ingresá un correo electrónico válido' })
   email!: string;
 
+  @ApiProperty({
+    description: 'Contraseña en texto plano correspondiente a la cuenta',
+    format: 'password',
+    example: 'Abc1234!',
+  })
   @IsString()
   @IsNotEmpty({ message: 'Ingresá tu contraseña' })
   password!: string;

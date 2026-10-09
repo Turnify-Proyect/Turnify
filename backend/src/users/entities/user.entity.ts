@@ -23,9 +23,6 @@ export class User {
   @Column({ unique: true, type: 'varchar', length: 50, nullable: false })
   email!: string;
 
-  // Indica si el usuario demostró tener acceso al correo registrado.
-  // Los usuarios locales comienzan sin verificar hasta confirmar el email.
-  // comentado por: Lautaro-dev
   @Column({
     name: 'is_email_verified',
     type: 'boolean',
@@ -33,8 +30,6 @@ export class User {
   })
   isEmailVerified!: boolean;
 
-  // Cambié nullable: true porque los usuarios autenticados mediante un proveedor externo (por ejemplo Google) pueden no tener una contraseña local almacenada en Turnify.
-  //coemntado por:Lautaro-dev
   @Column({
     name: 'password_hash',
     type: 'varchar',
@@ -43,8 +38,6 @@ export class User {
   })
   password_hash!: string | null;
 
-  // El teléfono se almacena como string porque puede contener código de país, prefijos, espacios o ceros iniciales. Es obligatorio para todo usuario.
-  //coemntado por:Lautaro-dev
   @Column({
     type: 'varchar',
     length: 20,
@@ -75,8 +68,6 @@ export class User {
   @Column({ name: 'provider_id', type: 'varchar', length: 255, nullable: true })
   providerId!: string | null;
 
-  //Agregué las propiedades country, city y address que se contemplan en el create-user.DTO como opcionales
-  //coemntado por:Lautaro-dev
   @Column({
     type: 'varchar',
     length: 15,

@@ -44,7 +44,7 @@ export class AppointmentsRepository {
     private readonly availabilityRepository: AvailabilityRepository,
     private readonly professionalUnavailabilityRepository: ProfessionalUnavailabilityRepository,
   ) {}
-  //funcion para obtener el dia de la semana a partir de una fecha
+
   private getDayOfWeek(date: Date): DayOfWeek {
     const dayName = new Intl.DateTimeFormat('en-US', {
       timeZone: APP_TIMEZONE,
@@ -86,9 +86,6 @@ export class AppointmentsRepository {
     return { hour, minute };
   }
 
-  //función para expirar turnos pendientes que hayan pasado su fecha de expiración.
-  // Esto se puede hacer con un cron/job programado para que cambie a EXPIRED exactamente
-  // al cumplirse los 10 minutos aunque nadie haga una nueva request - REVISAR EN GRUPO
   private async expirePendingAppointments(): Promise<void> {
     await this.appointmentsRepository
       .createQueryBuilder()
@@ -106,7 +103,6 @@ export class AppointmentsRepository {
       .execute();
   }
 
-  //valida si el profesional esta disponible en el horario solicitado
   private async validateProfessionalAvailability(
     professionalId: string,
     startAt: Date,
@@ -150,7 +146,7 @@ export class AppointmentsRepository {
       );
     }
   }
-  //valida si el profesional tiene un turno asignado en el mismo horario
+
   private async validateProfessionalNoOverlap(
     professionalId: string,
     startAt: Date,
@@ -194,7 +190,6 @@ export class AppointmentsRepository {
     }
   }
 
-  //valida si el usuario tiene rol de cliente
   private validateUserRole(user: User): void {
     if (!user.roles.includes(UserRole.CLIENT)) {
       throw new ConflictException(
@@ -203,7 +198,6 @@ export class AppointmentsRepository {
     }
   }
 
-  //valida si el usuario tiene un turno asignado en el mismo horario
   private async validateUserNoOverlap(
     userId: string,
     startAt: Date,
@@ -304,8 +298,6 @@ export class AppointmentsRepository {
       );
     }
 
-    // Usamos mediodía para determinar el día sin riesgos
-    // de cambio de fecha por zona horaria.
     const selectedDate = new Date(`${date}T12:00:00-03:00`);
 
     if (Number.isNaN(selectedDate.getTime())) {
@@ -367,7 +359,6 @@ export class AppointmentsRepository {
         },
       );
 
-    // Durante una reprogramación, el turno no debe bloquearse a sí mismo.
     if (appointmentIdToIgnore) {
       query.andWhere('appointment.appointment_id != :appointmentIdToIgnore', {
         appointmentIdToIgnore,
@@ -407,7 +398,6 @@ export class AppointmentsRepository {
           candidateStart.getTime() + service.durationMinutes * 60 * 1000,
         );
 
-        // Si la fecha es hoy, no ofrecemos horarios pasados.
         if (candidateStart <= now) {
           continue;
         }
@@ -429,10 +419,6 @@ export class AppointmentsRepository {
       slots: Array.from(slots).sort(),
     };
   }
-
-  // Valida todos los datos necesarios para crear un turno y prepara
-  // las entidades relacionadas, pero NO guarda nada en la base de datos.
-  // Esto permite reutilizar las validaciones desde OrdersService.
 
   async prepareAppointment(
     createAppointmentDto: CreateAppointmentDto,
@@ -550,8 +536,6 @@ export class AppointmentsRepository {
     };
   }
 
-
-  // todos los turnos (ADMIN)
   async getAllAppointments(): Promise<Appointment[]> {
     await this.expirePendingAppointments();
 
@@ -563,10 +547,6 @@ export class AppointmentsRepository {
         },
         service: true,
 
-        // El pago ya no pertenece directamente al Appointment.
-        // Ahora se accede mediante:
-        // Appointment -> OrderDetail -> Order -> Payment
-        //comentado por Lautaro-dev
         orderDetail: {
           order: {
             payment: true,
@@ -579,7 +559,6 @@ export class AppointmentsRepository {
     });
   }
 
-  // turno por ID
   async getAppointmentById(id: string): Promise<Appointment> {
     await this.expirePendingAppointments();
 
@@ -592,10 +571,6 @@ export class AppointmentsRepository {
         },
         service: true,
 
-        // El Payment ya no pertenece directamente al Appointment.
-        // Ahora se obtiene mediante:
-        // Appointment -> OrderDetail -> Order -> Payment
-        //comentado por Lautaro-dev
         orderDetail: {
           order: {
             payment: true,
@@ -611,7 +586,6 @@ export class AppointmentsRepository {
     return appointment;
   }
 
-  // turnos por ID de usuario
   async getAppointmentsByUserId(userId: string): Promise<Appointment[]> {
     await this.expirePendingAppointments();
 
@@ -637,9 +611,6 @@ export class AppointmentsRepository {
         },
         service: true,
 
-        // El Payment ahora pertenece a la Order.
-        // Ruta: Appointment -> OrderDetail -> Order -> Payment
-        //comentado por Lautaro-dev
         orderDetail: {
           order: {
             payment: true,
@@ -652,7 +623,6 @@ export class AppointmentsRepository {
     });
   }
 
-  // turnos por ID de profesional
   async getAppointmentsByProfessionalId(
     professionalId: string,
   ): Promise<Appointment[]> {
@@ -693,7 +663,6 @@ export class AppointmentsRepository {
     });
   }
 
-  // cancelación de turno
   async cancelAppointment(id: string): Promise<string> {
     await this.expirePendingAppointments();
 
@@ -706,7 +675,6 @@ export class AppointmentsRepository {
         },
         service: true,
 
-  
         orderDetail: {
           order: {
             payment: true,
@@ -731,7 +699,6 @@ export class AppointmentsRepository {
       throw new ConflictException('No se puede cancelar un turno expirado');
     }
 
-    // Impide cancelar turnos cuya fecha y hora ya hayan pasado.
     if (appointment.startAt <= new Date()) {
       throw new ConflictException(
         'No se puede cancelar un turno cuya fecha ya ha pasado',
@@ -741,7 +708,6 @@ export class AppointmentsRepository {
     appointment.status = AppointmentStatus.CANCELLED;
     appointment.expiresAt = null;
 
-    // agregué el await ya que save() es asincrono
     await this.appointmentsRepository.save(appointment);
 
     return 'El turno ha sido cancelado exitosamente';
@@ -852,7 +818,6 @@ export class AppointmentsRepository {
       );
     }
 
-    // La regla de 24 horas se aplica al NUEVO turno seleccionado.
     const hoursUntilNewAppointment =
       (newStartAt.getTime() - now.getTime()) / (1000 * 60 * 60);
 
@@ -891,8 +856,8 @@ export class AppointmentsRepository {
     appointment.startAt = newStartAt;
     appointment.endAt = newEndAt;
     appointment.rescheduleCount += 1;
+    appointment.reminderSent = false;
 
-    // Si el turno estaba pendiente, se reinicia el tiempo de expiración.
     if (appointment.status === AppointmentStatus.PENDING) {
       appointment.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     }
@@ -900,9 +865,11 @@ export class AppointmentsRepository {
     return this.appointmentsRepository.save(appointment);
   }
 
-
-  // marcar turno como 'completado' (DESDE EL PANEL DEL PROFESIONAL)
-  async completeAppointment( id: string, requestingUserId: string, requestingUserRoles: UserRole[], ): Promise<Appointment> {
+  async completeAppointment(
+    id: string,
+    requestingUserId: string,
+    requestingUserRoles: UserRole[],
+  ): Promise<Appointment> {
     await this.expirePendingAppointments();
 
     const appointment = await this.appointmentsRepository.findOne({
@@ -928,10 +895,7 @@ export class AppointmentsRepository {
 
     const isAdmin = requestingUserRoles?.includes(UserRole.ADMIN);
 
-    if (
-      !isAdmin &&
-      appointment.professional?.user?.id !== requestingUserId
-    ) {
+    if (!isAdmin && appointment.professional?.user?.id !== requestingUserId) {
       throw new ForbiddenException(
         'No tiene permiso para modificar un turno asignado a otro profesional',
       );
@@ -956,7 +920,6 @@ export class AppointmentsRepository {
     return this.appointmentsRepository.save(appointment);
   }
 
-  // marcar turno como ausente
   async markAppointmentNoShow(
     id: string,
     requestingUserId: string,
@@ -964,44 +927,35 @@ export class AppointmentsRepository {
   ): Promise<Appointment> {
     await this.expirePendingAppointments();
 
-    const appointment =
-      await this.appointmentsRepository.findOne({
-        where: { id },
-        relations: {
+    const appointment = await this.appointmentsRepository.findOne({
+      where: { id },
+      relations: {
+        user: true,
+        professional: {
           user: true,
-          professional: {
-            user: true,
-          },
-          service: true,
-          orderDetail: {
-            order: {
-              payment: true,
-            },
+        },
+        service: true,
+        orderDetail: {
+          order: {
+            payment: true,
           },
         },
-      });
+      },
+    });
 
     if (!appointment) {
-      throw new NotFoundException(
-        'No existe un turno con el ID proporcionado',
-      );
+      throw new NotFoundException('No existe un turno con el ID proporcionado');
     }
 
     const isAdmin = requestingUserRoles?.includes(UserRole.ADMIN);
 
-    if (
-      !isAdmin &&
-      appointment.professional?.user?.id !== requestingUserId
-    ) {
+    if (!isAdmin && appointment.professional?.user?.id !== requestingUserId) {
       throw new ForbiddenException(
         'No tiene permiso para modificar un turno asignado a otro profesional',
       );
     }
 
-    if (
-      appointment.status !==
-      AppointmentStatus.CONFIRMED
-    ) {
+    if (appointment.status !== AppointmentStatus.CONFIRMED) {
       throw new ConflictException(
         'Solo se pueden marcar como ausentes turnos confirmados',
       );
@@ -1015,19 +969,13 @@ export class AppointmentsRepository {
       );
     }
 
-    appointment.status =
-      AppointmentStatus.NO_SHOW;
+    appointment.status = AppointmentStatus.NO_SHOW;
 
     appointment.expiresAt = null;
 
-    return this.appointmentsRepository.save(
-      appointment,
-    );
+    return this.appointmentsRepository.save(appointment);
   }
 
-  //cambiar el estado de un turno (DESDE EL PANEL DEL ADMINISTRADOR)
-
-  //función para validar si el cambio de estado es válido según las reglas de negocio
   private validateAdminStatusTransition(
     currentStatus: AppointmentStatus,
     newStatus: AppointmentStatus,
@@ -1073,9 +1021,6 @@ export class AppointmentsRepository {
         },
         service: true,
 
-        // El Payment ahora pertenece a la Order.
-        // Ruta: Appointment -> OrderDetail -> Order -> Payment
-        //comentado por Lautaro-dev
         orderDetail: {
           order: {
             payment: true,

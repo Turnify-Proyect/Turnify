@@ -8,9 +8,6 @@ import { PaymentType } from '../payments/entities/payment.entity';
 export class NotificationsService {
   constructor(private readonly mailService: MailService) {}
 
-  // Formatea la fecha utilizando el formato argentino
-  // y la zona horaria configurada para Turnify.
-  //comentado por Lautaro-dev
   private formatDate(date: Date): string {
     return new Intl.DateTimeFormat('es-AR', {
       timeZone: APP_TIMEZONE,
@@ -20,9 +17,6 @@ export class NotificationsService {
     }).format(date);
   }
 
-  // Formatea la hora en formato de 24 horas utilizando
-  // la zona horaria configurada para Turnify.
-  //comentado por Lautaro-dev
   private formatTime(date: Date): string {
     return new Intl.DateTimeFormat('es-AR', {
       timeZone: APP_TIMEZONE,
@@ -39,8 +33,6 @@ export class NotificationsService {
     professionalName: string,
     startAt: Date,
   ): Promise<void> {
-    // Envía el recordatorio utilizando la plantilla HTML del turno.
-    //comentado por Lautaro-dev
     await this.mailService.sendMailWithTemplate(
       email,
       'Recordatorio de tu turno - Turnify',
@@ -49,14 +41,12 @@ export class NotificationsService {
         userName,
         serviceName,
         professionalName,
+        date: this.formatDate(startAt),
         time: this.formatTime(startAt),
       },
     );
   }
 
-  // Construye y envía el correo de confirmación de una orden,
-  // incluyendo todos los turnos asociados y los datos del pago.
-  //comentado por Lautaro-dev
   async sendOrderConfirmed(
     email: string,
     userName: string,
@@ -65,9 +55,6 @@ export class NotificationsService {
     totalAmount: number,
     paymentType: PaymentType | null,
   ): Promise<void> {
-    // Generamos el contenido HTML de todos los turnos de la orden
-    // y lo unificamos en un único string para incluirlo en el correo.
-    //comentado por Lautaro-dev
     const appointmentsHtml = appointments
       .map(
         (appointment) => `
@@ -117,8 +104,6 @@ export class NotificationsService {
     professionalName: string,
     startAt: Date,
   ): Promise<void> {
-    // Envía al cliente la notificación de cancelación del turno.
-    //comentado por Lautaro-dev
     await this.mailService.sendMail(
       email,
       'Turno cancelado - Turnify',
@@ -223,8 +208,6 @@ export class NotificationsService {
     professionalName: string,
     startAt: Date,
   ): Promise<void> {
-    // Envía al cliente la confirmación de la nueva fecha y hora del turno.
-    //comentado por Lautaro-dev
     await this.mailService.sendMail(
       email,
       'Turno reprogramado - Turnify',
@@ -244,8 +227,6 @@ export class NotificationsService {
     `,
     );
   }
-
-  //Orden confirmada desde el panel del administrador.
 
   async sendAppointmentConfirmedByAdmin(
     email: string,

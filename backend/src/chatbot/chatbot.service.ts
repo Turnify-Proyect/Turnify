@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ALL_FAQ_ENTRIES, FAQ_DATABASE, FAQCategory } from './data/faq.es';
 
-// Representa un mensaje que el frontend puede mostrar en la conversación.
-// `type` indica cómo presentarlo y `payload` contiene datos para botones/categorías.
-// Comentarios de orientación agregados por dev-Mazz.
 export interface ChatMessage {
   role: 'user' | 'bot';
   content: string;
@@ -11,7 +8,6 @@ export interface ChatMessage {
   payload?: unknown;
 }
 
-// Estructura común que devuelven todos los flujos del chatbot.
 export interface ChatResponse {
   messages: ChatMessage[];
   suggestedCategories?: FAQCategory[];
@@ -19,11 +15,8 @@ export interface ChatResponse {
 
 @Injectable()
 export class ChatbotService {
-  // Evita coincidencias débiles; una frase específica también puede bastar.
   private readonly MIN_KEYWORD_MATCH = 2;
 
-  // Procesa texto libre y entrega una respuesta FAQ o el menú como alternativa.
-  // userId y context se reciben para la integración, pero aún no afectan la búsqueda.
   processMessage(
     userId: string,
     text: string,
@@ -49,14 +42,12 @@ export class ChatbotService {
     );
   }
 
-  // Construye el saludo de bienvenida y presenta las categorías disponibles.
   getWelcomeMessage(): ChatResponse {
     return this.buildCategoryMenu(
       '¡Hola! 👋 Soy Lumi, el asistente de Turnify. Estoy aquí para ayudarte. ¿Qué necesitas?',
     );
   }
 
-  // Busca la FAQ más relevante: exige varias keywords o una frase específica.
   private findBestMatch(input: string): {
     entry: (typeof ALL_FAQ_ENTRIES)[number];
     score: number;
@@ -87,12 +78,10 @@ export class ChatbotService {
     return best;
   }
 
-  // Cuenta cuántas keywords de una entrada aparecen en el texto normalizado.
   private keywordScore(input: string, keywords: string[]): number {
     return keywords.filter((k) => input.includes(this.normalize(k))).length;
   }
 
-  // Unifica mayúsculas, tildes y signos para comparar texto de forma consistente.
   private normalize(text: string): string {
     return text
       .toLowerCase()
@@ -102,7 +91,6 @@ export class ChatbotService {
       .trim();
   }
 
-  // Formatea la respuesta FAQ y agrega botones de seguimiento para el frontend.
   private buildAnswerResponse({
     entry,
   }: {
@@ -121,7 +109,6 @@ export class ChatbotService {
     };
   }
 
-  // Convierte el catálogo de categorías en el formato que consume la interfaz.
   private buildCategoryMenu(intro: string): ChatResponse {
     const categories = Object.entries(FAQ_DATABASE).map(([key, cat]) => ({
       id: key as FAQCategory,
@@ -143,7 +130,6 @@ export class ChatbotService {
     };
   }
 
-  // Devuelve el nombre de la categoría y sus preguntas como botones seleccionables.
   getCategoryContent(category: FAQCategory): ChatResponse {
     const cat = FAQ_DATABASE[category];
     if (!cat) return this.getWelcomeMessage();
@@ -171,7 +157,6 @@ export class ChatbotService {
     };
   }
 
-  // Busca la pregunta dentro de su categoría; si no existe, vuelve a mostrarla.
   getQuestionAnswer(category: FAQCategory, questionText: string): ChatResponse {
     const entry = FAQ_DATABASE[category].entries.find(
       (e) => e.question === questionText,

@@ -89,7 +89,7 @@ export class ProfessionalsRepository {
         availabilities: true,
       },
     });
-  
+
     if (!professional) {
       throw new NotFoundException(
         'No existe un profesional asociado al usuario proporcionado',
@@ -97,7 +97,7 @@ export class ProfessionalsRepository {
     }
 
     console.log('PROFESSIONAL ENCONTRADO:', professional);
-  
+
     return professional;
   }
 
@@ -136,8 +136,6 @@ export class ProfessionalsRepository {
     const savedProfessional =
       await this.professionalsrepository.save(professional);
 
-    // Al convertirse en profesional deja de ser cliente.
-    // Si también era admin, conserva ese rol.
     user.roles = user.roles.filter((role) => role !== UserRole.CLIENT);
 
     if (!user.roles.includes(UserRole.PROFESSIONAL)) {

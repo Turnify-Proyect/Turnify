@@ -38,8 +38,8 @@ import { APP_GUARD } from '@nestjs/core';
     ThrottlerModule.forRoot([
       {
         name: 'default',
-        ttl: 60000, // 60 segundos
-        limit: 60, // 60 requests por minuto por IP, límite general de la API
+        ttl: 60000,
+        limit: 60,
       },
     ]),
     UsersModule,

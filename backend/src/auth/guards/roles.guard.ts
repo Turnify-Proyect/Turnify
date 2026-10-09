@@ -19,8 +19,7 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    //Cree esta validacion para que el .some no rompa si por algun motivo no se declaran roles especificos para la ruta
-    //coemntado por:Lautaro-dev
+
     if (!routeRoles) {
       return true;
     }
@@ -31,8 +30,7 @@ export class RolesGuard implements CanActivate {
     if (!request.user) {
       throw new ForbiddenException('Usuario no autenticado');
     }
-    //cambié la identacion "request.user.Roles" por "request.user.roles"
-    //coemntado por:Lautaro-dev
+
     const userRoles: UserRole[] = request.user.roles;
     console.log(userRoles);
     console.log(!Array.isArray(userRoles));

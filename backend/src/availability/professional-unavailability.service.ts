@@ -11,16 +11,11 @@ import { CreateProfessionalUnavailabilityDto } from './dto/create-professional-u
 @Injectable()
 export class ProfessionalUnavailabilityService {
   constructor(
-    private readonly repository:
-      ProfessionalUnavailabilityRepository,
+    private readonly repository: ProfessionalUnavailabilityRepository,
   ) {}
 
-  async getByProfessionalId(
-    professionalId: string,
-  ) {
-    return this.repository.getByProfessionalId(
-      professionalId,
-    );
+  async getByProfessionalId(professionalId: string) {
+    return this.repository.getByProfessionalId(professionalId);
   }
 
   async create(
@@ -33,12 +28,11 @@ export class ProfessionalUnavailabilityService {
       );
     }
 
-    const overlapping =
-      await this.repository.getOverlapping(
-        professionalId,
-        data.startDate,
-        data.endDate,
-      );
+    const overlapping = await this.repository.getOverlapping(
+      professionalId,
+      data.startDate,
+      data.endDate,
+    );
 
     if (overlapping) {
       throw new ConflictException(
@@ -46,34 +40,26 @@ export class ProfessionalUnavailabilityService {
       );
     }
 
-    return this.repository.create(
-      professionalId,
-      data,
-    );
+    return this.repository.create(professionalId, data);
   }
 
   async delete(id: string): Promise<void> {
-    const unavailability =
-      await this.repository.getById(id);
+    const unavailability = await this.repository.getById(id);
 
     if (!unavailability) {
-      throw new NotFoundException(
-        `No se encontró el bloqueo con id ${id}`,
-      );
+      throw new NotFoundException(`No se encontró el bloqueo con id ${id}`);
     }
 
     await this.repository.delete(id);
   }
 
   async getById(id: string) {
-  const unavailability = await this.repository.getById(id);
+    const unavailability = await this.repository.getById(id);
 
-  if (!unavailability) {
-    throw new NotFoundException(
-      `No se encontró el bloqueo con id ${id}`,
-    );
+    if (!unavailability) {
+      throw new NotFoundException(`No se encontró el bloqueo con id ${id}`);
+    }
+
+    return unavailability;
   }
-
-  return unavailability;
-}
 }

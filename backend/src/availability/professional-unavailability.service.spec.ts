@@ -53,12 +53,9 @@ describe('ProfessionalUnavailabilityService', () => {
         },
       ];
 
-      repository.getByProfessionalId.mockResolvedValue(
-        unavailabilities,
-      );
+      repository.getByProfessionalId.mockResolvedValue(unavailabilities);
 
-      const result =
-        await service.getByProfessionalId('professional-id');
+      const result = await service.getByProfessionalId('professional-id');
 
       expect(repository.getByProfessionalId).toHaveBeenCalledWith(
         'professional-id',
@@ -70,8 +67,7 @@ describe('ProfessionalUnavailabilityService', () => {
     it('should return an empty array when there are no unavailabilities', async () => {
       repository.getByProfessionalId.mockResolvedValue([]);
 
-      const result =
-        await service.getByProfessionalId('professional-id');
+      const result = await service.getByProfessionalId('professional-id');
 
       expect(result).toEqual([]);
 
@@ -110,10 +106,7 @@ describe('ProfessionalUnavailabilityService', () => {
       repository.getOverlapping.mockResolvedValue(null);
       repository.create.mockResolvedValue(createdUnavailability);
 
-      const result = await service.create(
-        'professional-id',
-        data,
-      );
+      const result = await service.create('professional-id', data);
 
       expect(repository.getOverlapping).toHaveBeenCalledWith(
         'professional-id',
@@ -121,10 +114,7 @@ describe('ProfessionalUnavailabilityService', () => {
         '2026-10-15',
       );
 
-      expect(repository.create).toHaveBeenCalledWith(
-        'professional-id',
-        data,
-      );
+      expect(repository.create).toHaveBeenCalledWith('professional-id', data);
 
       expect(result).toBe(createdUnavailability);
     });
@@ -144,10 +134,7 @@ describe('ProfessionalUnavailabilityService', () => {
       repository.getOverlapping.mockResolvedValue(null);
       repository.create.mockResolvedValue(createdUnavailability);
 
-      const result = await service.create(
-        'professional-id',
-        sameDayData,
-      );
+      const result = await service.create('professional-id', sameDayData);
 
       expect(repository.getOverlapping).toHaveBeenCalledWith(
         'professional-id',
@@ -191,9 +178,7 @@ describe('ProfessionalUnavailabilityService', () => {
 
       repository.getOverlapping.mockResolvedValue(overlapping);
 
-      await expect(
-        service.create('professional-id', data),
-      ).rejects.toThrow(
+      await expect(service.create('professional-id', data)).rejects.toThrow(
         new ConflictException(
           'El profesional ya posee un bloqueo dentro del rango de fechas seleccionado',
         ),
@@ -218,10 +203,7 @@ describe('ProfessionalUnavailabilityService', () => {
 
       repository.create.mockResolvedValue(created);
 
-      const result = await service.create(
-        'professional-id',
-        data,
-      );
+      const result = await service.create('professional-id', data);
 
       expect(repository.getOverlapping).toHaveBeenCalledTimes(1);
       expect(repository.create).toHaveBeenCalledTimes(1);
@@ -233,9 +215,9 @@ describe('ProfessionalUnavailabilityService', () => {
 
       repository.getOverlapping.mockRejectedValue(error);
 
-      await expect(
-        service.create('professional-id', data),
-      ).rejects.toThrow(error);
+      await expect(service.create('professional-id', data)).rejects.toThrow(
+        error,
+      );
 
       expect(repository.create).not.toHaveBeenCalled();
     });
@@ -246,9 +228,9 @@ describe('ProfessionalUnavailabilityService', () => {
       repository.getOverlapping.mockResolvedValue(null);
       repository.create.mockRejectedValue(error);
 
-      await expect(
-        service.create('professional-id', data),
-      ).rejects.toThrow(error);
+      await expect(service.create('professional-id', data)).rejects.toThrow(
+        error,
+      );
     });
   });
 
@@ -265,13 +247,9 @@ describe('ProfessionalUnavailabilityService', () => {
 
       const result = await service.delete('block-id');
 
-      expect(repository.getById).toHaveBeenCalledWith(
-        'block-id',
-      );
+      expect(repository.getById).toHaveBeenCalledWith('block-id');
 
-      expect(repository.delete).toHaveBeenCalledWith(
-        'block-id',
-      );
+      expect(repository.delete).toHaveBeenCalledWith('block-id');
 
       expect(result).toBeUndefined();
     });
@@ -279,9 +257,7 @@ describe('ProfessionalUnavailabilityService', () => {
     it('should throw NotFoundException when the unavailability does not exist', async () => {
       repository.getById.mockResolvedValue(null);
 
-      await expect(
-        service.delete('non-existent-id'),
-      ).rejects.toThrow(
+      await expect(service.delete('non-existent-id')).rejects.toThrow(
         new NotFoundException(
           'No se encontró el bloqueo con id non-existent-id',
         ),
@@ -295,9 +271,7 @@ describe('ProfessionalUnavailabilityService', () => {
 
       repository.getById.mockRejectedValue(error);
 
-      await expect(
-        service.delete('block-id'),
-      ).rejects.toThrow(error);
+      await expect(service.delete('block-id')).rejects.toThrow(error);
 
       expect(repository.delete).not.toHaveBeenCalled();
     });
@@ -312,9 +286,7 @@ describe('ProfessionalUnavailabilityService', () => {
       repository.getById.mockResolvedValue(unavailability);
       repository.delete.mockRejectedValue(error);
 
-      await expect(
-        service.delete('block-id'),
-      ).rejects.toThrow(error);
+      await expect(service.delete('block-id')).rejects.toThrow(error);
     });
   });
 
@@ -333,9 +305,7 @@ describe('ProfessionalUnavailabilityService', () => {
 
       const result = await service.getById('block-id');
 
-      expect(repository.getById).toHaveBeenCalledWith(
-        'block-id',
-      );
+      expect(repository.getById).toHaveBeenCalledWith('block-id');
 
       expect(result).toBe(unavailability);
     });
@@ -343,9 +313,7 @@ describe('ProfessionalUnavailabilityService', () => {
     it('should throw NotFoundException when the unavailability does not exist', async () => {
       repository.getById.mockResolvedValue(null);
 
-      await expect(
-        service.getById('non-existent-id'),
-      ).rejects.toThrow(
+      await expect(service.getById('non-existent-id')).rejects.toThrow(
         new NotFoundException(
           'No se encontró el bloqueo con id non-existent-id',
         ),
@@ -357,9 +325,7 @@ describe('ProfessionalUnavailabilityService', () => {
 
       repository.getById.mockRejectedValue(error);
 
-      await expect(
-        service.getById('block-id'),
-      ).rejects.toThrow(error);
+      await expect(service.getById('block-id')).rejects.toThrow(error);
     });
   });
 });

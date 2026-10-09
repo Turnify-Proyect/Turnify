@@ -3,211 +3,197 @@ import { ChatbotController } from './chatbot.controller';
 import { ChatbotService } from './chatbot.service';
 
 describe('ChatbotController', () => {
-let controller: ChatbotController;
+  let controller: ChatbotController;
 
-const chatbotService = {
-processMessage: jest.fn(),
-getWelcomeMessage: jest.fn(),
-getCategoryContent: jest.fn(),
-getQuestionAnswer: jest.fn(),
-};
-
-beforeEach(async () => {
-jest.clearAllMocks();
-
-const module: TestingModule = await Test.createTestingModule({
-  controllers: [ChatbotController],
-  providers: [
-    {
-      provide: ChatbotService,
-      useValue: chatbotService,
-    },
-  ],
-}).compile();
-
-controller = module.get<ChatbotController>(ChatbotController);
-
-
-});
-
-describe('handleMessage', () => {
-it('delega en processMessage con userId, text y context', () => {
-const body = {
-userId: 'user-123',
-text: '¿Cómo saco un turno?',
-context: {
-source: 'web',
-},
-};
-
-  const chatResponse = {
-    messages: [
-      {
-        role: 'bot',
-        content: 'Respuesta',
-        type: 'text',
-      },
-    ],
+  const chatbotService = {
+    processMessage: jest.fn(),
+    getWelcomeMessage: jest.fn(),
+    getCategoryContent: jest.fn(),
+    getQuestionAnswer: jest.fn(),
   };
 
-  chatbotService.processMessage.mockReturnValue(chatResponse);
+  beforeEach(async () => {
+    jest.clearAllMocks();
 
-  const result = controller.handleMessage(body);
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [ChatbotController],
+      providers: [
+        {
+          provide: ChatbotService,
+          useValue: chatbotService,
+        },
+      ],
+    }).compile();
 
-  expect(chatbotService.processMessage).toHaveBeenCalledTimes(1);
-  expect(chatbotService.processMessage).toHaveBeenCalledWith(
-    body.userId,
-    body.text,
-    body.context,
-  );
-  expect(result).toBe(chatResponse);
-});
+    controller = module.get<ChatbotController>(ChatbotController);
+  });
 
-it('permite context indefinido', () => {
-  const body = {
-    userId: 'user-123',
-    text: 'Hola',
-  };
+  describe('handleMessage', () => {
+    it('delega en processMessage con userId, text y context', () => {
+      const body = {
+        userId: 'user-123',
+        text: '¿Cómo saco un turno?',
+        context: {
+          source: 'web',
+        },
+      };
 
-  const chatResponse = {
-    messages: [],
-  };
+      const chatResponse = {
+        messages: [
+          {
+            role: 'bot',
+            content: 'Respuesta',
+            type: 'text',
+          },
+        ],
+      };
 
-  chatbotService.processMessage.mockReturnValue(chatResponse);
+      chatbotService.processMessage.mockReturnValue(chatResponse);
 
-  const result = controller.handleMessage(body);
+      const result = controller.handleMessage(body);
 
-  expect(chatbotService.processMessage).toHaveBeenCalledWith(
-    body.userId,
-    body.text,
-    undefined,
-  );
-  expect(result).toBe(chatResponse);
-});
+      expect(chatbotService.processMessage).toHaveBeenCalledTimes(1);
+      expect(chatbotService.processMessage).toHaveBeenCalledWith(
+        body.userId,
+        body.text,
+        body.context,
+      );
+      expect(result).toBe(chatResponse);
+    });
 
+    it('permite context indefinido', () => {
+      const body = {
+        userId: 'user-123',
+        text: 'Hola',
+      };
 
-});
+      const chatResponse = {
+        messages: [],
+      };
 
-describe('welcome', () => {
-it('delega en getWelcomeMessage', () => {
-const chatResponse = {
-messages: [
-{
-role: 'bot',
-content: 'Bienvenido',
-type: 'text',
-},
-],
-};
+      chatbotService.processMessage.mockReturnValue(chatResponse);
 
-  chatbotService.getWelcomeMessage.mockReturnValue(chatResponse);
+      const result = controller.handleMessage(body);
 
-  const result = controller.welcome();
+      expect(chatbotService.processMessage).toHaveBeenCalledWith(
+        body.userId,
+        body.text,
+        undefined,
+      );
+      expect(result).toBe(chatResponse);
+    });
+  });
 
-  expect(chatbotService.getWelcomeMessage).toHaveBeenCalledTimes(1);
-  expect(result).toBe(chatResponse);
-});
+  describe('welcome', () => {
+    it('delega en getWelcomeMessage', () => {
+      const chatResponse = {
+        messages: [
+          {
+            role: 'bot',
+            content: 'Bienvenido',
+            type: 'text',
+          },
+        ],
+      };
 
+      chatbotService.getWelcomeMessage.mockReturnValue(chatResponse);
 
-});
+      const result = controller.welcome();
 
-describe('category', () => {
-it('delega en getCategoryContent con la categoría de la URL', () => {
-const category = 'turnos';
+      expect(chatbotService.getWelcomeMessage).toHaveBeenCalledTimes(1);
+      expect(result).toBe(chatResponse);
+    });
+  });
 
-  const chatResponse = {
-    messages: [
-      {
-        role: 'bot',
-        content: 'Turnos',
-        type: 'text',
-      },
-    ],
-  };
+  describe('category', () => {
+    it('delega en getCategoryContent con la categoría de la URL', () => {
+      const category = 'turnos';
 
-  chatbotService.getCategoryContent.mockReturnValue(chatResponse);
+      const chatResponse = {
+        messages: [
+          {
+            role: 'bot',
+            content: 'Turnos',
+            type: 'text',
+          },
+        ],
+      };
 
-  const result = controller.category({
-    category,
-  } as any);
+      chatbotService.getCategoryContent.mockReturnValue(chatResponse);
 
-  expect(chatbotService.getCategoryContent).toHaveBeenCalledTimes(1);
-  expect(chatbotService.getCategoryContent).toHaveBeenCalledWith(
-    category,
-  );
-  expect(result).toBe(chatResponse);
-});
+      const result = controller.category({
+        category,
+      } as any);
 
-it('pasa undefined si la categoría no está presente', () => {
-  const chatResponse = {
-    messages: [],
-  };
+      expect(chatbotService.getCategoryContent).toHaveBeenCalledTimes(1);
+      expect(chatbotService.getCategoryContent).toHaveBeenCalledWith(category);
+      expect(result).toBe(chatResponse);
+    });
 
-  chatbotService.getCategoryContent.mockReturnValue(chatResponse);
+    it('pasa undefined si la categoría no está presente', () => {
+      const chatResponse = {
+        messages: [],
+      };
 
-  const result = controller.category({
-    category: undefined,
-  } as any);
+      chatbotService.getCategoryContent.mockReturnValue(chatResponse);
 
-  expect(chatbotService.getCategoryContent).toHaveBeenCalledWith(
-    undefined,
-  );
-  expect(result).toBe(chatResponse);
-});
+      const result = controller.category({
+        category: undefined,
+      } as any);
 
+      expect(chatbotService.getCategoryContent).toHaveBeenCalledWith(undefined);
+      expect(result).toBe(chatResponse);
+    });
+  });
 
-});
+  describe('answer', () => {
+    it('delega en getQuestionAnswer con category y question', () => {
+      const category = 'turnos';
+      const question = 'q1';
 
-describe('answer', () => {
-it('delega en getQuestionAnswer con category y question', () => {
-const category = 'turnos';
-const question = 'q1';
+      const chatResponse = {
+        messages: [
+          {
+            role: 'bot',
+            content: 'Respuesta',
+            type: 'text',
+          },
+        ],
+      };
 
-  const chatResponse = {
-    messages: [
-      {
-        role: 'bot',
-        content: 'Respuesta',
-        type: 'text',
-      },
-    ],
-  };
+      chatbotService.getQuestionAnswer.mockReturnValue(chatResponse);
 
-  chatbotService.getQuestionAnswer.mockReturnValue(chatResponse);
+      const result = controller.answer({
+        category,
+        question,
+      } as any);
 
-  const result = controller.answer({
-    category,
-    question,
-  } as any);
+      expect(chatbotService.getQuestionAnswer).toHaveBeenCalledTimes(1);
+      expect(chatbotService.getQuestionAnswer).toHaveBeenCalledWith(
+        category,
+        question,
+      );
+      expect(result).toBe(chatResponse);
+    });
 
-  expect(chatbotService.getQuestionAnswer).toHaveBeenCalledTimes(1);
-  expect(chatbotService.getQuestionAnswer).toHaveBeenCalledWith(
-    category,
-    question,
-  );
-  expect(result).toBe(chatResponse);
-});
+    it('pasa los valores tal como llegan, aunque falten', () => {
+      const chatResponse = {
+        messages: [],
+      };
 
-it('pasa los valores tal como llegan, aunque falten', () => {
-  const chatResponse = {
-    messages: [],
-  };
+      chatbotService.getQuestionAnswer.mockReturnValue(chatResponse);
 
-  chatbotService.getQuestionAnswer.mockReturnValue(chatResponse);
+      const result = controller.answer({
+        category: undefined,
+        question: undefined,
+      } as any);
 
-  const result = controller.answer({
-    category: undefined,
-    question: undefined,
-  } as any);
-
-  expect(chatbotService.getQuestionAnswer).toHaveBeenCalledTimes(1);
-  expect(chatbotService.getQuestionAnswer).toHaveBeenCalledWith(
-    undefined,
-    undefined,
-  );
-  expect(result).toBe(chatResponse);
-});
-
-
-});
+      expect(chatbotService.getQuestionAnswer).toHaveBeenCalledTimes(1);
+      expect(chatbotService.getQuestionAnswer).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+      );
+      expect(result).toBe(chatResponse);
+    });
+  });
 });

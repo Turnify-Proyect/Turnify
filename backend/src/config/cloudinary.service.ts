@@ -41,10 +41,7 @@ export class CloudinaryService {
     });
   }
 
-  async uploadUrl(
-    url: string,
-    folder: string,
-  ): Promise<UploadApiResponse> {
+  async uploadUrl(url: string, folder: string): Promise<UploadApiResponse> {
     if (!url || typeof url !== 'string') {
       throw new BadRequestException('La URL de la imagen no es válida');
     }

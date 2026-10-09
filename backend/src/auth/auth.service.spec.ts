@@ -11,7 +11,6 @@ jest.mock('bcrypt', () => ({
 
 import * as bcrypt from 'bcrypt';
 
-
 import { AuthService } from './auth.service';
 import { UsersRepository } from '../users/users.repository';
 import { JwtService } from '@nestjs/jwt';
@@ -136,13 +135,9 @@ describe('AuthService', () => {
 
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-
       jwtService.sign.mockReturnValue('jwt-token');
 
-      const result = await service.signIn(
-        'juan@example.com',
-        'Password123!',
-      );
+      const result = await service.signIn('juan@example.com', 'Password123!');
 
       expect(usersRepository.getUserByEmail).toHaveBeenCalledWith(
         'juan@example.com',
@@ -169,9 +164,7 @@ describe('AuthService', () => {
 
       await expect(
         service.signIn('unknown@example.com', 'Password123!'),
-      ).rejects.toThrow(
-        new UnauthorizedException('Credenciales incorrectas'),
-      );
+      ).rejects.toThrow(new UnauthorizedException('Credenciales incorrectas'));
 
       expect(bcrypt.compare).not.toHaveBeenCalled();
       expect(jwtService.sign).not.toHaveBeenCalled();
@@ -185,9 +178,7 @@ describe('AuthService', () => {
 
       await expect(
         service.signIn('juan@example.com', 'Password123!'),
-      ).rejects.toThrow(
-        new UnauthorizedException('Credenciales incorrectas'),
-      );
+      ).rejects.toThrow(new UnauthorizedException('Credenciales incorrectas'));
 
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
@@ -197,12 +188,9 @@ describe('AuthService', () => {
 
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-
       await expect(
         service.signIn('juan@example.com', 'WrongPassword'),
-      ).rejects.toThrow(
-        new UnauthorizedException('Credenciales incorrectas'),
-      );
+      ).rejects.toThrow(new UnauthorizedException('Credenciales incorrectas'));
 
       expect(jwtService.sign).not.toHaveBeenCalled();
     });
@@ -243,7 +231,6 @@ describe('AuthService', () => {
 
       (bcrypt.compare as jest.Mock).mockRejectedValue(error);
 
-
       await expect(
         service.signIn('juan@example.com', 'Password123!'),
       ).rejects.toThrow(error);
@@ -274,9 +261,7 @@ describe('AuthService', () => {
       usersRepository.getUserByEmail.mockResolvedValue(null);
       usersRepository.getUserByPhone.mockResolvedValue(null);
 
-      jest
-        .spyOn(bcrypt, 'hash')
-        .mockResolvedValue('hashed-password' as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
 
       usersRepository.createUser.mockResolvedValue(createdUser);
 
@@ -296,10 +281,7 @@ describe('AuthService', () => {
         newUserData.phone,
       );
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        newUserData.password,
-        10,
-      );
+      expect(bcrypt.hash).toHaveBeenCalledWith(newUserData.password, 10);
 
       expect(usersRepository.createUser).toHaveBeenCalledWith({
         name: 'Juan Pérez',
@@ -321,8 +303,7 @@ describe('AuthService', () => {
       );
 
       expect(result).toEqual({
-        message:
-          'Usuario registrado correctamente. Ya podés iniciar sesión.',
+        message: 'Usuario registrado correctamente. Ya podés iniciar sesión.',
         user: createdUser,
       });
     });
@@ -355,9 +336,7 @@ describe('AuthService', () => {
       usersRepository.getUserByEmail.mockResolvedValue(null);
       usersRepository.getUserByPhone.mockResolvedValue(null);
 
-      jest
-        .spyOn(bcrypt, 'hash')
-        .mockResolvedValue('hashed-password' as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
 
       usersRepository.createUser.mockResolvedValue(createdUser);
 
@@ -372,8 +351,7 @@ describe('AuthService', () => {
       const result = await service.signUp(newUserData);
 
       expect(result).toEqual({
-        message:
-          'Usuario registrado correctamente. Ya podés iniciar sesión.',
+        message: 'Usuario registrado correctamente. Ya podés iniciar sesión.',
         user: createdUser,
       });
 
@@ -384,9 +362,7 @@ describe('AuthService', () => {
       usersRepository.getUserByEmail.mockResolvedValue(null);
       usersRepository.getUserByPhone.mockResolvedValue(null);
 
-      jest
-        .spyOn(bcrypt, 'hash')
-        .mockResolvedValue('hashed-password' as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
 
       usersRepository.createUser.mockResolvedValue(createdUser);
 
@@ -423,9 +399,7 @@ describe('AuthService', () => {
       usersRepository.getUserByEmail.mockResolvedValue(null);
       usersRepository.getUserByPhone.mockResolvedValue(null);
 
-      jest
-        .spyOn(bcrypt, 'hash')
-        .mockResolvedValue('hashed-password' as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-password' as never);
 
       const error = new Error('Database error');
 
@@ -488,9 +462,7 @@ describe('AuthService', () => {
         getPayload: () => undefined,
       });
 
-      await expect(
-        service.googleSignIn('invalid-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('invalid-token')).rejects.toThrow(
         new UnauthorizedException('Token de Google inválido'),
       );
 
@@ -505,9 +477,7 @@ describe('AuthService', () => {
         }),
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new UnauthorizedException('Token de Google inválido'),
       );
     });
@@ -521,9 +491,7 @@ describe('AuthService', () => {
         }),
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new UnauthorizedException(
           'El correo asociado a la cuenta de Google no está verificado',
         ),
@@ -547,9 +515,7 @@ describe('AuthService', () => {
         authProvider: AuthProvider.LOCAL,
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new ConflictException(
           'Este email ya está registrado mediante autenticación local',
         ),
@@ -572,9 +538,7 @@ describe('AuthService', () => {
         providerId: 'google-user-original',
       });
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(
         new UnauthorizedException(
           'La cuenta de Google no coincide con el usuario registrado',
         ),
@@ -618,9 +582,7 @@ describe('AuthService', () => {
 
       googleClient.verifyIdToken.mockRejectedValue(error);
 
-      await expect(
-        service.googleSignIn('google-token'),
-      ).rejects.toThrow(error);
+      await expect(service.googleSignIn('google-token')).rejects.toThrow(error);
     });
   });
 
@@ -663,17 +625,13 @@ describe('AuthService', () => {
         'Rosario',
       );
 
-      expect(jwtService.verify).toHaveBeenCalledWith(
-        'registration-token',
-      );
+      expect(jwtService.verify).toHaveBeenCalledWith('registration-token');
 
       expect(usersRepository.getUserByEmail).toHaveBeenCalledWith(
         decodedToken.email,
       );
 
-      expect(usersRepository.getUserByPhone).toHaveBeenCalledWith(
-        '3411234567',
-      );
+      expect(usersRepository.getUserByPhone).toHaveBeenCalledWith('3411234567');
 
       expect(usersRepository.createUser).toHaveBeenCalledWith({
         name: 'Nuevo Usuario',
@@ -705,14 +663,9 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.googleCompleteSignUp(
-          'invalid-token',
-          '3411234567',
-        ),
+        service.googleCompleteSignUp('invalid-token', '3411234567'),
       ).rejects.toThrow(
-        new UnauthorizedException(
-          'El registro expiró, intentá de nuevo.',
-        ),
+        new UnauthorizedException('El registro expiró, intentá de nuevo.'),
       );
 
       expect(usersRepository.createUser).not.toHaveBeenCalled();
@@ -725,10 +678,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.googleCompleteSignUp(
-          'registration-token',
-          '3411234567',
-        ),
+        service.googleCompleteSignUp('registration-token', '3411234567'),
       ).rejects.toThrow(
         new UnauthorizedException('Token de registro inválido'),
       );
@@ -743,13 +693,8 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.googleCompleteSignUp(
-          'registration-token',
-          '3411234567',
-        ),
-      ).rejects.toThrow(
-        new ConflictException('El email ya está registrado'),
-      );
+        service.googleCompleteSignUp('registration-token', '3411234567'),
+      ).rejects.toThrow(new ConflictException('El email ya está registrado'));
 
       expect(usersRepository.getUserByPhone).not.toHaveBeenCalled();
       expect(usersRepository.createUser).not.toHaveBeenCalled();
@@ -763,10 +708,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        service.googleCompleteSignUp(
-          'registration-token',
-          '3411234567',
-        ),
+        service.googleCompleteSignUp('registration-token', '3411234567'),
       ).rejects.toThrow(
         new ConflictException('El teléfono ya está registrado'),
       );
@@ -788,10 +730,7 @@ describe('AuthService', () => {
           roles: ['client'],
         });
 
-      await service.googleCompleteSignUp(
-        'registration-token',
-        '3411234567',
-      );
+      await service.googleCompleteSignUp('registration-token', '3411234567');
 
       expect(usersRepository.createUser).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -806,13 +745,8 @@ describe('AuthService', () => {
         .mockResolvedValueOnce(null);
 
       await expect(
-        service.googleCompleteSignUp(
-          'registration-token',
-          '3411234567',
-        ),
-      ).rejects.toThrow(
-        new UnauthorizedException('Error al crear el usuario'),
-      );
+        service.googleCompleteSignUp('registration-token', '3411234567'),
+      ).rejects.toThrow(new UnauthorizedException('Error al crear el usuario'));
     });
   });
 
@@ -822,13 +756,11 @@ describe('AuthService', () => {
 
       await service.verifyEmail('verification-token');
 
-      expect(
-        emailVerificationService.verifyEmail,
-      ).toHaveBeenCalledTimes(1);
+      expect(emailVerificationService.verifyEmail).toHaveBeenCalledTimes(1);
 
-      expect(
-        emailVerificationService.verifyEmail,
-      ).toHaveBeenCalledWith('verification-token');
+      expect(emailVerificationService.verifyEmail).toHaveBeenCalledWith(
+        'verification-token',
+      );
     });
 
     it('should propagate errors from EmailVerificationService', async () => {
@@ -836,9 +768,7 @@ describe('AuthService', () => {
 
       emailVerificationService.verifyEmail.mockRejectedValue(error);
 
-      await expect(
-        service.verifyEmail('invalid-token'),
-      ).rejects.toThrow(error);
+      await expect(service.verifyEmail('invalid-token')).rejects.toThrow(error);
     });
   });
 
@@ -861,9 +791,7 @@ describe('AuthService', () => {
 
       mailService.sendPasswordResetEmail.mockResolvedValue(undefined);
 
-      const result = await service.forgotPassword(
-        'juan@example.com',
-      );
+      const result = await service.forgotPassword('juan@example.com');
 
       expect(usersRepository.getUserByEmail).toHaveBeenCalledWith(
         'juan@example.com',
@@ -873,9 +801,7 @@ describe('AuthService', () => {
         passwordResetService.createPasswordResetToken,
       ).toHaveBeenCalledWith('user-1');
 
-      expect(
-        mailService.sendPasswordResetEmail,
-      ).toHaveBeenCalledWith(
+      expect(mailService.sendPasswordResetEmail).toHaveBeenCalledWith(
         'juan@example.com',
         'reset-token',
       );
@@ -886,9 +812,7 @@ describe('AuthService', () => {
     it('should return the generic message when the user does not exist', async () => {
       usersRepository.getUserByEmail.mockResolvedValue(null);
 
-      const result = await service.forgotPassword(
-        'unknown@example.com',
-      );
+      const result = await service.forgotPassword('unknown@example.com');
 
       expect(result).toBe(genericMessage);
 
@@ -896,9 +820,7 @@ describe('AuthService', () => {
         passwordResetService.createPasswordResetToken,
       ).not.toHaveBeenCalled();
 
-      expect(
-        mailService.sendPasswordResetEmail,
-      ).not.toHaveBeenCalled();
+      expect(mailService.sendPasswordResetEmail).not.toHaveBeenCalled();
     });
 
     it('should return the generic message when the user has no password', async () => {
@@ -908,9 +830,7 @@ describe('AuthService', () => {
         password_hash: null,
       });
 
-      const result = await service.forgotPassword(
-        'google@example.com',
-      );
+      const result = await service.forgotPassword('google@example.com');
 
       expect(result).toBe(genericMessage);
 
@@ -918,9 +838,7 @@ describe('AuthService', () => {
         passwordResetService.createPasswordResetToken,
       ).not.toHaveBeenCalled();
 
-      expect(
-        mailService.sendPasswordResetEmail,
-      ).not.toHaveBeenCalled();
+      expect(mailService.sendPasswordResetEmail).not.toHaveBeenCalled();
     });
 
     it('should propagate reset token creation errors', async () => {
@@ -932,17 +850,13 @@ describe('AuthService', () => {
 
       const error = new Error('Could not create reset token');
 
-      passwordResetService.createPasswordResetToken.mockRejectedValue(
+      passwordResetService.createPasswordResetToken.mockRejectedValue(error);
+
+      await expect(service.forgotPassword('juan@example.com')).rejects.toThrow(
         error,
       );
 
-      await expect(
-        service.forgotPassword('juan@example.com'),
-      ).rejects.toThrow(error);
-
-      expect(
-        mailService.sendPasswordResetEmail,
-      ).not.toHaveBeenCalled();
+      expect(mailService.sendPasswordResetEmail).not.toHaveBeenCalled();
     });
 
     it('should propagate password reset email errors', async () => {
@@ -960,9 +874,9 @@ describe('AuthService', () => {
 
       mailService.sendPasswordResetEmail.mockRejectedValue(error);
 
-      await expect(
-        service.forgotPassword('juan@example.com'),
-      ).rejects.toThrow(error);
+      await expect(service.forgotPassword('juan@example.com')).rejects.toThrow(
+        error,
+      );
     });
   });
 
@@ -977,39 +891,26 @@ describe('AuthService', () => {
         'NewPassword123!',
       );
 
-      expect(
-        passwordResetService.resetPassword,
-      ).toHaveBeenCalledTimes(1);
+      expect(passwordResetService.resetPassword).toHaveBeenCalledTimes(1);
 
-      expect(
-        passwordResetService.resetPassword,
-      ).toHaveBeenCalledWith(
+      expect(passwordResetService.resetPassword).toHaveBeenCalledWith(
         'reset-token',
         'NewPassword123!',
       );
 
-      expect(result).toBe(
-        'Contraseña actualizada correctamente',
-      );
+      expect(result).toBe('Contraseña actualizada correctamente');
     });
 
     it('should propagate errors from PasswordResetService', async () => {
-      const error = new Error(
-        'El token de recuperación no es válido',
-      );
+      const error = new Error('El token de recuperación no es válido');
 
       passwordResetService.resetPassword.mockRejectedValue(error);
 
       await expect(
-        service.resetPassword(
-          'invalid-token',
-          'NewPassword123!',
-        ),
+        service.resetPassword('invalid-token', 'NewPassword123!'),
       ).rejects.toThrow(error);
 
-      expect(
-        passwordResetService.resetPassword,
-      ).toHaveBeenCalledWith(
+      expect(passwordResetService.resetPassword).toHaveBeenCalledWith(
         'invalid-token',
         'NewPassword123!',
       );
