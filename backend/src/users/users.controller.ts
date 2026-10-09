@@ -153,7 +153,7 @@ export class UsersController {
   //agregué mas roles al endpoint para que sea de acceso al usuario y al profesional
   //coemntado por:Lautaro-dev
   @Put(':id')
-  @Roles(UserRole.CLIENT, UserRole.ADMIN)
+  @Roles(UserRole.CLIENT, UserRole.ADMIN, UserRole.PROFESSIONAL)
   //tambien agregué un nuevo guard para verificar que el cliente pueda modificar su propia inf.
   //y que si es admin pueda modificar el de cualquiera
   @UseGuards(AuthGuard, RolesGuard, UserOwnerOrAdminGuard)
