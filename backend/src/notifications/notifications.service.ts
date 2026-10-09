@@ -49,6 +49,7 @@ export class NotificationsService {
         userName,
         serviceName,
         professionalName,
+        date: this.formatDate(startAt),
         time: this.formatTime(startAt),
       },
     );
