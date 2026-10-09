@@ -1,5 +1,3 @@
-// src/appointments/appointment.service.cron.spec.ts
-
 jest.mock('@nestjs/schedule', () => ({
   Cron: () => () => undefined,
   CronExpression: {
@@ -11,10 +9,7 @@ import { Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 
 import { AppointmentCronService } from './appointment.service.cron';
-import {
-  Appointment,
-  AppointmentStatus,
-} from './entities/appointment.entity';
+import { Appointment, AppointmentStatus } from './entities/appointment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 describe('AppointmentCronService', () => {
@@ -86,9 +81,7 @@ describe('AppointmentCronService', () => {
 
       appointmentRepository.find.mockResolvedValue(appointments);
 
-      notificationsService.sendAppointmentReminder.mockResolvedValue(
-        undefined,
-      );
+      notificationsService.sendAppointmentReminder.mockResolvedValue(undefined);
 
       await service.sendDailyAppointmentReminders();
 
@@ -120,9 +113,9 @@ describe('AppointmentCronService', () => {
         startAt,
       );
 
-      expect(appointments.every((appointment) => appointment.reminderSent)).toBe(
-        true,
-      );
+      expect(
+        appointments.every((appointment) => appointment.reminderSent),
+      ).toBe(true);
       expect(appointmentRepository.save).toHaveBeenCalledTimes(2);
     });
 
@@ -152,9 +145,7 @@ describe('AppointmentCronService', () => {
           startAtCondition.value[0].value.getTime(),
       ).toBe(24 * 60 * 60 * 1000);
 
-      expect(findOptions?.where?.status).toBe(
-        AppointmentStatus.CONFIRMED,
-      );
+      expect(findOptions?.where?.status).toBe(AppointmentStatus.CONFIRMED);
       expect(findOptions?.where?.reminderSent).toBe(false);
     });
 
@@ -248,9 +239,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'juan@example.com',
         'Cliente',
         'Consulta',
@@ -282,9 +271,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'juan@example.com',
         'Juan Pérez',
         'No especificado',
@@ -314,9 +301,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'juan@example.com',
         'Juan Pérez',
         'Consulta',
@@ -348,9 +333,7 @@ describe('AppointmentCronService', () => {
 
       await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.sendAppointmentReminder).toHaveBeenCalledWith(
         'juan@example.com',
         'Juan Pérez',
         'Consulta',

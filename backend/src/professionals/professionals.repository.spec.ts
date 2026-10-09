@@ -1,12 +1,7 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ProfessionalsRepository } from './professionals.repository';
 import { Professional } from './entities/professional.entity';
-import {
-  ProfessionalSpecialty,
-} from './entities/professional.entity';
+import { ProfessionalSpecialty } from './entities/professional.entity';
 import { ProfessionalService } from './entities/professional-service.entity';
 import { Service } from '../services/entities/service.entity';
 import { User } from '../users/entities/user.entity';
@@ -44,9 +39,7 @@ describe('ProfessionalsRepository', () => {
   const professionalId = 'professional-123';
   const serviceId = 'service-123';
 
-  const createUser = (
-    overrides: Partial<User> = {},
-  ): User => {
+  const createUser = (overrides: Partial<User> = {}): User => {
     return {
       id: userId,
       name: 'Juan Pérez',
@@ -87,9 +80,7 @@ describe('ProfessionalsRepository', () => {
     };
   };
 
-  const createService = (
-    overrides: Partial<Service> = {},
-  ): Service => {
+  const createService = (overrides: Partial<Service> = {}): Service => {
     return {
       id: serviceId,
       name: 'Masajes',
@@ -162,17 +153,13 @@ describe('ProfessionalsRepository', () => {
         }),
       ];
 
-      professionalsRepositoryMock.find.mockResolvedValue(
-        professionals,
-      );
+      professionalsRepositoryMock.find.mockResolvedValue(professionals);
 
       const result = await repository.getActiveProfessionals();
 
       expect(result).toBe(professionals);
 
-      expect(
-        professionalsRepositoryMock.find,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepositoryMock.find).toHaveBeenCalledWith({
         where: {
           isActive: true,
         },
@@ -189,22 +176,15 @@ describe('ProfessionalsRepository', () => {
 
   describe('getAllProfessionals', () => {
     it('should return all professionals', async () => {
-      const professionals = [
-        createProfessional(),
-      ];
+      const professionals = [createProfessional()];
 
-      professionalsRepositoryMock.find.mockResolvedValue(
-        professionals,
-      );
+      professionalsRepositoryMock.find.mockResolvedValue(professionals);
 
-      const result =
-        await repository.getAllProfessionals();
+      const result = await repository.getAllProfessionals();
 
       expect(result).toBe(professionals);
 
-      expect(
-        professionalsRepositoryMock.find,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepositoryMock.find).toHaveBeenCalledWith({
         relations: {
           user: true,
           professionalServices: {
@@ -220,20 +200,13 @@ describe('ProfessionalsRepository', () => {
     it('should return the professional when it exists', async () => {
       const professional = createProfessional();
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        professional,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(professional);
 
-      const result =
-        await repository.getProfessionalById(
-          professionalId,
-        );
+      const result = await repository.getProfessionalById(professionalId);
 
       expect(result).toBe(professional);
 
-      expect(
-        professionalsRepositoryMock.findOne,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepositoryMock.findOne).toHaveBeenCalledWith({
         where: {
           id: professionalId,
         },
@@ -248,14 +221,10 @@ describe('ProfessionalsRepository', () => {
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.getProfessionalById(
-          professionalId,
-        ),
+        repository.getProfessionalById(professionalId),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -264,20 +233,13 @@ describe('ProfessionalsRepository', () => {
     it('should return the professional associated with the user', async () => {
       const professional = createProfessional();
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        professional,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(professional);
 
-      const result =
-        await repository.getProfessionalByUserId(
-          userId,
-        );
+      const result = await repository.getProfessionalByUserId(userId);
 
       expect(result).toBe(professional);
 
-      expect(
-        professionalsRepositoryMock.findOne,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepositoryMock.findOne).toHaveBeenCalledWith({
         where: {
           user: {
             id: userId,
@@ -294,15 +256,11 @@ describe('ProfessionalsRepository', () => {
     });
 
     it('should throw when no professional is associated with the user', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
-      await expect(
-        repository.getProfessionalByUserId(
-          userId,
-        ),
-      ).rejects.toThrow(NotFoundException);
+      await expect(repository.getProfessionalByUserId(userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -316,39 +274,28 @@ describe('ProfessionalsRepository', () => {
 
       usersRepositoryMock.findOne.mockResolvedValue(user);
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
-      professionalsRepositoryMock.create.mockReturnValue(
-        createdProfessional,
-      );
+      professionalsRepositoryMock.create.mockReturnValue(createdProfessional);
 
-      professionalsRepositoryMock.save.mockResolvedValue(
-        createdProfessional,
-      );
+      professionalsRepositoryMock.save.mockResolvedValue(createdProfessional);
 
       usersRepositoryMock.save.mockResolvedValue(user);
 
-      const result =
-        await repository.createProfessional({
-          userId,
-          specialty: ProfessionalSpecialty.MASAJES,
-        });
+      const result = await repository.createProfessional({
+        userId,
+        specialty: ProfessionalSpecialty.MASAJES,
+      });
 
       expect(result).toBe(createdProfessional);
 
-      expect(
-        usersRepositoryMock.findOne,
-      ).toHaveBeenCalledWith({
+      expect(usersRepositoryMock.findOne).toHaveBeenCalledWith({
         where: {
           id: userId,
         },
       });
 
-      expect(
-        professionalsRepositoryMock.findOne,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepositoryMock.findOne).toHaveBeenCalledWith({
         where: {
           user: {
             id: userId,
@@ -356,51 +303,34 @@ describe('ProfessionalsRepository', () => {
         },
       });
 
-      expect(
-        professionalsRepositoryMock.create,
-      ).toHaveBeenCalledWith({
+      expect(professionalsRepositoryMock.create).toHaveBeenCalledWith({
         specialty: ProfessionalSpecialty.MASAJES,
         user: {
           id: userId,
         },
       });
 
-      expect(user.roles).not.toContain(
-        UserRole.CLIENT,
-      );
+      expect(user.roles).not.toContain(UserRole.CLIENT);
 
-      expect(user.roles).toContain(
-        UserRole.PROFESSIONAL,
-      );
+      expect(user.roles).toContain(UserRole.PROFESSIONAL);
 
-      expect(usersRepositoryMock.save).toHaveBeenCalledWith(
-        user,
-      );
+      expect(usersRepositoryMock.save).toHaveBeenCalledWith(user);
     });
 
     it('should preserve the admin role when creating a professional', async () => {
       const user = createUser({
-        roles: [
-          UserRole.CLIENT,
-          UserRole.ADMIN,
-        ],
+        roles: [UserRole.CLIENT, UserRole.ADMIN],
       });
 
       usersRepositoryMock.findOne.mockResolvedValue(user);
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       const professional = createProfessional();
 
-      professionalsRepositoryMock.create.mockReturnValue(
-        professional,
-      );
+      professionalsRepositoryMock.create.mockReturnValue(professional);
 
-      professionalsRepositoryMock.save.mockResolvedValue(
-        professional,
-      );
+      professionalsRepositoryMock.save.mockResolvedValue(professional);
 
       usersRepositoryMock.save.mockResolvedValue(user);
 
@@ -409,17 +339,11 @@ describe('ProfessionalsRepository', () => {
         specialty: ProfessionalSpecialty.COSMETOLOGIA,
       });
 
-      expect(user.roles).not.toContain(
-        UserRole.CLIENT,
-      );
+      expect(user.roles).not.toContain(UserRole.CLIENT);
 
-      expect(user.roles).toContain(
-        UserRole.ADMIN,
-      );
+      expect(user.roles).toContain(UserRole.ADMIN);
 
-      expect(user.roles).toContain(
-        UserRole.PROFESSIONAL,
-      );
+      expect(user.roles).toContain(UserRole.PROFESSIONAL);
     });
 
     it('should not duplicate the professional role', async () => {
@@ -429,19 +353,13 @@ describe('ProfessionalsRepository', () => {
 
       usersRepositoryMock.findOne.mockResolvedValue(user);
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       const professional = createProfessional();
 
-      professionalsRepositoryMock.create.mockReturnValue(
-        professional,
-      );
+      professionalsRepositoryMock.create.mockReturnValue(professional);
 
-      professionalsRepositoryMock.save.mockResolvedValue(
-        professional,
-      );
+      professionalsRepositoryMock.save.mockResolvedValue(professional);
 
       usersRepositoryMock.save.mockResolvedValue(user);
 
@@ -451,16 +369,12 @@ describe('ProfessionalsRepository', () => {
       });
 
       expect(
-        user.roles.filter(
-          (role) => role === UserRole.PROFESSIONAL,
-        ),
+        user.roles.filter((role) => role === UserRole.PROFESSIONAL),
       ).toHaveLength(1);
     });
 
     it('should throw when the user does not exist', async () => {
-      usersRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      usersRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
         repository.createProfessional({
@@ -469,9 +383,7 @@ describe('ProfessionalsRepository', () => {
         }),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalsRepositoryMock.create,
-      ).not.toHaveBeenCalled();
+      expect(professionalsRepositoryMock.create).not.toHaveBeenCalled();
     });
 
     it('should throw when the user already has a professional profile', async () => {
@@ -490,9 +402,7 @@ describe('ProfessionalsRepository', () => {
         }),
       ).rejects.toThrow(ConflictException);
 
-      expect(
-        professionalsRepositoryMock.create,
-      ).not.toHaveBeenCalled();
+      expect(professionalsRepositoryMock.create).not.toHaveBeenCalled();
     });
   });
 
@@ -506,49 +416,32 @@ describe('ProfessionalsRepository', () => {
         affected: 1,
       });
 
-      const result =
-        await repository.updateProfessional(
-          professionalId,
-          {
-            specialty:
-              ProfessionalSpecialty.PEDICURIA,
-          },
-        );
-
-      expect(result).toEqual({
-        message:
-          'Profesional actualizado exitosamente',
+      const result = await repository.updateProfessional(professionalId, {
+        specialty: ProfessionalSpecialty.PEDICURIA,
       });
 
-      expect(
-        professionalsRepositoryMock.update,
-      ).toHaveBeenCalledWith(
+      expect(result).toEqual({
+        message: 'Profesional actualizado exitosamente',
+      });
+
+      expect(professionalsRepositoryMock.update).toHaveBeenCalledWith(
         professionalId,
         {
-          specialty:
-            ProfessionalSpecialty.PEDICURIA,
+          specialty: ProfessionalSpecialty.PEDICURIA,
         },
       );
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.updateProfessional(
-          professionalId,
-          {
-            specialty:
-              ProfessionalSpecialty.PEDICURIA,
-          },
-        ),
+        repository.updateProfessional(professionalId, {
+          specialty: ProfessionalSpecialty.PEDICURIA,
+        }),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalsRepositoryMock.update,
-      ).not.toHaveBeenCalled();
+      expect(professionalsRepositoryMock.update).not.toHaveBeenCalled();
     });
   });
 
@@ -562,19 +455,13 @@ describe('ProfessionalsRepository', () => {
         affected: 1,
       });
 
-      const result =
-        await repository.softDeleteProfessional(
-          professionalId,
-        );
+      const result = await repository.softDeleteProfessional(professionalId);
 
       expect(result).toEqual({
-        message:
-          'Profesional eliminado correctamente',
+        message: 'Profesional eliminado correctamente',
       });
 
-      expect(
-        professionalsRepositoryMock.update,
-      ).toHaveBeenCalledWith(
+      expect(professionalsRepositoryMock.update).toHaveBeenCalledWith(
         professionalId,
         {
           isActive: false,
@@ -583,14 +470,10 @@ describe('ProfessionalsRepository', () => {
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.softDeleteProfessional(
-          professionalId,
-        ),
+        repository.softDeleteProfessional(professionalId),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -601,27 +484,19 @@ describe('ProfessionalsRepository', () => {
         isActive: false,
       });
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        professional,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(professional);
 
       professionalsRepositoryMock.update.mockResolvedValue({
         affected: 1,
       });
 
-      const result =
-        await repository.activateProfessional(
-          professionalId,
-        );
+      const result = await repository.activateProfessional(professionalId);
 
       expect(result).toEqual({
-        message:
-          'Profesional activado correctamente',
+        message: 'Profesional activado correctamente',
       });
 
-      expect(
-        professionalsRepositoryMock.update,
-      ).toHaveBeenCalledWith(
+      expect(professionalsRepositoryMock.update).toHaveBeenCalledWith(
         professionalId,
         {
           isActive: true,
@@ -630,14 +505,10 @@ describe('ProfessionalsRepository', () => {
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.activateProfessional(
-          professionalId,
-        ),
+        repository.activateProfessional(professionalId),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -649,14 +520,10 @@ describe('ProfessionalsRepository', () => {
       );
 
       await expect(
-        repository.activateProfessional(
-          professionalId,
-        ),
+        repository.activateProfessional(professionalId),
       ).rejects.toThrow(ConflictException);
 
-      expect(
-        professionalsRepositoryMock.update,
-      ).not.toHaveBeenCalled();
+      expect(professionalsRepositoryMock.update).not.toHaveBeenCalled();
     });
   });
 
@@ -664,20 +531,13 @@ describe('ProfessionalsRepository', () => {
     it('should associate an active service with an active professional', async () => {
       const professional = createProfessional();
       const service = createService();
-      const professionalService =
-        createProfessionalService();
+      const professionalService = createProfessionalService();
 
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        professional,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(professional);
 
-      servicesRepositoryMock.findOne.mockResolvedValue(
-        service,
-      );
+      servicesRepositoryMock.findOne.mockResolvedValue(service);
 
-      professionalServicesRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalServicesRepositoryMock.findOne.mockResolvedValue(null);
 
       professionalServicesRepositoryMock.create.mockReturnValue(
         professionalService,
@@ -687,40 +547,30 @@ describe('ProfessionalsRepository', () => {
         professionalService,
       );
 
-      const result =
-        await repository.associateService(
-          professionalId,
-          serviceId,
-        );
+      const result = await repository.associateService(
+        professionalId,
+        serviceId,
+      );
 
       expect(result).toBe(professionalService);
 
-      expect(
-        professionalServicesRepositoryMock.create,
-      ).toHaveBeenCalledWith({
+      expect(professionalServicesRepositoryMock.create).toHaveBeenCalledWith({
         professionalId,
         serviceId,
         professional,
         service,
       });
 
-      expect(
-        professionalServicesRepositoryMock.save,
-      ).toHaveBeenCalledWith(
+      expect(professionalServicesRepositoryMock.save).toHaveBeenCalledWith(
         professionalService,
       );
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.associateService(
-          professionalId,
-          serviceId,
-        ),
+        repository.associateService(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -732,15 +582,10 @@ describe('ProfessionalsRepository', () => {
       );
 
       await expect(
-        repository.associateService(
-          professionalId,
-          serviceId,
-        ),
+        repository.associateService(professionalId, serviceId),
       ).rejects.toThrow(ConflictException);
 
-      expect(
-        servicesRepositoryMock.findOne,
-      ).not.toHaveBeenCalled();
+      expect(servicesRepositoryMock.findOne).not.toHaveBeenCalled();
     });
 
     it('should throw when the service does not exist', async () => {
@@ -748,15 +593,10 @@ describe('ProfessionalsRepository', () => {
         createProfessional(),
       );
 
-      servicesRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      servicesRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.associateService(
-          professionalId,
-          serviceId,
-        ),
+        repository.associateService(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -772,15 +612,10 @@ describe('ProfessionalsRepository', () => {
       );
 
       await expect(
-        repository.associateService(
-          professionalId,
-          serviceId,
-        ),
+        repository.associateService(professionalId, serviceId),
       ).rejects.toThrow(ConflictException);
 
-      expect(
-        professionalServicesRepositoryMock.findOne,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepositoryMock.findOne).not.toHaveBeenCalled();
     });
 
     it('should throw when the service is already associated', async () => {
@@ -788,52 +623,37 @@ describe('ProfessionalsRepository', () => {
         createProfessional(),
       );
 
-      servicesRepositoryMock.findOne.mockResolvedValue(
-        createService(),
-      );
+      servicesRepositoryMock.findOne.mockResolvedValue(createService());
 
       professionalServicesRepositoryMock.findOne.mockResolvedValue(
         createProfessionalService(),
       );
 
       await expect(
-        repository.associateService(
-          professionalId,
-          serviceId,
-        ),
+        repository.associateService(professionalId, serviceId),
       ).rejects.toThrow(ConflictException);
 
-      expect(
-        professionalServicesRepositoryMock.create,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepositoryMock.create).not.toHaveBeenCalled();
     });
   });
 
   describe('getServicesByProfessional', () => {
     it('should return services associated with the professional', async () => {
-      const professionalService =
-        createProfessionalService();
+      const professionalService = createProfessionalService();
 
       professionalsRepositoryMock.findOne.mockResolvedValue(
         createProfessional(),
       );
 
-      professionalServicesRepositoryMock.find.mockResolvedValue(
-        [professionalService],
-      );
-
-      const result =
-        await repository.getServicesByProfessional(
-          professionalId,
-        );
-
-      expect(result).toEqual([
+      professionalServicesRepositoryMock.find.mockResolvedValue([
         professionalService,
       ]);
 
-      expect(
-        professionalServicesRepositoryMock.find,
-      ).toHaveBeenCalledWith({
+      const result = await repository.getServicesByProfessional(professionalId);
+
+      expect(result).toEqual([professionalService]);
+
+      expect(professionalServicesRepositoryMock.find).toHaveBeenCalledWith({
         where: {
           professionalId,
         },
@@ -844,74 +664,52 @@ describe('ProfessionalsRepository', () => {
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.getServicesByProfessional(
-          professionalId,
-        ),
+        repository.getServicesByProfessional(professionalId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalServicesRepositoryMock.find,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepositoryMock.find).not.toHaveBeenCalled();
     });
   });
 
   describe('removeServiceFromProfessional', () => {
     it('should remove the service association', async () => {
-      const association =
-        createProfessionalService();
+      const association = createProfessionalService();
 
       professionalsRepositoryMock.findOne.mockResolvedValue(
         createProfessional(),
       );
 
-      servicesRepositoryMock.findOne.mockResolvedValue(
-        createService(),
-      );
+      servicesRepositoryMock.findOne.mockResolvedValue(createService());
 
-      professionalServicesRepositoryMock.findOne.mockResolvedValue(
-        association,
-      );
+      professionalServicesRepositoryMock.findOne.mockResolvedValue(association);
 
-      professionalServicesRepositoryMock.remove.mockResolvedValue(
-        association,
-      );
+      professionalServicesRepositoryMock.remove.mockResolvedValue(association);
 
-      const result =
-        await repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        );
+      const result = await repository.removeServiceFromProfessional(
+        professionalId,
+        serviceId,
+      );
 
       expect(result).toEqual({
-        message:
-          'Servicio desvinculado del profesional exitosamente',
+        message: 'Servicio desvinculado del profesional exitosamente',
       });
 
-      expect(
-        professionalServicesRepositoryMock.remove,
-      ).toHaveBeenCalledWith(association);
+      expect(professionalServicesRepositoryMock.remove).toHaveBeenCalledWith(
+        association,
+      );
     });
 
     it('should throw when the professional does not exist', async () => {
-      professionalsRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalsRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
+        repository.removeServiceFromProfessional(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        servicesRepositoryMock.findOne,
-      ).not.toHaveBeenCalled();
+      expect(servicesRepositoryMock.findOne).not.toHaveBeenCalled();
     });
 
     it('should throw when the service does not exist', async () => {
@@ -919,20 +717,13 @@ describe('ProfessionalsRepository', () => {
         createProfessional(),
       );
 
-      servicesRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      servicesRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
+        repository.removeServiceFromProfessional(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalServicesRepositoryMock.findOne,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepositoryMock.findOne).not.toHaveBeenCalled();
     });
 
     it('should throw when the association does not exist', async () => {
@@ -940,24 +731,15 @@ describe('ProfessionalsRepository', () => {
         createProfessional(),
       );
 
-      servicesRepositoryMock.findOne.mockResolvedValue(
-        createService(),
-      );
+      servicesRepositoryMock.findOne.mockResolvedValue(createService());
 
-      professionalServicesRepositoryMock.findOne.mockResolvedValue(
-        null,
-      );
+      professionalServicesRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        ),
+        repository.removeServiceFromProfessional(professionalId, serviceId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(
-        professionalServicesRepositoryMock.remove,
-      ).not.toHaveBeenCalled();
+      expect(professionalServicesRepositoryMock.remove).not.toHaveBeenCalled();
     });
   });
 });

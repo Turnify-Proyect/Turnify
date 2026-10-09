@@ -23,14 +23,9 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('No se ha enviado token');
     }
 
-    // JwtService ya fue configurado globalmente con JWT_SECRET en AppModule, por eso verify() puede validar el token usando esa misma configuración sin volver a pasar el secret manualmente en este guard.
-    //coemntado por:Lautaro-dev
     try {
       const payload = this.jwtService.verify(token);
 
-      // Guardamos el payload verificado en la request para que los siguientes
-      // guards y controladores puedan acceder al id y roles del usuario.
-      //coemntado por:Lautaro-dev
       request.user = payload;
       return true;
     } catch (error) {

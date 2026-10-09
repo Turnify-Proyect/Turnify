@@ -31,10 +31,6 @@ export class UsersService {
     );
   }
 
-  //getAllUsers(validPage: number, validLimit: number) {
-  //  return this.usersRepository.getAllUsers(validPage, validLimit);
-  //}
-
   getAllUsers(
     page: number,
     limit: number,
@@ -55,17 +51,9 @@ export class UsersService {
     return this.usersRepository.getUserById(id);
   }
 
-  //user.service.createUser desactivado, sin uso
-  // createUser(createUserDto: CreateUserDto) {
-  //   return this.usersRepository.createUser(createUserDto);
-  // }
-  //coemntado por:Lautaro-dev
-
   updateUser(id: string, updateUserDto: UpdateUserDto) {
     return this.usersRepository.updateUser(id, updateUserDto);
   }
-
-  // Encripta la nueva contraseña utilizando bcrypt
 
   async changePassword(
     id: string,
@@ -83,7 +71,6 @@ export class UsersService {
     return this.usersRepository.activateUser(id);
   }
 
-  //metodo exclusivo del admin para crear usuarios
   async createUserByAdmin(createUserDto: CreateUserByAdminDto) {
     const { email, phone, password, confirmPassword, roles, ...userData } =
       createUserDto;

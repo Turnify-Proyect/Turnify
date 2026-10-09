@@ -62,9 +62,7 @@ describe('ServicesController', () => {
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.getAll,
-      ).toHaveBeenCalled();
+      expect(servicesServiceMock.getAll).toHaveBeenCalled();
     });
   });
 
@@ -84,9 +82,7 @@ describe('ServicesController', () => {
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.getAllActive,
-      ).toHaveBeenCalled();
+      expect(servicesServiceMock.getAllActive).toHaveBeenCalled();
     });
   });
 
@@ -104,9 +100,7 @@ describe('ServicesController', () => {
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.getById,
-      ).toHaveBeenCalledWith(serviceId);
+      expect(servicesServiceMock.getById).toHaveBeenCalledWith(serviceId);
     });
   });
 
@@ -125,19 +119,11 @@ describe('ServicesController', () => {
 
       servicesServiceMock.update.mockResolvedValue(response);
 
-      const result = await controller.update(
-        serviceId,
-        data as any,
-      );
+      const result = await controller.update(serviceId, data as any);
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.update,
-      ).toHaveBeenCalledWith(
-        serviceId,
-        data,
-      );
+      expect(servicesServiceMock.update).toHaveBeenCalledWith(serviceId, data);
     });
   });
 
@@ -162,9 +148,7 @@ describe('ServicesController', () => {
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.create,
-      ).toHaveBeenCalledWith(data);
+      expect(servicesServiceMock.create).toHaveBeenCalledWith(data);
     });
   });
 
@@ -181,9 +165,7 @@ describe('ServicesController', () => {
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.deactivate,
-      ).toHaveBeenCalledWith(serviceId);
+      expect(servicesServiceMock.deactivate).toHaveBeenCalledWith(serviceId);
     });
   });
 
@@ -200,9 +182,7 @@ describe('ServicesController', () => {
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.reactivate,
-      ).toHaveBeenCalledWith(serviceId);
+      expect(servicesServiceMock.reactivate).toHaveBeenCalledWith(serviceId);
     });
   });
 
@@ -215,12 +195,9 @@ describe('ServicesController', () => {
         },
       ];
 
-      servicesServiceMock.getProfessionalsByService.mockResolvedValue(
-        response,
-      );
+      servicesServiceMock.getProfessionalsByService.mockResolvedValue(response);
 
-      const result =
-        await controller.getProfessionalsByService(serviceId);
+      const result = await controller.getProfessionalsByService(serviceId);
 
       expect(result).toBe(response);
 
@@ -246,16 +223,11 @@ describe('ServicesController', () => {
 
       servicesServiceMock.updateServiceImage.mockResolvedValue(response);
 
-      const result = await controller.uploadServiceImage(
-        serviceId,
-        file,
-      );
+      const result = await controller.uploadServiceImage(serviceId, file);
 
       expect(result).toBe(response);
 
-      expect(
-        servicesServiceMock.updateServiceImage,
-      ).toHaveBeenCalledWith(
+      expect(servicesServiceMock.updateServiceImage).toHaveBeenCalledWith(
         serviceId,
         file,
       );
@@ -272,9 +244,7 @@ describe('ServicesController', () => {
         ServicesController.prototype.getAll,
       );
 
-      expect(roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(roles).toEqual([UserRole.ADMIN]);
     });
 
     it('should not require a role for getAllActive', () => {
@@ -301,9 +271,7 @@ describe('ServicesController', () => {
         ServicesController.prototype.update,
       );
 
-      expect(roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(roles).toEqual([UserRole.ADMIN]);
     });
 
     it('should require ADMIN role for create', () => {
@@ -312,9 +280,7 @@ describe('ServicesController', () => {
         ServicesController.prototype.create,
       );
 
-      expect(roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(roles).toEqual([UserRole.ADMIN]);
     });
 
     it('should require ADMIN role for deactivate', () => {
@@ -323,9 +289,7 @@ describe('ServicesController', () => {
         ServicesController.prototype.deactivate,
       );
 
-      expect(roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(roles).toEqual([UserRole.ADMIN]);
     });
 
     it('should require ADMIN role for reactivate', () => {
@@ -334,9 +298,7 @@ describe('ServicesController', () => {
         ServicesController.prototype.reactivate,
       );
 
-      expect(roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(roles).toEqual([UserRole.ADMIN]);
     });
 
     it('should not require a role for getProfessionalsByService', () => {
@@ -354,9 +316,7 @@ describe('ServicesController', () => {
         ServicesController.prototype.uploadServiceImage,
       );
 
-      expect(roles).toEqual([
-        UserRole.ADMIN,
-      ]);
+      expect(roles).toEqual([UserRole.ADMIN]);
     });
   });
 });

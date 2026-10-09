@@ -6,8 +6,6 @@ import { EmailVerificationModule } from 'src/auth/email-verification/email-verif
 import { MailModule } from 'src/mail/mail.module';
 import { PasswordResetModule } from './password-reset/password-reset.module';
 
-// Quité el JwtModule.register, que se estaba duplicando con app.module
-//coemntado por:Lautaro-dev
 @Module({
   imports: [
     UsersModule,

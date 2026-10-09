@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { CategoriesService } from './categories.service';
@@ -24,20 +21,17 @@ describe('CategoriesService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const module: TestingModule =
-      await Test.createTestingModule({
-        providers: [
-          CategoriesService,
-          {
-            provide: CategoriesRepository,
-            useValue: mockCategoriesRepository,
-          },
-        ],
-      }).compile();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CategoriesService,
+        {
+          provide: CategoriesRepository,
+          useValue: mockCategoriesRepository,
+        },
+      ],
+    }).compile();
 
-    service = module.get<CategoriesService>(
-      CategoriesService,
-    );
+    service = module.get<CategoriesService>(CategoriesService);
   });
 
   describe('getAllActiveCategories', () => {
@@ -59,8 +53,7 @@ describe('CategoriesService', () => {
         categories,
       );
 
-      const result =
-        await service.getAllActiveCategories();
+      const result = await service.getAllActiveCategories();
 
       expect(result).toEqual(categories);
 
@@ -70,12 +63,9 @@ describe('CategoriesService', () => {
     });
 
     it('should return an empty array when there are no active categories', async () => {
-      mockCategoriesRepository.getAllActiveCategories.mockResolvedValue(
-        [],
-      );
+      mockCategoriesRepository.getAllActiveCategories.mockResolvedValue([]);
 
-      const result =
-        await service.getAllActiveCategories();
+      const result = await service.getAllActiveCategories();
 
       expect(result).toEqual([]);
 
@@ -87,13 +77,9 @@ describe('CategoriesService', () => {
     it('should propagate repository errors', async () => {
       const error = new Error('Database error');
 
-      mockCategoriesRepository.getAllActiveCategories.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.getAllActiveCategories.mockRejectedValue(error);
 
-      await expect(
-        service.getAllActiveCategories(),
-      ).rejects.toThrow(error);
+      await expect(service.getAllActiveCategories()).rejects.toThrow(error);
     });
   });
 
@@ -112,50 +98,41 @@ describe('CategoriesService', () => {
         },
       ] as Category[];
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        categories,
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue(categories);
 
       const result = await service.getAllCategories();
 
       expect(result).toEqual(categories);
 
-      expect(
-        mockCategoriesRepository.getAllCategories,
-      ).toHaveBeenCalledTimes(1);
+      expect(mockCategoriesRepository.getAllCategories).toHaveBeenCalledTimes(
+        1,
+      );
     });
 
     it('should return an empty array when there are no categories', async () => {
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([]);
 
       const result = await service.getAllCategories();
 
       expect(result).toEqual([]);
 
-      expect(
-        mockCategoriesRepository.getAllCategories,
-      ).toHaveBeenCalledTimes(1);
+      expect(mockCategoriesRepository.getAllCategories).toHaveBeenCalledTimes(
+        1,
+      );
     });
 
     it('should propagate repository errors', async () => {
       const error = new Error('Database error');
 
-      mockCategoriesRepository.getAllCategories.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.getAllCategories.mockRejectedValue(error);
 
-      await expect(
-        service.getAllCategories(),
-      ).rejects.toThrow(error);
+      await expect(service.getAllCategories()).rejects.toThrow(error);
     });
   });
 
   describe('getCategoryById', () => {
     it('should return the category when it exists', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -163,52 +140,37 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      const result =
-        await service.getCategoryById(id);
+      const result = await service.getCategoryById(id);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesRepository.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesRepository.getCategoryById).toHaveBeenCalledWith(id);
     });
 
     it('should throw NotFoundException when the category does not exist', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        null,
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(null);
+
+      await expect(service.getCategoryById(id)).rejects.toThrow(
+        NotFoundException,
       );
 
-      await expect(
-        service.getCategoryById(id),
-      ).rejects.toThrow(NotFoundException);
-
-      await expect(
-        service.getCategoryById(id),
-      ).rejects.toThrow(
+      await expect(service.getCategoryById(id)).rejects.toThrow(
         'No existe la categoría seleccionada',
       );
     });
 
     it('should propagate repository errors', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const error = new Error('Database error');
 
-      mockCategoriesRepository.getCategoryById.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.getCategoryById.mockRejectedValue(error);
 
-      await expect(
-        service.getCategoryById(id),
-      ).rejects.toThrow(error);
+      await expect(service.getCategoryById(id)).rejects.toThrow(error);
     });
   });
 
@@ -226,26 +188,19 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([]);
 
-      mockCategoriesRepository.createCategory.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.createCategory.mockResolvedValue(category);
 
-      const result =
-        await service.createCategory(dto);
+      const result = await service.createCategory(dto);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesRepository.getAllCategories,
-      ).toHaveBeenCalledTimes(1);
+      expect(mockCategoriesRepository.getAllCategories).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        mockCategoriesRepository.createCategory,
-      ).toHaveBeenCalledWith(
+      expect(mockCategoriesRepository.createCategory).toHaveBeenCalledWith(
         'Psicología',
         ' brain ',
       );
@@ -266,19 +221,13 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([]);
 
-      mockCategoriesRepository.createCategory.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.createCategory.mockResolvedValue(category);
 
       await service.createCategory(dto);
 
-      expect(
-        mockCategoriesRepository.createCategory,
-      ).toHaveBeenCalledWith(
+      expect(mockCategoriesRepository.createCategory).toHaveBeenCalledWith(
         'Nutrición',
         undefined,
       );
@@ -295,23 +244,19 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
+
+      await expect(service.createCategory(dto)).rejects.toThrow(
+        ConflictException,
       );
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(ConflictException);
-
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(
+      await expect(service.createCategory(dto)).rejects.toThrow(
         'Ya existe una categoría con ese nombre',
       );
 
-      expect(
-        mockCategoriesRepository.createCategory,
-      ).not.toHaveBeenCalled();
+      expect(mockCategoriesRepository.createCategory).not.toHaveBeenCalled();
 
       expect(
         mockCategoriesRepository.reactivateCategory,
@@ -329,13 +274,11 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(
+      await expect(service.createCategory(dto)).rejects.toThrow(
         'Ya existe una categoría con ese nombre',
       );
     });
@@ -351,13 +294,11 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(
+      await expect(service.createCategory(dto)).rejects.toThrow(
         'Ya existe una categoría con ese nombre',
       );
     });
@@ -373,13 +314,11 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(
+      await expect(service.createCategory(dto)).rejects.toThrow(
         'Ya existe una categoría con ese nombre',
       );
     });
@@ -402,33 +341,28 @@ describe('CategoriesService', () => {
         icon: 'brain',
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
 
       mockCategoriesRepository.reactivateCategory.mockResolvedValue(
         reactivatedCategory,
       );
 
-      const result =
-        await service.createCategory(dto);
+      const result = await service.createCategory(dto);
 
       expect(result).toEqual(reactivatedCategory);
 
-      expect(
-        mockCategoriesRepository.reactivateCategory,
-      ).toHaveBeenCalledTimes(1);
+      expect(mockCategoriesRepository.reactivateCategory).toHaveBeenCalledTimes(
+        1,
+      );
 
-      expect(
-        mockCategoriesRepository.reactivateCategory,
-      ).toHaveBeenCalledWith(
+      expect(mockCategoriesRepository.reactivateCategory).toHaveBeenCalledWith(
         existingCategory,
         '  brain  ',
       );
 
-      expect(
-        mockCategoriesRepository.createCategory,
-      ).not.toHaveBeenCalled();
+      expect(mockCategoriesRepository.createCategory).not.toHaveBeenCalled();
     });
 
     it('should reactivate an inactive category even when the existing category has a different case or accent', async () => {
@@ -442,22 +376,19 @@ describe('CategoriesService', () => {
         isActive: false,
       } as Category;
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
 
       mockCategoriesRepository.reactivateCategory.mockResolvedValue(
         existingCategory,
       );
 
-      const result =
-        await service.createCategory(dto);
+      const result = await service.createCategory(dto);
 
       expect(result).toEqual(existingCategory);
 
-      expect(
-        mockCategoriesRepository.reactivateCategory,
-      ).toHaveBeenCalledWith(
+      expect(mockCategoriesRepository.reactivateCategory).toHaveBeenCalledWith(
         existingCategory,
         undefined,
       );
@@ -470,17 +401,11 @@ describe('CategoriesService', () => {
 
       const error = new Error('Database error');
 
-      mockCategoriesRepository.getAllCategories.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.getAllCategories.mockRejectedValue(error);
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(error);
+      await expect(service.createCategory(dto)).rejects.toThrow(error);
 
-      expect(
-        mockCategoriesRepository.createCategory,
-      ).not.toHaveBeenCalled();
+      expect(mockCategoriesRepository.createCategory).not.toHaveBeenCalled();
 
       expect(
         mockCategoriesRepository.reactivateCategory,
@@ -494,17 +419,11 @@ describe('CategoriesService', () => {
 
       const error = new Error('Create error');
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([]);
 
-      mockCategoriesRepository.createCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.createCategory.mockRejectedValue(error);
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(error);
+      await expect(service.createCategory(dto)).rejects.toThrow(error);
     });
 
     it('should propagate repository errors when reactivating a category', async () => {
@@ -520,24 +439,19 @@ describe('CategoriesService', () => {
 
       const error = new Error('Reactivate error');
 
-      mockCategoriesRepository.getAllCategories.mockResolvedValue(
-        [existingCategory],
-      );
+      mockCategoriesRepository.getAllCategories.mockResolvedValue([
+        existingCategory,
+      ]);
 
-      mockCategoriesRepository.reactivateCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.reactivateCategory.mockRejectedValue(error);
 
-      await expect(
-        service.createCategory(dto),
-      ).rejects.toThrow(error);
+      await expect(service.createCategory(dto)).rejects.toThrow(error);
     });
   });
 
   describe('deactivateCategory', () => {
     it('should deactivate an active category when it is not in use', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -550,39 +464,29 @@ describe('CategoriesService', () => {
         isActive: false,
       } as Category;
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      mockCategoriesRepository.isInUse.mockResolvedValue(
-        false,
-      );
+      mockCategoriesRepository.isInUse.mockResolvedValue(false);
 
       mockCategoriesRepository.deactivateCategory.mockResolvedValue(
         deactivatedCategory,
       );
 
-      const result =
-        await service.deactivateCategory(id);
+      const result = await service.deactivateCategory(id);
 
       expect(result).toEqual(deactivatedCategory);
 
-      expect(
-        mockCategoriesRepository.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesRepository.getCategoryById).toHaveBeenCalledWith(id);
 
-      expect(
-        mockCategoriesRepository.isInUse,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesRepository.isInUse).toHaveBeenCalledWith(id);
 
-      expect(
-        mockCategoriesRepository.deactivateCategory,
-      ).toHaveBeenCalledWith(category);
+      expect(mockCategoriesRepository.deactivateCategory).toHaveBeenCalledWith(
+        category,
+      );
     });
 
     it('should return the category without calling isInUse when it is already inactive', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -590,22 +494,15 @@ describe('CategoriesService', () => {
         isActive: false,
       } as Category;
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      const result =
-        await service.deactivateCategory(id);
+      const result = await service.deactivateCategory(id);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesRepository.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesRepository.getCategoryById).toHaveBeenCalledWith(id);
 
-      expect(
-        mockCategoriesRepository.isInUse,
-      ).not.toHaveBeenCalled();
+      expect(mockCategoriesRepository.isInUse).not.toHaveBeenCalled();
 
       expect(
         mockCategoriesRepository.deactivateCategory,
@@ -613,8 +510,7 @@ describe('CategoriesService', () => {
     });
 
     it('should throw ConflictException when the category is in use', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -622,21 +518,15 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
+
+      mockCategoriesRepository.isInUse.mockResolvedValue(true);
+
+      await expect(service.deactivateCategory(id)).rejects.toThrow(
+        ConflictException,
       );
 
-      mockCategoriesRepository.isInUse.mockResolvedValue(
-        true,
-      );
-
-      await expect(
-        service.deactivateCategory(id),
-      ).rejects.toThrow(ConflictException);
-
-      await expect(
-        service.deactivateCategory(id),
-      ).rejects.toThrow(
+      await expect(service.deactivateCategory(id)).rejects.toThrow(
         'No se puede desactivar la categoría porque está asociada a uno o más servicios.',
       );
 
@@ -646,20 +536,15 @@ describe('CategoriesService', () => {
     });
 
     it('should propagate the NotFoundException when the category does not exist', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        null,
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(null);
+
+      await expect(service.deactivateCategory(id)).rejects.toThrow(
+        NotFoundException,
       );
 
-      await expect(
-        service.deactivateCategory(id),
-      ).rejects.toThrow(NotFoundException);
-
-      expect(
-        mockCategoriesRepository.isInUse,
-      ).not.toHaveBeenCalled();
+      expect(mockCategoriesRepository.isInUse).not.toHaveBeenCalled();
 
       expect(
         mockCategoriesRepository.deactivateCategory,
@@ -667,8 +552,7 @@ describe('CategoriesService', () => {
     });
 
     it('should propagate errors from isInUse', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -678,17 +562,11 @@ describe('CategoriesService', () => {
 
       const error = new Error('Database error');
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      mockCategoriesRepository.isInUse.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.isInUse.mockRejectedValue(error);
 
-      await expect(
-        service.deactivateCategory(id),
-      ).rejects.toThrow(error);
+      await expect(service.deactivateCategory(id)).rejects.toThrow(error);
 
       expect(
         mockCategoriesRepository.deactivateCategory,
@@ -696,8 +574,7 @@ describe('CategoriesService', () => {
     });
 
     it('should propagate errors when deactivating the category', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -707,28 +584,19 @@ describe('CategoriesService', () => {
 
       const error = new Error('Deactivate error');
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      mockCategoriesRepository.isInUse.mockResolvedValue(
-        false,
-      );
+      mockCategoriesRepository.isInUse.mockResolvedValue(false);
 
-      mockCategoriesRepository.deactivateCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.deactivateCategory.mockRejectedValue(error);
 
-      await expect(
-        service.deactivateCategory(id),
-      ).rejects.toThrow(error);
+      await expect(service.deactivateCategory(id)).rejects.toThrow(error);
     });
   });
 
   describe('reactivateCategory', () => {
     it('should reactivate an inactive category', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -741,31 +609,25 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
       mockCategoriesRepository.reactivateCategory.mockResolvedValue(
         reactivatedCategory,
       );
 
-      const result =
-        await service.reactivateCategory(id);
+      const result = await service.reactivateCategory(id);
 
       expect(result).toEqual(reactivatedCategory);
 
-      expect(
-        mockCategoriesRepository.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesRepository.getCategoryById).toHaveBeenCalledWith(id);
 
-      expect(
-        mockCategoriesRepository.reactivateCategory,
-      ).toHaveBeenCalledWith(category);
+      expect(mockCategoriesRepository.reactivateCategory).toHaveBeenCalledWith(
+        category,
+      );
     });
 
     it('should return the category without calling the repository when it is already active', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -773,18 +635,13 @@ describe('CategoriesService', () => {
         isActive: true,
       } as Category;
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      const result =
-        await service.reactivateCategory(id);
+      const result = await service.reactivateCategory(id);
 
       expect(result).toEqual(category);
 
-      expect(
-        mockCategoriesRepository.getCategoryById,
-      ).toHaveBeenCalledWith(id);
+      expect(mockCategoriesRepository.getCategoryById).toHaveBeenCalledWith(id);
 
       expect(
         mockCategoriesRepository.reactivateCategory,
@@ -792,16 +649,13 @@ describe('CategoriesService', () => {
     });
 
     it('should throw NotFoundException when the category does not exist', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        null,
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(null);
+
+      await expect(service.reactivateCategory(id)).rejects.toThrow(
+        NotFoundException,
       );
-
-      await expect(
-        service.reactivateCategory(id),
-      ).rejects.toThrow(NotFoundException);
 
       expect(
         mockCategoriesRepository.reactivateCategory,
@@ -809,8 +663,7 @@ describe('CategoriesService', () => {
     });
 
     it('should propagate errors when reactivating the category', async () => {
-      const id =
-        '550e8400-e29b-41d4-a716-446655440000';
+      const id = '550e8400-e29b-41d4-a716-446655440000';
 
       const category = {
         id,
@@ -820,17 +673,11 @@ describe('CategoriesService', () => {
 
       const error = new Error('Reactivate error');
 
-      mockCategoriesRepository.getCategoryById.mockResolvedValue(
-        category,
-      );
+      mockCategoriesRepository.getCategoryById.mockResolvedValue(category);
 
-      mockCategoriesRepository.reactivateCategory.mockRejectedValue(
-        error,
-      );
+      mockCategoriesRepository.reactivateCategory.mockRejectedValue(error);
 
-      await expect(
-        service.reactivateCategory(id),
-      ).rejects.toThrow(error);
+      await expect(service.reactivateCategory(id)).rejects.toThrow(error);
     });
   });
 });

@@ -1,8 +1,6 @@
 import { ProfessionalsService } from './professionals.service';
 import { ProfessionalsRepository } from './professionals.repository';
-import {
-  ProfessionalSpecialty,
-} from './entities/professional.entity';
+import { ProfessionalSpecialty } from './entities/professional.entity';
 
 describe('ProfessionalsService', () => {
   let service: ProfessionalsService;
@@ -62,8 +60,7 @@ describe('ProfessionalsService', () => {
         professional,
       );
 
-      const result =
-        await service.createProfessional(dto);
+      const result = await service.createProfessional(dto);
 
       expect(result).toBe(professional);
 
@@ -75,16 +72,13 @@ describe('ProfessionalsService', () => {
 
   describe('getActiveProfessionals', () => {
     it('should delegate to the repository', async () => {
-      const professionals = [
-        { id: professionalId },
-      ];
+      const professionals = [{ id: professionalId }];
 
       professionalsRepositoryMock.getActiveProfessionals.mockResolvedValue(
         professionals,
       );
 
-      const result =
-        await service.getActiveProfessionals();
+      const result = await service.getActiveProfessionals();
 
       expect(result).toBe(professionals);
 
@@ -96,16 +90,13 @@ describe('ProfessionalsService', () => {
 
   describe('getAllProfessionals', () => {
     it('should delegate to the repository', async () => {
-      const professionals = [
-        { id: professionalId },
-      ];
+      const professionals = [{ id: professionalId }];
 
       professionalsRepositoryMock.getAllProfessionals.mockResolvedValue(
         professionals,
       );
 
-      const result =
-        await service.getAllProfessionals();
+      const result = await service.getAllProfessionals();
 
       expect(result).toBe(professionals);
 
@@ -125,18 +116,13 @@ describe('ProfessionalsService', () => {
         professional,
       );
 
-      const result =
-        await service.getProfessionalById(
-          professionalId,
-        );
+      const result = await service.getProfessionalById(professionalId);
 
       expect(result).toBe(professional);
 
       expect(
         professionalsRepositoryMock.getProfessionalById,
-      ).toHaveBeenCalledWith(
-        professionalId,
-      );
+      ).toHaveBeenCalledWith(professionalId);
     });
   });
 
@@ -150,8 +136,7 @@ describe('ProfessionalsService', () => {
         professional,
       );
 
-      const result =
-        await service.getProfessionalByUserId(userId);
+      const result = await service.getProfessionalByUserId(userId);
 
       expect(result).toBe(professional);
 
@@ -168,80 +153,60 @@ describe('ProfessionalsService', () => {
       };
 
       const response = {
-        message:
-          'Profesional actualizado exitosamente',
+        message: 'Profesional actualizado exitosamente',
       };
 
       professionalsRepositoryMock.updateProfessional.mockResolvedValue(
         response,
       );
 
-      const result =
-        await service.updateProfessional(
-          professionalId,
-          dto,
-        );
+      const result = await service.updateProfessional(professionalId, dto);
 
       expect(result).toBe(response);
 
       expect(
         professionalsRepositoryMock.updateProfessional,
-      ).toHaveBeenCalledWith(
-        professionalId,
-        dto,
-      );
+      ).toHaveBeenCalledWith(professionalId, dto);
     });
   });
 
   describe('softDeleteProfessional', () => {
     it('should delegate to the repository', async () => {
       const response = {
-        message:
-          'Profesional eliminado correctamente',
+        message: 'Profesional eliminado correctamente',
       };
 
       professionalsRepositoryMock.softDeleteProfessional.mockResolvedValue(
         response,
       );
 
-      const result =
-        await service.softDeleteProfessional(
-          professionalId,
-        );
+      const result = await service.softDeleteProfessional(professionalId);
 
       expect(result).toBe(response);
 
       expect(
         professionalsRepositoryMock.softDeleteProfessional,
-      ).toHaveBeenCalledWith(
-        professionalId,
-      );
+      ).toHaveBeenCalledWith(professionalId);
     });
   });
 
   describe('activateProfessional', () => {
     it('should delegate to the repository', async () => {
       const response = {
-        message:
-          'Profesional activado correctamente',
+        message: 'Profesional activado correctamente',
       };
 
       professionalsRepositoryMock.activateProfessional.mockResolvedValue(
         response,
       );
 
-      const result =
-        await service.activateProfessional(
-          professionalId,
-        );
+      const result = await service.activateProfessional(professionalId);
 
       expect(result).toBe(response);
 
       expect(
         professionalsRepositoryMock.activateProfessional,
-      ).toHaveBeenCalledWith(
-        professionalId,
-      );
+      ).toHaveBeenCalledWith(professionalId);
     });
   });
 
@@ -256,17 +221,11 @@ describe('ProfessionalsService', () => {
         professionalService,
       );
 
-      const result =
-        await service.associateService(
-          professionalId,
-          serviceId,
-        );
+      const result = await service.associateService(professionalId, serviceId);
 
       expect(result).toBe(professionalService);
 
-      expect(
-        professionalsRepositoryMock.associateService,
-      ).toHaveBeenCalledWith(
+      expect(professionalsRepositoryMock.associateService).toHaveBeenCalledWith(
         professionalId,
         serviceId,
       );
@@ -286,46 +245,36 @@ describe('ProfessionalsService', () => {
         services,
       );
 
-      const result =
-        await service.getServicesByProfessional(
-          professionalId,
-        );
+      const result = await service.getServicesByProfessional(professionalId);
 
       expect(result).toBe(services);
 
       expect(
         professionalsRepositoryMock.getServicesByProfessional,
-      ).toHaveBeenCalledWith(
-        professionalId,
-      );
+      ).toHaveBeenCalledWith(professionalId);
     });
   });
 
   describe('removeServiceFromProfessional', () => {
     it('should delegate to the repository', async () => {
       const response = {
-        message:
-          'Servicio desvinculado del profesional exitosamente',
+        message: 'Servicio desvinculado del profesional exitosamente',
       };
 
       professionalsRepositoryMock.removeServiceFromProfessional.mockResolvedValue(
         response,
       );
 
-      const result =
-        await service.removeServiceFromProfessional(
-          professionalId,
-          serviceId,
-        );
+      const result = await service.removeServiceFromProfessional(
+        professionalId,
+        serviceId,
+      );
 
       expect(result).toBe(response);
 
       expect(
         professionalsRepositoryMock.removeServiceFromProfessional,
-      ).toHaveBeenCalledWith(
-        professionalId,
-        serviceId,
-      );
+      ).toHaveBeenCalledWith(professionalId, serviceId);
     });
   });
 });

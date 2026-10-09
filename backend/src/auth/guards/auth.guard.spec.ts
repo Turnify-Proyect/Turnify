@@ -53,9 +53,9 @@ describe('AuthGuard', () => {
         headers: {},
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(new UnauthorizedException('No se ha enviado token'));
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new UnauthorizedException('No se ha enviado token'),
+      );
 
       expect(jwtService.verify).not.toHaveBeenCalled();
     });
@@ -67,9 +67,9 @@ describe('AuthGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(new UnauthorizedException('No se ha enviado token'));
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new UnauthorizedException('No se ha enviado token'),
+      );
 
       expect(jwtService.verify).not.toHaveBeenCalled();
     });
@@ -81,9 +81,9 @@ describe('AuthGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(new UnauthorizedException('No se ha enviado token'));
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new UnauthorizedException('No se ha enviado token'),
+      );
 
       expect(jwtService.verify).not.toHaveBeenCalled();
     });
@@ -123,9 +123,9 @@ describe('AuthGuard', () => {
         throw expiredError;
       });
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(new UnauthorizedException('El token ha expirado'));
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new UnauthorizedException('El token ha expirado'),
+      );
     });
 
     it('should throw when the token is invalid', () => {
@@ -141,9 +141,9 @@ describe('AuthGuard', () => {
         throw invalidError;
       });
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(new UnauthorizedException('Error al validar token'));
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new UnauthorizedException('Error al validar token'),
+      );
     });
 
     it('should rethrow an UnauthorizedException from JwtService', () => {
@@ -161,9 +161,9 @@ describe('AuthGuard', () => {
         throw unauthorizedError;
       });
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(unauthorizedError);
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        unauthorizedError,
+      );
     });
   });
 });

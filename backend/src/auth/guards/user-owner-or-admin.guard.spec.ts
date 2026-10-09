@@ -1,7 +1,4 @@
-import {
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 
 import { UserOwnerOrAdminGuard } from './user-owner-or-admin.guard';
 import { UserRole } from '../../common/userRoles.enum';
@@ -77,10 +74,7 @@ describe('UserOwnerOrAdminGuard', () => {
       const request = {
         user: {
           id: 'admin-1',
-          roles: [
-            UserRole.CLIENT,
-            UserRole.ADMIN,
-          ],
+          roles: [UserRole.CLIENT, UserRole.ADMIN],
         },
         params: {
           id: 'user-1',
@@ -103,12 +97,8 @@ describe('UserOwnerOrAdminGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
-        new ForbiddenException(
-          'No tienes permiso para acceder a este usuario',
-        ),
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new ForbiddenException('No tienes permiso para acceder a este usuario'),
       );
     });
 
@@ -123,12 +113,8 @@ describe('UserOwnerOrAdminGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
-        new ForbiddenException(
-          'No tienes permiso para acceder a este usuario',
-        ),
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new ForbiddenException('No tienes permiso para acceder a este usuario'),
       );
     });
 

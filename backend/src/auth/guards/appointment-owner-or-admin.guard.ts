@@ -17,7 +17,6 @@ export class AppointmentOwnerOrAdminGuard implements CanActivate {
     private readonly appointmentsRepository: Repository<Appointment>,
   ) {}
 
-  //Paea evitar que un cliente autenticado pueda cambiar el ID de la URL y cancelar el turno de otra persona.
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 

@@ -24,10 +24,6 @@ export class OrdersService {
   ) {}
 
   async create(userId: string, createOrderDto: CreateOrderDto) {
-    /*
-     * Preparamos todos los turnos reutilizando las validaciones
-     * existentes de Appointment.
-     */
     const preparedAppointments: PreparedOrderAppointment[] = await Promise.all(
       createOrderDto.appointments.map((item) =>
         this.appointmentsRepository.prepareAppointment({
@@ -39,17 +35,8 @@ export class OrdersService {
       ),
     );
 
-    /*
-     * prepareAppointment valida contra los turnos que ya existen
-     * en la BD, pero estos nuevos turnos todavía no fueron guardados.
-     * Por eso también validamos que no se superpongan entre ellos.
-     */
     this.validateInternalOverlaps(preparedAppointments);
 
-    /*
-     * El precio se calcula exclusivamente con los servicios
-     * obtenidos desde la base de datos.
-     */
     const totalPrice = preparedAppointments.reduce(
       (total, item) => total + Number(item.service.price),
       0,
@@ -61,16 +48,8 @@ export class OrdersService {
       );
     }
 
-    /*
-     * Todos los turnos pertenecientes a la misma orden
-     * comparten el mismo vencimiento para completar el pago.
-     */
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    /*
-     * Order + OrderDetail + Appointments se crean dentro
-     * de una única transacción.
-     */
     return this.dataSource.transaction(async (manager) => {
       const user = preparedAppointments[0].user;
 
@@ -81,10 +60,6 @@ export class OrdersService {
 
       const savedOrder = await manager.save(Order, order);
 
-      /*
-       * Una orden tiene un único OrderDetail con el total
-       * de todos los servicios seleccionados.
-       */
       const orderDetail = manager.create(OrderDetail, {
         order: savedOrder,
         total_price: totalPrice,
@@ -92,9 +67,6 @@ export class OrdersService {
 
       const savedOrderDetail = await manager.save(OrderDetail, orderDetail);
 
-      /*
-       * Creamos todos los turnos asociados al mismo OrderDetail.
-       */
       const appointments = preparedAppointments.map((prepared) =>
         manager.create(Appointment, {
           user: prepared.user,
@@ -125,10 +97,6 @@ export class OrdersService {
     });
   }
 
-  /*
-   * Valida que los turnos incluidos en la misma orden
-   * no se superpongan entre sí.
-   */
   private validateInternalOverlaps(
     appointments: PreparedOrderAppointment[],
   ): void {

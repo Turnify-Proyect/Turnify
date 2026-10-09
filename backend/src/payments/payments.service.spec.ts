@@ -1,10 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import {
-  Payment,
-  PaymentStatus,
-  PaymentType,
-} from './entities/payment.entity';
+import { Payment, PaymentStatus, PaymentType } from './entities/payment.entity';
 import { Order } from '../orders/entities/order.entity';
 import { OrderStatus } from '../orders/enums/order-status.enum';
 import {
@@ -92,9 +88,7 @@ describe('PaymentsService', () => {
     };
   };
 
-  const createOrder = (
-    overrides: Partial<Order> = {},
-  ): Order => {
+  const createOrder = (overrides: Partial<Order> = {}): Order => {
     const appointment = createAppointment();
 
     return {
@@ -115,9 +109,7 @@ describe('PaymentsService', () => {
     };
   };
 
-  const createPayment = (
-    overrides: Partial<Payment> = {},
-  ): Payment => {
+  const createPayment = (overrides: Partial<Payment> = {}): Payment => {
     return {
       id: 'payment-123',
       order: createOrder(),
@@ -171,10 +163,6 @@ describe('PaymentsService', () => {
       notificationsServiceMock as any,
     );
 
-    /*
-     * PaymentsService instancia Stripe internamente.
-     * Reemplazamos esa instancia por nuestro mock.
-     */
     (service as any).stripe = stripeMock;
 
     process.env.FRONTEND_URL = 'http://localhost:3000';
@@ -207,19 +195,18 @@ describe('PaymentsService', () => {
         } as Order,
       });
 
-queryRunnerMock.manager.findOne
-  .mockResolvedValueOnce(order)
-  .mockResolvedValueOnce(null);
+      queryRunnerMock.manager.findOne
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(null);
 
-queryRunnerMock.manager.create.mockReturnValue(savedPayment);
+      queryRunnerMock.manager.create.mockReturnValue(savedPayment);
 
-queryRunnerMock.manager.save
-  .mockResolvedValueOnce(order)
-  .mockResolvedValueOnce(order.orderDetails.appointments[0])
-  .mockResolvedValueOnce(savedPayment);
+      queryRunnerMock.manager.save
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(order.orderDetails.appointments[0])
+        .mockResolvedValueOnce(savedPayment);
 
-paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
-
+      paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
 
       notificationsServiceMock.sendOrderConfirmed.mockResolvedValue(undefined);
 
@@ -260,9 +247,9 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
     it('should throw when the order does not exist', async () => {
       queryRunnerMock.manager.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.processPayment(dto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.processPayment(dto)).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
       expect(queryRunnerMock.release).toHaveBeenCalled();
@@ -290,7 +277,9 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
       expect(queryRunnerMock.manager.create).not.toHaveBeenCalled();
       expect(queryRunnerMock.manager.save).not.toHaveBeenCalled();
 
-      expect(notificationsServiceMock.sendOrderConfirmed).not.toHaveBeenCalled();
+      expect(
+        notificationsServiceMock.sendOrderConfirmed,
+      ).not.toHaveBeenCalled();
     });
 
     it('should reject a different payment when the order already has a paid payment', async () => {
@@ -329,9 +318,9 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
         .mockResolvedValueOnce(order)
         .mockResolvedValueOnce(null);
 
-      await expect(
-        service.processPayment(dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.processPayment(dto)).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
     });
@@ -353,9 +342,9 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
         .mockResolvedValueOnce(order)
         .mockResolvedValueOnce(null);
 
-      await expect(
-        service.processPayment(dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.processPayment(dto)).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
     });
@@ -377,9 +366,9 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
         .mockResolvedValueOnce(order)
         .mockResolvedValueOnce(null);
 
-      await expect(
-        service.processPayment(dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.processPayment(dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should reject a payment when an appointment is cancelled', async () => {
@@ -398,9 +387,9 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
         .mockResolvedValueOnce(order)
         .mockResolvedValueOnce(null);
 
-      await expect(
-        service.processPayment(dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.processPayment(dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should not fail the payment when the confirmation email fails', async () => {
@@ -421,11 +410,10 @@ paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
 
       queryRunnerMock.manager.create.mockReturnValue(savedPayment);
 
-queryRunnerMock.manager.save
-  .mockResolvedValueOnce(order)
-  .mockResolvedValueOnce(order.orderDetails.appointments[0])
-  .mockResolvedValueOnce(savedPayment);
-
+      queryRunnerMock.manager.save
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(order.orderDetails.appointments[0])
+        .mockResolvedValueOnce(savedPayment);
 
       paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
 
@@ -511,35 +499,24 @@ queryRunnerMock.manager.save
 
       paymentRepositoryMock.findOne.mockResolvedValue(order);
 
-      /*
-       * createStripeIntent usa:
-       * this.dataSource.getRepository(Order).findOne(...)
-       *
-       * Por eso usamos un repository específico para Order.
-       */
       const orderRepositoryMock = {
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockImplementation(
-        (entity: any) => {
-          if (entity === Order) {
-            return orderRepositoryMock;
-          }
+      dataSourceMock.getRepository.mockImplementation((entity: any) => {
+        if (entity === Order) {
+          return orderRepositoryMock;
+        }
 
-          return paymentRepositoryMock;
-        },
-      );
+        return paymentRepositoryMock;
+      });
 
       stripeMock.paymentIntents.create.mockResolvedValue({
         id: 'pi_123',
         client_secret: 'secret_123',
       });
 
-      const result = await service.createStripeIntent(
-        orderId,
-        userId,
-      );
+      const result = await service.createStripeIntent(orderId, userId);
 
       expect(result).toEqual({
         clientSecret: 'secret_123',
@@ -552,11 +529,7 @@ queryRunnerMock.manager.save
             id: userId,
           },
         },
-        relations: [
-          'user',
-          'orderDetails',
-          'orderDetails.appointments',
-        ],
+        relations: ['user', 'orderDetails', 'orderDetails.appointments'],
       });
 
       expect(stripeMock.paymentIntents.create).toHaveBeenCalledWith(
@@ -581,17 +554,13 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(null),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
+
+      await expect(service.createStripeIntent(orderId, userId)).rejects.toThrow(
+        NotFoundException,
       );
 
-      await expect(
-        service.createStripeIntent(orderId, userId),
-      ).rejects.toThrow(NotFoundException);
-
-      expect(
-        stripeMock.paymentIntents.create,
-      ).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     });
 
     it('should reject a non-pending order', async () => {
@@ -603,17 +572,13 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
+
+      await expect(service.createStripeIntent(orderId, userId)).rejects.toThrow(
+        BadRequestException,
       );
 
-      await expect(
-        service.createStripeIntent(orderId, userId),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(
-        stripeMock.paymentIntents.create,
-      ).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     });
 
     it('should reject an order without appointments', async () => {
@@ -628,13 +593,11 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
-      await expect(
-        service.createStripeIntent(orderId, userId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createStripeIntent(orderId, userId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should reject an expired appointment', async () => {
@@ -653,20 +616,16 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
-      await expect(
-        service.createStripeIntent(orderId, userId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createStripeIntent(orderId, userId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('handleStripeWebhook', () => {
-    const createStripeEvent = (
-      overrides: Partial<any> = {},
-    ) => ({
+    const createStripeEvent = (overrides: Partial<any> = {}) => ({
       id: 'evt_123',
       type: 'payment_intent.succeeded',
       data: {
@@ -760,40 +719,29 @@ queryRunnerMock.manager.save
     });
 
     it('should throw when the order does not exist', async () => {
-      stripeMock.webhooks.constructEvent.mockReturnValue(
-        createStripeEvent(),
-      );
+      stripeMock.webhooks.constructEvent.mockReturnValue(createStripeEvent());
 
       const orderRepositoryMock = {
         findOne: jest.fn().mockResolvedValue(null),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('raw-body'),
-          'signature',
-        ),
+        service.handleStripeWebhook(Buffer.from('raw-body'), 'signature'),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('should process a valid payment through processPayment', async () => {
       const order = createOrder();
 
-      stripeMock.webhooks.constructEvent.mockReturnValue(
-        createStripeEvent(),
-      );
+      stripeMock.webhooks.constructEvent.mockReturnValue(createStripeEvent());
 
       const orderRepositoryMock = {
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
       const processPaymentSpy = jest
         .spyOn(service, 'processPayment')
@@ -830,29 +778,23 @@ queryRunnerMock.manager.save
         } as any,
       });
 
-      stripeMock.webhooks.constructEvent.mockReturnValue(
-        createStripeEvent(),
-      );
+      stripeMock.webhooks.constructEvent.mockReturnValue(createStripeEvent());
 
       const orderRepositoryMock = {
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
-      dataSourceMock.transaction.mockImplementation(
-        async (callback: any) => {
-          const manager = {
-            findOne: jest.fn().mockResolvedValue(null),
-            create: jest.fn((_, entity) => entity),
-            save: jest.fn().mockResolvedValue(undefined),
-          };
+      dataSourceMock.transaction.mockImplementation(async (callback: any) => {
+        const manager = {
+          findOne: jest.fn().mockResolvedValue(null),
+          create: jest.fn((_, entity) => entity),
+          save: jest.fn().mockResolvedValue(undefined),
+        };
 
-          return callback(manager);
-        },
-      );
+        return callback(manager);
+      });
 
       stripeMock.refunds.create.mockResolvedValue({
         id: 're_123',
@@ -903,9 +845,9 @@ queryRunnerMock.manager.save
     it('should throw when the payment does not exist', async () => {
       paymentRepositoryMock.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.getPaymentById('payment-404'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getPaymentById('payment-404')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -942,43 +884,32 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
       stripeMock.checkout.sessions.create.mockResolvedValue({
         id: 'cs_test_123',
         url: 'https://checkout.stripe.com/test',
       });
 
-      dataSourceMock.transaction.mockImplementation(
-        async (callback: any) => {
-          const manager = {
-            save: jest.fn().mockResolvedValue(undefined),
-          };
+      dataSourceMock.transaction.mockImplementation(async (callback: any) => {
+        const manager = {
+          save: jest.fn().mockResolvedValue(undefined),
+        };
 
-          return callback(manager);
-        },
-      );
+        return callback(manager);
+      });
 
-      notificationsServiceMock.sendPaymentLink.mockResolvedValue(
-        undefined,
-      );
+      notificationsServiceMock.sendPaymentLink.mockResolvedValue(undefined);
 
-      const result =
-        await service.createAdminCheckoutSession(orderId);
+      const result = await service.createAdminCheckoutSession(orderId);
 
       expect(result.orderId).toBe(orderId);
-      expect(result.checkoutUrl).toBe(
-        'https://checkout.stripe.com/test',
-      );
+      expect(result.checkoutUrl).toBe('https://checkout.stripe.com/test');
       expect(result.email).toBe('juan@test.com');
       expect(result.depositAmount).toBe(3000);
       expect(result.emailSent).toBe(true);
 
-      expect(
-        stripeMock.checkout.sessions.create,
-      ).toHaveBeenCalledWith(
+      expect(stripeMock.checkout.sessions.create).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 'payment',
           customer_email: 'juan@test.com',
@@ -1002,18 +933,15 @@ queryRunnerMock.manager.save
           ],
         }),
         {
-          idempotencyKey:
-            `turnify-admin-checkout-${orderId}`,
+          idempotencyKey: `turnify-admin-checkout-${orderId}`,
         },
       );
 
-      expect(
-        notificationsServiceMock.sendPaymentLink,
-      ).toHaveBeenCalled();
+      expect(notificationsServiceMock.sendPaymentLink).toHaveBeenCalled();
 
-      expect(
-        order.orderDetails.appointments[0].expiresAt,
-      ).toEqual(expect.any(Date));
+      expect(order.orderDetails.appointments[0].expiresAt).toEqual(
+        expect.any(Date),
+      );
     });
 
     it('should throw when the order does not exist', async () => {
@@ -1021,17 +949,13 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(null),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
+
+      await expect(service.createAdminCheckoutSession(orderId)).rejects.toThrow(
+        NotFoundException,
       );
 
-      await expect(
-        service.createAdminCheckoutSession(orderId),
-      ).rejects.toThrow(NotFoundException);
-
-      expect(
-        stripeMock.checkout.sessions.create,
-      ).not.toHaveBeenCalled();
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
     it('should reject a non-pending order', async () => {
@@ -1043,13 +967,11 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
-      await expect(
-        service.createAdminCheckoutSession(orderId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createAdminCheckoutSession(orderId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should reject an order without appointments', async () => {
@@ -1064,13 +986,11 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
-      await expect(
-        service.createAdminCheckoutSession(orderId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createAdminCheckoutSession(orderId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should reject an expired appointment', async () => {
@@ -1089,17 +1009,13 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
+
+      await expect(service.createAdminCheckoutSession(orderId)).rejects.toThrow(
+        BadRequestException,
       );
 
-      await expect(
-        service.createAdminCheckoutSession(orderId),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(
-        stripeMock.checkout.sessions.create,
-      ).not.toHaveBeenCalled();
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
     it('should reject when FRONTEND_URL is not configured', async () => {
@@ -1109,19 +1025,15 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
       delete process.env.FRONTEND_URL;
 
-      await expect(
-        service.createAdminCheckoutSession(orderId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createAdminCheckoutSession(orderId)).rejects.toThrow(
+        BadRequestException,
+      );
 
-      expect(
-        stripeMock.checkout.sessions.create,
-      ).not.toHaveBeenCalled();
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
     it('should return emailSent false when sending the payment link fails', async () => {
@@ -1131,36 +1043,29 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
       stripeMock.checkout.sessions.create.mockResolvedValue({
         id: 'cs_test_123',
         url: 'https://checkout.stripe.com/test',
       });
 
-      dataSourceMock.transaction.mockImplementation(
-        async (callback: any) => {
-          const manager = {
-            save: jest.fn().mockResolvedValue(undefined),
-          };
+      dataSourceMock.transaction.mockImplementation(async (callback: any) => {
+        const manager = {
+          save: jest.fn().mockResolvedValue(undefined),
+        };
 
-          return callback(manager);
-        },
-      );
+        return callback(manager);
+      });
 
       notificationsServiceMock.sendPaymentLink.mockRejectedValue(
         new Error('SMTP error'),
       );
 
-      const result =
-        await service.createAdminCheckoutSession(orderId);
+      const result = await service.createAdminCheckoutSession(orderId);
 
       expect(result.emailSent).toBe(false);
-      expect(result.checkoutUrl).toBe(
-        'https://checkout.stripe.com/test',
-      );
+      expect(result.checkoutUrl).toBe('https://checkout.stripe.com/test');
     });
 
     it('should throw when Stripe does not generate a checkout URL', async () => {
@@ -1170,18 +1075,16 @@ queryRunnerMock.manager.save
         findOne: jest.fn().mockResolvedValue(order),
       };
 
-      dataSourceMock.getRepository.mockReturnValue(
-        orderRepositoryMock,
-      );
+      dataSourceMock.getRepository.mockReturnValue(orderRepositoryMock);
 
       stripeMock.checkout.sessions.create.mockResolvedValue({
         id: 'cs_test_123',
         url: null,
       });
 
-      await expect(
-        service.createAdminCheckoutSession(orderId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createAdminCheckoutSession(orderId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

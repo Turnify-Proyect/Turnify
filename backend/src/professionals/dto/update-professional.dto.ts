@@ -1,5 +1,3 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateProfessionalDto } from './create-professional.dto';
 import { IsEnum, IsOptional } from 'class-validator';
 import { ProfessionalSpecialty } from '../entities/professional.entity';
 import { ApiPropertyOptional } from '@nestjs/swagger';

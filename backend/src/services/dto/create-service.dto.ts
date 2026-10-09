@@ -24,14 +24,16 @@ export class CreateServiceDto {
 
   @ApiPropertyOptional({
     description: 'Descripción detallada de lo que incluye el servicio',
-    example: 'Incluye lavado con champú premium, asesoría de imagen y peinado con cera.',
+    example:
+      'Incluye lavado con champú premium, asesoría de imagen y peinado con cera.',
   })
   @IsOptional()
   @IsString()
   description?: string;
 
   @ApiProperty({
-    description: 'ID de la categoría a la que pertenece el servicio (Debe ser un UUID válido)',
+    description:
+      'ID de la categoría a la que pertenece el servicio (Debe ser un UUID válido)',
     format: 'uuid',
     example: 'a6b8c9d0-1234-5678-abcd-ef1234567890',
   })
@@ -56,7 +58,8 @@ export class CreateServiceDto {
   durationMinutes!: number;
 
   @ApiPropertyOptional({
-    description: 'URL de la imagen representativa del servicio alojada en la nube',
+    description:
+      'URL de la imagen representativa del servicio alojada en la nube',
     example: 'https://cloudinary.com',
   })
   @IsOptional()

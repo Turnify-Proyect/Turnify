@@ -6,7 +6,6 @@ import { ProfessionalUnavailability } from './entities/professional-unavailabili
 import { Professional } from '../professionals/entities/professional.entity';
 import { CreateProfessionalUnavailabilityDto } from './dto/create-professional-unavailability.dto';
 
-
 @Injectable()
 export class ProfessionalUnavailabilityRepository {
   constructor(
@@ -14,9 +13,7 @@ export class ProfessionalUnavailabilityRepository {
     private readonly ormRepository: Repository<ProfessionalUnavailability>,
   ) {}
 
-  async getById(
-    id: string,
-  ): Promise<ProfessionalUnavailability | null> {
+  async getById(id: string): Promise<ProfessionalUnavailability | null> {
     return this.ormRepository.findOne({
       where: { id },
       relations: {
@@ -47,18 +44,11 @@ export class ProfessionalUnavailabilityRepository {
   ): Promise<ProfessionalUnavailability | null> {
     return this.ormRepository
       .createQueryBuilder('unavailability')
-      .where(
-        'unavailability.professional_id = :professionalId',
-        { professionalId },
-      )
-      .andWhere(
-        'unavailability.start_date <= :endDate',
-        { endDate },
-      )
-      .andWhere(
-        'unavailability.end_date >= :startDate',
-        { startDate },
-      )
+      .where('unavailability.professional_id = :professionalId', {
+        professionalId,
+      })
+      .andWhere('unavailability.start_date <= :endDate', { endDate })
+      .andWhere('unavailability.end_date >= :startDate', { startDate })
       .getOne();
   }
 
@@ -66,19 +56,16 @@ export class ProfessionalUnavailabilityRepository {
     professionalId: string,
     data: CreateProfessionalUnavailabilityDto,
   ): Promise<ProfessionalUnavailability> {
-    const unavailability =
-      this.ormRepository.create({
-        startDate: data.startDate,
-        endDate: data.endDate,
-        reason: data.reason?.trim() || null,
-        professional: {
-          id: professionalId,
-        } as Professional,
-      });
+    const unavailability = this.ormRepository.create({
+      startDate: data.startDate,
+      endDate: data.endDate,
+      reason: data.reason?.trim() || null,
+      professional: {
+        id: professionalId,
+      } as Professional,
+    });
 
-    return this.ormRepository.save(
-      unavailability,
-    );
+    return this.ormRepository.save(unavailability);
   }
 
   async delete(id: string): Promise<void> {

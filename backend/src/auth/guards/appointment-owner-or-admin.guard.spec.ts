@@ -18,9 +18,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
       findOne: jest.fn(),
     } as unknown as jest.Mocked<Repository<Appointment>>;
 
-    guard = new AppointmentOwnerOrAdminGuard(
-      appointmentsRepository,
-    );
+    guard = new AppointmentOwnerOrAdminGuard(appointmentsRepository);
   });
 
   afterEach(() => {
@@ -57,9 +55,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).not.toHaveBeenCalled();
+      expect(appointmentsRepository.findOne).not.toHaveBeenCalled();
     });
 
     it('should allow the owner of the appointment', async () => {
@@ -77,20 +73,13 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      const context = createExecutionContext(
-        user,
-        'appointment-1',
-      );
+      const context = createExecutionContext(user, 'appointment-1');
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.findOne).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledWith({
+      expect(appointmentsRepository.findOne).toHaveBeenCalledWith({
         where: {
           id: 'appointment-1',
         },
@@ -115,22 +104,13 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      const context = createExecutionContext(
-        user,
-        'appointment-1',
+      const context = createExecutionContext(user, 'appointment-1');
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        new ForbiddenException('No tienes permiso para acceder a este turno'),
       );
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(
-        new ForbiddenException(
-          'No tienes permiso para acceder a este turno',
-        ),
-      );
-
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledTimes(1);
+      expect(appointmentsRepository.findOne).toHaveBeenCalledTimes(1);
     });
 
     it('should throw NotFoundException when the appointment does not exist', async () => {
@@ -141,20 +121,13 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       appointmentsRepository.findOne.mockResolvedValue(null);
 
-      const context = createExecutionContext(
-        user,
-        'appointment-1',
-      );
+      const context = createExecutionContext(user, 'appointment-1');
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(
+      await expect(guard.canActivate(context)).rejects.toThrow(
         new NotFoundException('Turno no encontrado'),
       );
 
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledWith({
+      expect(appointmentsRepository.findOne).toHaveBeenCalledWith({
         where: {
           id: 'appointment-1',
         },
@@ -179,16 +152,11 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      const context = createExecutionContext(
-        user,
-        'appointment-123',
-      );
+      const context = createExecutionContext(user, 'appointment-123');
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
 
-      expect(
-        appointmentsRepository.findOne,
-      ).toHaveBeenCalledWith({
+      expect(appointmentsRepository.findOne).toHaveBeenCalledWith({
         where: {
           id: 'appointment-123',
         },
@@ -213,10 +181,7 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      const context = createExecutionContext(
-        user,
-        'appointment-1',
-      );
+      const context = createExecutionContext(user, 'appointment-1');
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
     });
@@ -236,14 +201,11 @@ describe('AppointmentOwnerOrAdminGuard', () => {
 
       appointmentsRepository.findOne.mockResolvedValue(appointment);
 
-      const context = createExecutionContext(
-        user,
-        'appointment-1',
-      );
+      const context = createExecutionContext(user, 'appointment-1');
 
-      await expect(
-        guard.canActivate(context),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

@@ -9,9 +9,6 @@ import {
 } from 'class-validator';
 import { MatchPassword } from '../../decorators/matchPassword.decorator';
 
-// DTO creado para gestionar el cambio de contraseña de forma independiente.
-// Permite validar la fortaleza de la nueva contraseña y confirmar que coincida con confirmPassword.
-// comentado por: Jose-dev
 export class ChangePasswordDto {
   @ApiProperty({
     description: 'Nueva contraseña del usuario',

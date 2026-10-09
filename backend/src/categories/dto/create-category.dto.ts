@@ -13,7 +13,8 @@ export class CreateCategoryDto {
   name!: string;
 
   @ApiPropertyOptional({
-    description: 'Nombre o identificador del icono representativo para la interfaz (ej. nombre de FontAwesome o Lucide)',
+    description:
+      'Nombre o identificador del icono representativo para la interfaz (ej. nombre de FontAwesome o Lucide)',
     maxLength: 20,
     example: 'scissors',
   })

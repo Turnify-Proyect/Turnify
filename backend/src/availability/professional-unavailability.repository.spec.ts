@@ -106,8 +106,7 @@ describe('ProfessionalUnavailabilityRepository', () => {
 
       ormRepository.find.mockResolvedValue(unavailabilities);
 
-      const result =
-        await repository.getByProfessionalId('professional-id');
+      const result = await repository.getByProfessionalId('professional-id');
 
       expect(ormRepository.find).toHaveBeenCalledWith({
         where: {
@@ -126,8 +125,7 @@ describe('ProfessionalUnavailabilityRepository', () => {
     it('should return an empty array when the professional has no unavailabilities', async () => {
       ormRepository.find.mockResolvedValue([]);
 
-      const result =
-        await repository.getByProfessionalId('professional-id');
+      const result = await repository.getByProfessionalId('professional-id');
 
       expect(result).toEqual([]);
     });
@@ -283,10 +281,7 @@ describe('ProfessionalUnavailabilityRepository', () => {
       ormRepository.create.mockReturnValue(entity);
       ormRepository.save.mockResolvedValue(entity);
 
-      const result = await repository.create(
-        'professional-id',
-        data,
-      );
+      const result = await repository.create('professional-id', data);
 
       expect(ormRepository.create).toHaveBeenCalledWith({
         startDate: '2026-10-10',
@@ -392,9 +387,9 @@ describe('ProfessionalUnavailabilityRepository', () => {
         throw error;
       });
 
-      await expect(
-        repository.create('professional-id', data),
-      ).rejects.toThrow(error);
+      await expect(repository.create('professional-id', data)).rejects.toThrow(
+        error,
+      );
     });
 
     it('should propagate errors when saving the entity', async () => {
@@ -413,9 +408,9 @@ describe('ProfessionalUnavailabilityRepository', () => {
       ormRepository.create.mockReturnValue(entity);
       ormRepository.save.mockRejectedValue(error);
 
-      await expect(
-        repository.create('professional-id', data),
-      ).rejects.toThrow(error);
+      await expect(repository.create('professional-id', data)).rejects.toThrow(
+        error,
+      );
     });
   });
 
@@ -427,9 +422,7 @@ describe('ProfessionalUnavailabilityRepository', () => {
 
       await repository.delete('unavailability-id');
 
-      expect(ormRepository.delete).toHaveBeenCalledWith(
-        'unavailability-id',
-      );
+      expect(ormRepository.delete).toHaveBeenCalledWith('unavailability-id');
     });
 
     it('should propagate repository errors', async () => {
@@ -437,9 +430,9 @@ describe('ProfessionalUnavailabilityRepository', () => {
 
       ormRepository.delete.mockRejectedValue(error);
 
-      await expect(
-        repository.delete('unavailability-id'),
-      ).rejects.toThrow(error);
+      await expect(repository.delete('unavailability-id')).rejects.toThrow(
+        error,
+      );
     });
   });
 });

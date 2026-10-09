@@ -17,20 +17,6 @@ export class UsersRepository {
     private readonly ormUsersRepository: Repository<User>,
   ) {}
 
-  //async getAllUsers(
-  //  page: number,
-  //  limit: number,
-  //): Promise<Omit<User, 'password_hash'>[]> {
-  //  const skip = (page - 1) * limit;
-  //  const allUsers = await this.ormUsersRepository.find({
-  //    skip: skip,
-  //    take: limit,
-  //  });
-  //  return allUsers.map(
-  //    ({ password_hash, ...userNoPassword_hash }) => userNoPassword_hash,
-  //  );
-  //}
-
   async getAllUsers(
     page: number,
     limit: number,
@@ -88,17 +74,6 @@ export class UsersRepository {
     };
   }
 
-  //async getUserById(id: string): Promise<Omit<User, 'password_hash' | 'role'>> {
-  //  const foundUser = await this.ormUsersRepository.findOne({
-  //    where: { id },
-  //  });
-  //
-  //  if (!foundUser)
-  //    throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
-  //  const { password_hash, role, ...filteredUser } = foundUser;
-  //  return filteredUser;
-  //}
-
   async getUserById(id: string): Promise<Omit<User, 'password_hash'>> {
     const foundUser = await this.ormUsersRepository.findOne({
       where: { id },
@@ -117,30 +92,10 @@ export class UsersRepository {
     return await this.ormUsersRepository.findOneBy({ email });
   }
 
-  //agregue la funcion edbuscar un usuari por su telefono para poder utilizarla en AuthService.signUp
   async getUserByPhone(phone: string): Promise<User | null> {
     return this.ormUsersRepository.findOneBy({ phone });
   }
-  //está funcion la cree, sirve, pero la cambié por una mas limpia, ya que por un minimo momento hay una constante password que en realiad es una password_hash
-  // async createUser(
-  //   createUserDto: Omit<CreateUserDto, 'confirmPassword'>,
-  // ): Promise<Omit<User, 'password_hash' | 'role'>> {
-  //   const { password: password_hash, ...users } = createUserDto;
-  //   const user = { ...users, password_hash };
-  //   const newUser = this.ormUsersRepository.create(user);
-  //   await this.ormUsersRepository.save(newUser);
-  //   const { password_hash: _, role, ...filteredUser } = newUser;
-  //   return filteredUser;
-  // }
 
-  // Omiti 'confirmPassword' del CreateUserDto ya que no tiene que llegar al repositorio como informacion
-  //coemntado por:Lautaro-dev
-
-  // Ahora recibe los datos internos ya procesados por el backend para crear un usuario.
-  // No utiliza CreateUserDto porque ese DTO representa los datos permitidos
-  // desde una petición HTTP, mientras que CreateUserData también puede contener
-  // información interna como authProvider, providerId y password_hash.
-  // comentado por: Lautaro-dev
   async createUser(
     createUserData: CreateUserData,
   ): Promise<Omit<User, 'password_hash'>> {
@@ -192,9 +147,6 @@ export class UsersRepository {
     return filteredUser;
   }
 
-  // Función para actualizar la contraseña encriptada del usuario en la base de datos.
-  // Recibe la contraseña ya cifrada con bcrypt
-  // comentado por: Jose-dev
   async updatePassword(id: string, hashedPassword: string): Promise<string> {
     const userToUpdate = await this.ormUsersRepository.findOneBy({ id });
 
@@ -207,15 +159,6 @@ export class UsersRepository {
 
     return 'Contraseña actualizada correctamente';
   }
-
-  //async removeUser(id: string): Promise<string> {
-  //  const userToRemove = await this.ormUsersRepository.findOneBy({ id });
-  //  if (!userToRemove) {
-  //    throw new NotFoundException(`No se encontro el usuario con el id ${id}`);
-  //  }
-  //  await this.ormUsersRepository.remove(userToRemove);
-  //  return `Usuario con id ${id} eliminado correctamente`;
-  //}
 
   async removeUser(id: string): Promise<{ message: string }> {
     const userToRemove = await this.ormUsersRepository.findOneBy({ id });
@@ -256,8 +199,6 @@ export class UsersRepository {
       message: 'Usuario activado correctamente',
     };
   }
-
-  //ADMIN: modificar rol de usuario existente
 
   async updateUserRoles(
     id: string,

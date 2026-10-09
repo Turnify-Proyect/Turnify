@@ -1,7 +1,4 @@
-import {
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 import { RolesGuard } from './roles.guard';
@@ -49,41 +46,31 @@ describe('RolesGuard', () => {
     });
 
     it('should throw when there is no authenticated user', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: undefined,
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
+      expect(() => guard.canActivate(createContext(request))).toThrow(
         new ForbiddenException('Usuario no autenticado'),
       );
     });
 
     it('should throw when the user has no roles', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: {},
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
+      expect(() => guard.canActivate(createContext(request))).toThrow(
         new ForbiddenException('El usuario no tiene roles'),
       );
     });
 
     it('should throw when user roles are not an array', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: {
@@ -91,17 +78,13 @@ describe('RolesGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
+      expect(() => guard.canActivate(createContext(request))).toThrow(
         new ForbiddenException('El usuario no tiene roles'),
       );
     });
 
     it('should allow access when the user has the required role', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: {
@@ -132,9 +115,7 @@ describe('RolesGuard', () => {
     });
 
     it('should throw when the user does not have any required role', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: {
@@ -142,19 +123,13 @@ describe('RolesGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
-        new ForbiddenException(
-          'Sin permiso para acceder al recurso',
-        ),
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new ForbiddenException('Sin permiso para acceder al recurso'),
       );
     });
 
     it('should throw when the user has an empty roles array', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: {
@@ -162,19 +137,13 @@ describe('RolesGuard', () => {
         },
       };
 
-      expect(() =>
-        guard.canActivate(createContext(request)),
-      ).toThrow(
-        new ForbiddenException(
-          'Sin permiso para acceder al recurso',
-        ),
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        new ForbiddenException('Sin permiso para acceder al recurso'),
       );
     });
 
     it('should check handler and class metadata', () => {
-      reflector.getAllAndOverride.mockReturnValue([
-        UserRole.ADMIN,
-      ]);
+      reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
       const request = {
         user: {
@@ -186,10 +155,10 @@ describe('RolesGuard', () => {
 
       guard.canActivate(context);
 
-      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
-        'roles',
-        ['handler', 'class'],
-      );
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith('roles', [
+        'handler',
+        'class',
+      ]);
     });
   });
 });

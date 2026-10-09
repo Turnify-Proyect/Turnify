@@ -70,8 +70,7 @@ describe('NotificationsService', () => {
         startAt,
       );
 
-      const call =
-        mailService.sendMailWithTemplate.mock.calls[0];
+      const call = mailService.sendMailWithTemplate.mock.calls[0];
 
       expect(call[3]).toEqual({
         userName: 'Juan',
@@ -215,8 +214,6 @@ describe('NotificationsService', () => {
 
       const html = mailService.sendMail.mock.calls[0][2];
 
-      // Se quitan las etiquetas y se normalizan los espacios para que el
-      // test no dependa del formato del HTML.
       const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
       expect(text).toContain('Seña abonada: $5000');
@@ -226,13 +223,7 @@ describe('NotificationsService', () => {
     it('should send an email even when there are no appointments', async () => {
       mailService.sendMail.mockResolvedValue(undefined);
 
-      await service.sendOrderConfirmed(
-        'cliente@test.com',
-        'Juan',
-        [],
-        0,
-        0,
-      );
+      await service.sendOrderConfirmed('cliente@test.com', 'Juan', [], 0, 0);
 
       expect(mailService.sendMail).toHaveBeenCalledWith(
         'cliente@test.com',
@@ -247,13 +238,7 @@ describe('NotificationsService', () => {
       mailService.sendMail.mockRejectedValue(error);
 
       await expect(
-        service.sendOrderConfirmed(
-          'cliente@test.com',
-          'Juan',
-          [],
-          5000,
-          10000,
-        ),
+        service.sendOrderConfirmed('cliente@test.com', 'Juan', [], 5000, 10000),
       ).rejects.toThrow('Mail service error');
     });
   });

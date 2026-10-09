@@ -12,8 +12,9 @@ export class CreateAvailabilityDto {
   @IsNotEmpty()
   dayOfWeek!: DayOfWeek;
 
-   @ApiProperty({
-    description: 'Hora de inicio del bloque de atención en formato de 24 horas (HH:mm)',
+  @ApiProperty({
+    description:
+      'Hora de inicio del bloque de atención en formato de 24 horas (HH:mm)',
     pattern: '^([01]\\d|2[0-3]):([0-5]\\d)$',
     example: '09:00',
   })
