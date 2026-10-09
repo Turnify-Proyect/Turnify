@@ -574,7 +574,7 @@ export class AppointmentsRepository {
         },
       },
       order: {
-        startAt: 'ASC',
+        createdAt: 'DESC',
       },
     });
   }
@@ -647,7 +647,7 @@ export class AppointmentsRepository {
         },
       },
       order: {
-        startAt: 'ASC',
+        createdAt: 'DESC',
       },
     });
   }
@@ -688,7 +688,7 @@ export class AppointmentsRepository {
         },
       },
       order: {
-        startAt: 'ASC',
+        createdAt: 'DESC',
       },
     });
   }
