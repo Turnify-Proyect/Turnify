@@ -3,7 +3,7 @@
 jest.mock('@nestjs/schedule', () => ({
   Cron: () => () => undefined,
   CronExpression: {
-    EVERY_DAY_AT_8AM: '0 8 * * *',
+    EVERY_MINUTE: '* * * * *',
   },
 }));
 
@@ -16,7 +16,6 @@ import {
   AppointmentStatus,
 } from './entities/appointment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import { APP_TIMEZONE } from '../common/timezone';
 
 describe('AppointmentCronService', () => {
   let service: AppointmentCronService;
@@ -26,6 +25,7 @@ describe('AppointmentCronService', () => {
   beforeEach(() => {
     appointmentRepository = {
       find: jest.fn(),
+      save: jest.fn().mockImplementation(async (appointment) => appointment),
     } as unknown as jest.Mocked<Repository<Appointment>>;
 
     notificationsService = {
@@ -119,9 +119,14 @@ describe('AppointmentCronService', () => {
         'Dra. Rodríguez',
         startAt,
       );
+
+      expect(appointments.every((appointment) => appointment.reminderSent)).toBe(
+        true,
+      );
+      expect(appointmentRepository.save).toHaveBeenCalledTimes(2);
     });
 
-    it('should query confirmed appointments for tomorrow with the configured timezone', async () => {
+    it('should query unreminded confirmed appointments in the next 24 hours', async () => {
       appointmentRepository.find.mockResolvedValue([]);
 
       await service.sendDailyAppointmentReminders();
@@ -136,17 +141,21 @@ describe('AppointmentCronService', () => {
       const startAtCondition = findOptions?.where?.startAt;
 
       expect(startAtCondition).toBeDefined();
-
-      expect(startAtCondition.objectLiteralParameters).toEqual(
-        expect.objectContaining({
-          timeZone: APP_TIMEZONE,
-          tomorrowDate: expect.any(String),
-        }),
-      );
+      expect(startAtCondition.type).toBe('and');
+      expect(startAtCondition.value).toHaveLength(2);
+      expect(startAtCondition.value[0].type).toBe('moreThan');
+      expect(startAtCondition.value[1].type).toBe('lessThanOrEqual');
+      expect(startAtCondition.value[0].value).toBeInstanceOf(Date);
+      expect(startAtCondition.value[1].value).toBeInstanceOf(Date);
+      expect(
+        startAtCondition.value[1].value.getTime() -
+          startAtCondition.value[0].value.getTime(),
+      ).toBe(24 * 60 * 60 * 1000);
 
       expect(findOptions?.where?.status).toBe(
         AppointmentStatus.CONFIRMED,
       );
+      expect(findOptions?.where?.reminderSent).toBe(false);
     });
 
     it('should not send reminders when there are no appointments', async () => {
@@ -558,7 +567,7 @@ describe('AppointmentCronService', () => {
       await service.sendDailyAppointmentReminders();
 
       expect(logSpy).toHaveBeenCalledWith(
-        'No se encontraron turnos confirmados para el día de mañana.',
+        'No hay turnos pendientes de recordatorio en las próximas 24 horas.',
       );
     });
 
@@ -609,7 +618,7 @@ describe('AppointmentCronService', () => {
       await service.sendDailyAppointmentReminders();
 
       expect(errorSpy).toHaveBeenCalledWith(
-        'Error enviando correo para la cita ID appointment-1: SMTP failed',
+        'No se pudo procesar el recordatorio del turno appointment-1: SMTP failed',
       );
     });
 
@@ -621,7 +630,7 @@ describe('AppointmentCronService', () => {
       await service.sendDailyAppointmentReminders();
 
       expect(errorSpy).toHaveBeenCalledWith(
-        'Error general en el Cron de recordatorios:',
+        'Error general en el cron de recordatorios:',
         repositoryError.stack,
       );
     });
@@ -632,7 +641,7 @@ describe('AppointmentCronService', () => {
       await service.sendDailyAppointmentReminders();
 
       expect(errorSpy).toHaveBeenCalledWith(
-        'Error general en el Cron de recordatorios:',
+        'Error general en el cron de recordatorios:',
         'Database unavailable',
       );
     });

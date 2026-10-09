@@ -891,6 +891,7 @@ export class AppointmentsRepository {
     appointment.startAt = newStartAt;
     appointment.endAt = newEndAt;
     appointment.rescheduleCount += 1;
+    appointment.reminderSent = false;
 
     // Si el turno estaba pendiente, se reinicia el tiempo de expiración.
     if (appointment.status === AppointmentStatus.PENDING) {

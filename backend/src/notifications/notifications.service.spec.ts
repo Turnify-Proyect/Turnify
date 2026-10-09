@@ -51,6 +51,7 @@ describe('NotificationsService', () => {
           userName: 'Juan',
           serviceName: 'Corte de cabello',
           professionalName: 'Carlos',
+          date: '15/10/2026',
           time: expect.any(String),
         },
       );
@@ -76,6 +77,7 @@ describe('NotificationsService', () => {
         userName: 'Juan',
         serviceName: 'Corte de cabello',
         professionalName: 'Carlos',
+        date: '15/10/2026',
         time: expect.any(String),
       });
 
