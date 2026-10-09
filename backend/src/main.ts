@@ -12,10 +12,6 @@ async function bootstrap() {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   app.enableCors({
-    // El origen permitido se obtiene desde las variables de entorno.
-    // En desarrollo será localhost y en producción será la URL
-    // del frontend desplegado.
-    // comentado por: Lautaro-dev
     origin: frontendUrl,
     credentials: true,
   });
@@ -45,9 +41,6 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, documentFactory());
 
-  // Render necesita que el servidor pueda escuchar conexiones externas.
-  // El puerto es proporcionado automáticamente por Render.
-  // comentado por: Lautaro-dev
   await app.listen(port, host);
 
   console.log(`Server is running on ${host}:${port}`);

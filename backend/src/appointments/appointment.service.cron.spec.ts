@@ -1,169 +1,98 @@
+// src/appointments/appointment.service.cron.spec.ts
+
 jest.mock('@nestjs/schedule', () => ({
-  Cron: jest.fn(() => () => {}),
+  Cron: () => () => undefined,
   CronExpression: {
     EVERY_DAY_AT_8AM: '0 8 * * *',
   },
 }));
 
-import { AppointmentCronService } from './appointment.service.cron';
-import { AppointmentStatus } from './entities/appointment.entity';
-import { NotificationsService } from '../notifications/notifications.service';
+import { Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
+
+import { AppointmentCronService } from './appointment.service.cron';
+import {
+  Appointment,
+  AppointmentStatus,
+} from './entities/appointment.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { APP_TIMEZONE } from '../common/timezone';
 
 describe('AppointmentCronService', () => {
   let service: AppointmentCronService;
-
-  let appointmentRepository: {
-    find: jest.Mock;
-  };
-
-  let notificationsService: {
-    sendAppointmentReminder: jest.Mock;
-  };
+  let appointmentRepository: jest.Mocked<Repository<Appointment>>;
+  let notificationsService: jest.Mocked<NotificationsService>;
 
   beforeEach(() => {
     appointmentRepository = {
       find: jest.fn(),
-    };
+    } as unknown as jest.Mocked<Repository<Appointment>>;
 
     notificationsService = {
       sendAppointmentReminder: jest.fn(),
-    };
+    } as unknown as jest.Mocked<NotificationsService>;
 
     service = new AppointmentCronService(
-      appointmentRepository as unknown as Repository<any>,
-      notificationsService as unknown as NotificationsService,
+      appointmentRepository,
+      notificationsService,
     );
-
-    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('sendDailyAppointmentReminders', () => {
-    it('debería buscar los turnos confirmados correspondientes a mañana', async () => {
-      appointmentRepository.find.mockResolvedValue([]);
+    it('should send reminders for all confirmed appointments with valid emails', async () => {
+      const startAt = new Date('2026-10-08T10:00:00.000Z');
+
+      const appointments = [
+        {
+          id: 'appointment-1',
+          startAt,
+          user: {
+            email: 'juan@example.com',
+            name: 'Juan Pérez',
+          },
+          professional: {
+            user: {
+              name: 'Dr. García',
+            },
+          },
+          service: {
+            name: 'Consulta médica',
+          },
+          status: AppointmentStatus.CONFIRMED,
+        },
+        {
+          id: 'appointment-2',
+          startAt,
+          user: {
+            email: 'maria@example.com',
+            name: 'María López',
+          },
+          professional: {
+            user: {
+              name: 'Dra. Rodríguez',
+            },
+          },
+          service: {
+            name: 'Control general',
+          },
+          status: AppointmentStatus.CONFIRMED,
+        },
+      ] as unknown as Appointment[];
+
+      appointmentRepository.find.mockResolvedValue(appointments);
+
+      notificationsService.sendAppointmentReminder.mockResolvedValue(
+        undefined,
+      );
 
       await service.sendDailyAppointmentReminders();
 
       expect(appointmentRepository.find).toHaveBeenCalledTimes(1);
-
-      const [query] = appointmentRepository.find.mock.calls[0];
-
-      expect(query).toEqual(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            status: AppointmentStatus.CONFIRMED,
-          }),
-          relations: [
-            'user',
-            'professional',
-            'professional.user',
-            'service',
-          ],
-        }),
-      );
-
-      expect(query.where.startAt).toBeDefined();
-    });
-
-    it('no debería enviar notificaciones si no existen turnos', async () => {
-      appointmentRepository.find.mockResolvedValue([]);
-
-      await service.sendDailyAppointmentReminders();
-
-      expect(appointmentRepository.find).toHaveBeenCalledTimes(1);
-
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('debería enviar un recordatorio para un turno válido', async () => {
-      const startAt = new Date('2026-10-02T10:00:00.000Z');
-
-      const appointment = {
-        id: 1,
-        startAt,
-        user: {
-          email: 'cliente@test.com',
-          name: 'Juan Pérez',
-        },
-        professional: {
-          user: {
-            name: 'Dr. García',
-          },
-        },
-        service: {
-          name: 'Consulta médica',
-        },
-      };
-
-      appointmentRepository.find.mockResolvedValue([appointment]);
-      notificationsService.sendAppointmentReminder.mockResolvedValue(undefined);
-
-      await service.sendDailyAppointmentReminders();
-
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledTimes(1);
-
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
-        'cliente@test.com',
-        'Juan Pérez',
-        'Consulta médica',
-        'Dr. García',
-        startAt,
-      );
-    });
-
-    it('debería enviar recordatorios para todos los turnos válidos', async () => {
-      const appointment1 = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
-        user: {
-          email: 'cliente1@test.com',
-          name: 'Juan',
-        },
-        professional: {
-          user: {
-            name: 'Dr. García',
-          },
-        },
-        service: {
-          name: 'Consulta',
-        },
-      };
-
-      const appointment2 = {
-        id: 2,
-        startAt: new Date('2026-10-02T11:00:00.000Z'),
-        user: {
-          email: 'cliente2@test.com',
-          name: 'Pedro',
-        },
-        professional: {
-          user: {
-            name: 'Dra. López',
-          },
-        },
-        service: {
-          name: 'Control',
-        },
-      };
-
-      appointmentRepository.find.mockResolvedValue([
-        appointment1,
-        appointment2,
-      ]);
-
-      notificationsService.sendAppointmentReminder.mockResolvedValue(undefined);
-
-      await service.sendDailyAppointmentReminders();
 
       expect(
         notificationsService.sendAppointmentReminder,
@@ -173,30 +102,70 @@ describe('AppointmentCronService', () => {
         notificationsService.sendAppointmentReminder,
       ).toHaveBeenNthCalledWith(
         1,
-        'cliente1@test.com',
-        'Juan',
-        'Consulta',
+        'juan@example.com',
+        'Juan Pérez',
+        'Consulta médica',
         'Dr. García',
-        appointment1.startAt,
+        startAt,
       );
 
       expect(
         notificationsService.sendAppointmentReminder,
       ).toHaveBeenNthCalledWith(
         2,
-        'cliente2@test.com',
-        'Pedro',
-        'Control',
-        'Dra. López',
-        appointment2.startAt,
+        'maria@example.com',
+        'María López',
+        'Control general',
+        'Dra. Rodríguez',
+        startAt,
       );
     });
 
-    it('debería saltear un turno que no tenga usuario', async () => {
+    it('should query confirmed appointments for tomorrow with the configured timezone', async () => {
+      appointmentRepository.find.mockResolvedValue([]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(appointmentRepository.find).toHaveBeenCalledTimes(1);
+
+      const findOptions = appointmentRepository.find.mock.calls[0][0];
+
+      expect(findOptions).toBeDefined();
+      expect(findOptions?.where).toBeDefined();
+
+      const startAtCondition = findOptions?.where?.startAt;
+
+      expect(startAtCondition).toBeDefined();
+
+      expect(startAtCondition.objectLiteralParameters).toEqual(
+        expect.objectContaining({
+          timeZone: APP_TIMEZONE,
+          tomorrowDate: expect.any(String),
+        }),
+      );
+
+      expect(findOptions?.where?.status).toBe(
+        AppointmentStatus.CONFIRMED,
+      );
+    });
+
+    it('should not send reminders when there are no appointments', async () => {
+      appointmentRepository.find.mockResolvedValue([]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(appointmentRepository.find).toHaveBeenCalledTimes(1);
+
+      expect(
+        notificationsService.sendAppointmentReminder,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should skip an appointment when the user does not exist', async () => {
       const appointment = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
-        user: null,
+        id: 'appointment-1',
+        startAt: new Date('2026-10-08T10:00:00.000Z'),
+        user: undefined,
         professional: {
           user: {
             name: 'Dr. García',
@@ -205,7 +174,8 @@ describe('AppointmentCronService', () => {
         service: {
           name: 'Consulta',
         },
-      };
+        status: AppointmentStatus.CONFIRMED,
+      } as unknown as Appointment;
 
       appointmentRepository.find.mockResolvedValue([appointment]);
 
@@ -216,12 +186,78 @@ describe('AppointmentCronService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('debería saltear un turno que no tenga email', async () => {
+    it('should skip an appointment when the user email is missing', async () => {
       const appointment = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
+        id: 'appointment-1',
+        startAt: new Date('2026-10-08T10:00:00.000Z'),
         user: {
-          email: null,
+          name: 'Juan Pérez',
+          email: undefined,
+        },
+        professional: {
+          user: {
+            name: 'Dr. García',
+          },
+        },
+        service: {
+          name: 'Consulta',
+        },
+        status: AppointmentStatus.CONFIRMED,
+      } as unknown as Appointment;
+
+      appointmentRepository.find.mockResolvedValue([appointment]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(
+        notificationsService.sendAppointmentReminder,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should use "Cliente" when the user name is missing', async () => {
+      const startAt = new Date('2026-10-08T10:00:00.000Z');
+
+      const appointment = {
+        id: 'appointment-1',
+        startAt,
+        user: {
+          email: 'juan@example.com',
+          name: undefined,
+        },
+        professional: {
+          user: {
+            name: 'Dr. García',
+          },
+        },
+        service: {
+          name: 'Consulta',
+        },
+        status: AppointmentStatus.CONFIRMED,
+      } as unknown as Appointment;
+
+      appointmentRepository.find.mockResolvedValue([appointment]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(
+        notificationsService.sendAppointmentReminder,
+      ).toHaveBeenCalledWith(
+        'juan@example.com',
+        'Cliente',
+        'Consulta',
+        'Dr. García',
+        startAt,
+      );
+    });
+
+    it('should use "No especificado" when the service is missing', async () => {
+      const startAt = new Date('2026-10-08T10:00:00.000Z');
+
+      const appointment = {
+        id: 'appointment-1',
+        startAt,
+        user: {
+          email: 'juan@example.com',
           name: 'Juan Pérez',
         },
         professional: {
@@ -229,37 +265,9 @@ describe('AppointmentCronService', () => {
             name: 'Dr. García',
           },
         },
-        service: {
-          name: 'Consulta',
-        },
-      };
-
-      appointmentRepository.find.mockResolvedValue([appointment]);
-
-      await service.sendDailyAppointmentReminders();
-
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('debería usar "Cliente" cuando el usuario no tenga nombre', async () => {
-      const appointment = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
-        user: {
-          email: 'cliente@test.com',
-          name: '',
-        },
-        professional: {
-          user: {
-            name: 'Dr. García',
-          },
-        },
-        service: {
-          name: 'Consulta',
-        },
-      };
+        service: undefined,
+        status: AppointmentStatus.CONFIRMED,
+      } as unknown as Appointment;
 
       appointmentRepository.find.mockResolvedValue([appointment]);
 
@@ -268,58 +276,30 @@ describe('AppointmentCronService', () => {
       expect(
         notificationsService.sendAppointmentReminder,
       ).toHaveBeenCalledWith(
-        'cliente@test.com',
-        'Cliente',
-        'Consulta',
-        'Dr. García',
-        appointment.startAt,
-      );
-    });
-
-    it('debería usar "No especificado" cuando falte el servicio', async () => {
-      const appointment = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
-        user: {
-          email: 'cliente@test.com',
-          name: 'Juan',
-        },
-        professional: {
-          user: {
-            name: 'Dr. García',
-          },
-        },
-        service: null,
-      };
-
-      appointmentRepository.find.mockResolvedValue([appointment]);
-
-      await service.sendDailyAppointmentReminders();
-
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledWith(
-        'cliente@test.com',
-        'Juan',
+        'juan@example.com',
+        'Juan Pérez',
         'No especificado',
         'Dr. García',
-        appointment.startAt,
+        startAt,
       );
     });
 
-    it('debería usar "No especificado" cuando falte el profesional', async () => {
+    it('should use "No especificado" when the professional is missing', async () => {
+      const startAt = new Date('2026-10-08T10:00:00.000Z');
+
       const appointment = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
+        id: 'appointment-1',
+        startAt,
         user: {
-          email: 'cliente@test.com',
-          name: 'Juan',
+          email: 'juan@example.com',
+          name: 'Juan Pérez',
         },
-        professional: null,
+        professional: undefined,
         service: {
           name: 'Consulta',
         },
-      };
+        status: AppointmentStatus.CONFIRMED,
+      } as unknown as Appointment;
 
       appointmentRepository.find.mockResolvedValue([appointment]);
 
@@ -328,56 +308,91 @@ describe('AppointmentCronService', () => {
       expect(
         notificationsService.sendAppointmentReminder,
       ).toHaveBeenCalledWith(
-        'cliente@test.com',
-        'Juan',
+        'juan@example.com',
+        'Juan Pérez',
         'Consulta',
         'No especificado',
-        appointment.startAt,
+        startAt,
       );
     });
 
-    it('debería continuar procesando los demás turnos si falla el envío de un email', async () => {
-      const appointment1 = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
+    it('should use "No especificado" when professional user is missing', async () => {
+      const startAt = new Date('2026-10-08T10:00:00.000Z');
+
+      const appointment = {
+        id: 'appointment-1',
+        startAt,
         user: {
-          email: 'error@test.com',
-          name: 'Juan',
+          email: 'juan@example.com',
+          name: 'Juan Pérez',
         },
         professional: {
-          user: {
-            name: 'Dr. García',
-          },
+          user: undefined,
         },
         service: {
           name: 'Consulta',
         },
-      };
+        status: AppointmentStatus.CONFIRMED,
+      } as unknown as Appointment;
 
-      const appointment2 = {
-        id: 2,
-        startAt: new Date('2026-10-02T11:00:00.000Z'),
-        user: {
-          email: 'success@test.com',
-          name: 'Pedro',
-        },
-        professional: {
+      appointmentRepository.find.mockResolvedValue([appointment]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(
+        notificationsService.sendAppointmentReminder,
+      ).toHaveBeenCalledWith(
+        'juan@example.com',
+        'Juan Pérez',
+        'Consulta',
+        'No especificado',
+        startAt,
+      );
+    });
+
+    it('should continue processing other appointments when one notification fails', async () => {
+      const firstStartAt = new Date('2026-10-08T10:00:00.000Z');
+      const secondStartAt = new Date('2026-10-08T11:00:00.000Z');
+
+      const appointments = [
+        {
+          id: 'appointment-1',
+          startAt: firstStartAt,
           user: {
-            name: 'Dra. López',
+            email: 'juan@example.com',
+            name: 'Juan Pérez',
+          },
+          professional: {
+            user: {
+              name: 'Dr. García',
+            },
+          },
+          service: {
+            name: 'Consulta',
           },
         },
-        service: {
-          name: 'Control',
+        {
+          id: 'appointment-2',
+          startAt: secondStartAt,
+          user: {
+            email: 'maria@example.com',
+            name: 'María López',
+          },
+          professional: {
+            user: {
+              name: 'Dra. Rodríguez',
+            },
+          },
+          service: {
+            name: 'Control',
+          },
         },
-      };
+      ] as unknown as Appointment[];
 
-      appointmentRepository.find.mockResolvedValue([
-        appointment1,
-        appointment2,
-      ]);
+      appointmentRepository.find.mockResolvedValue(appointments);
 
       notificationsService.sendAppointmentReminder
-        .mockRejectedValueOnce(new Error('Error enviando email'))
+        .mockRejectedValueOnce(new Error('SMTP connection failed'))
         .mockResolvedValueOnce(undefined);
 
       await service.sendDailyAppointmentReminders();
@@ -389,28 +404,50 @@ describe('AppointmentCronService', () => {
       expect(
         notificationsService.sendAppointmentReminder,
       ).toHaveBeenNthCalledWith(
-        1,
-        'error@test.com',
-        'Juan',
-        'Consulta',
-        'Dr. García',
-        appointment1.startAt,
-      );
-
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenNthCalledWith(
         2,
-        'success@test.com',
-        'Pedro',
+        'maria@example.com',
+        'María López',
         'Control',
-        'Dra. López',
-        appointment2.startAt,
+        'Dra. Rodríguez',
+        secondStartAt,
       );
     });
 
-    it('debería manejar errores del repositorio sin lanzar la excepción', async () => {
-      const repositoryError = new Error('Database connection error');
+    it('should handle non-Error values thrown by the notification service', async () => {
+      const appointment = {
+        id: 'appointment-1',
+        startAt: new Date('2026-10-08T10:00:00.000Z'),
+        user: {
+          email: 'juan@example.com',
+          name: 'Juan Pérez',
+        },
+        professional: {
+          user: {
+            name: 'Dr. García',
+          },
+        },
+        service: {
+          name: 'Consulta',
+        },
+      } as unknown as Appointment;
+
+      appointmentRepository.find.mockResolvedValue([appointment]);
+
+      notificationsService.sendAppointmentReminder.mockRejectedValue(
+        'SMTP error',
+      );
+
+      await expect(
+        service.sendDailyAppointmentReminders(),
+      ).resolves.toBeUndefined();
+
+      expect(
+        notificationsService.sendAppointmentReminder,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle repository errors without throwing', async () => {
+      const repositoryError = new Error('Database connection failed');
 
       appointmentRepository.find.mockRejectedValue(repositoryError);
 
@@ -423,13 +460,133 @@ describe('AppointmentCronService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('debería manejar errores de envío que no sean instancias de Error', async () => {
+    it('should handle non-Error repository failures without throwing', async () => {
+      appointmentRepository.find.mockRejectedValue('Database failure');
+
+      await expect(
+        service.sendDailyAppointmentReminders(),
+      ).resolves.toBeUndefined();
+
+      expect(
+        notificationsService.sendAppointmentReminder,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should process appointments sequentially', async () => {
+      const calls: string[] = [];
+
+      const appointments = [
+        {
+          id: 'appointment-1',
+          startAt: new Date('2026-10-08T10:00:00.000Z'),
+          user: {
+            email: 'first@example.com',
+            name: 'First',
+          },
+          professional: {
+            user: {
+              name: 'Professional 1',
+            },
+          },
+          service: {
+            name: 'Service 1',
+          },
+        },
+        {
+          id: 'appointment-2',
+          startAt: new Date('2026-10-08T11:00:00.000Z'),
+          user: {
+            email: 'second@example.com',
+            name: 'Second',
+          },
+          professional: {
+            user: {
+              name: 'Professional 2',
+            },
+          },
+          service: {
+            name: 'Service 2',
+          },
+        },
+      ] as unknown as Appointment[];
+
+      appointmentRepository.find.mockResolvedValue(appointments);
+
+      notificationsService.sendAppointmentReminder.mockImplementation(
+        async (email) => {
+          calls.push(`start-${email}`);
+
+          await Promise.resolve();
+
+          calls.push(`end-${email}`);
+        },
+      );
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(calls).toEqual([
+        'start-first@example.com',
+        'end-first@example.com',
+        'start-second@example.com',
+        'end-second@example.com',
+      ]);
+    });
+  });
+
+  describe('logging', () => {
+    let logSpy: jest.SpyInstance;
+    let warnSpy: jest.SpyInstance;
+    let errorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      logSpy = jest
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+
+      warnSpy = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      errorSpy = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+    });
+
+    it('should log when no appointments are found', async () => {
+      appointmentRepository.find.mockResolvedValue([]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(logSpy).toHaveBeenCalledWith(
+        'No se encontraron turnos confirmados para el día de mañana.',
+      );
+    });
+
+    it('should log a warning when an appointment has no email', async () => {
       const appointment = {
-        id: 1,
-        startAt: new Date('2026-10-02T10:00:00.000Z'),
+        id: 'appointment-1',
         user: {
-          email: 'cliente@test.com',
-          name: 'Juan',
+          name: 'Juan Pérez',
+          email: undefined,
+        },
+      } as unknown as Appointment;
+
+      appointmentRepository.find.mockResolvedValue([appointment]);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'El turno appointment-1 no cuenta con un correo electrónico asignado.',
+      );
+    });
+
+    it('should log notification errors', async () => {
+      const appointment = {
+        id: 'appointment-1',
+        startAt: new Date('2026-10-08T10:00:00.000Z'),
+        user: {
+          email: 'juan@example.com',
+          name: 'Juan Pérez',
         },
         professional: {
           user: {
@@ -439,21 +596,45 @@ describe('AppointmentCronService', () => {
         service: {
           name: 'Consulta',
         },
-      };
+      } as unknown as Appointment;
+
+      const notificationError = new Error('SMTP failed');
 
       appointmentRepository.find.mockResolvedValue([appointment]);
 
       notificationsService.sendAppointmentReminder.mockRejectedValue(
-        'Error de email',
+        notificationError,
       );
 
-      await expect(
-        service.sendDailyAppointmentReminders(),
-      ).resolves.toBeUndefined();
+      await service.sendDailyAppointmentReminders();
 
-      expect(
-        notificationsService.sendAppointmentReminder,
-      ).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Error enviando correo para la cita ID appointment-1: SMTP failed',
+      );
+    });
+
+    it('should log repository errors', async () => {
+      const repositoryError = new Error('Database unavailable');
+
+      appointmentRepository.find.mockRejectedValue(repositoryError);
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Error general en el Cron de recordatorios:',
+        repositoryError.stack,
+      );
+    });
+
+    it('should log non-Error repository failures using String()', async () => {
+      appointmentRepository.find.mockRejectedValue('Database unavailable');
+
+      await service.sendDailyAppointmentReminders();
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Error general en el Cron de recordatorios:',
+        'Database unavailable',
+      );
     });
   });
 });

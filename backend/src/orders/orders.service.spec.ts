@@ -4,497 +4,813 @@ import { DataSource } from 'typeorm';
 
 import { OrdersService } from './orders.service';
 import { AppointmentsRepository } from '../appointments/appointments.repository';
+
 import { Order } from './entities/order.entity';
 import { OrderDetail } from './entities/order-detail.entity';
-import { AppointmentStatus } from '../appointments/entities/appointment.entity';
+import {
+  Appointment,
+  AppointmentStatus,
+} from '../appointments/entities/appointment.entity';
 import { OrderStatus } from './enums/order-status.enum';
 
 describe('OrdersService', () => {
-let service: OrdersService;
+  let service: OrdersService;
 
-const appointmentsRepository = {
-prepareAppointment: jest.fn(),
-};
-
-const dataSource = {
-transaction: jest.fn(),
-};
-
-beforeEach(async () => {
-jest.clearAllMocks();
-
-const module: TestingModule = await Test.createTestingModule({
-  providers: [
-    OrdersService,
-    {
-      provide: DataSource,
-      useValue: dataSource,
-    },
-    {
-      provide: AppointmentsRepository,
-      useValue: appointmentsRepository,
-    },
-  ],
-}).compile();
-
-service = module.get<OrdersService>(OrdersService);
-
-
-});
-
-describe('create', () => {
-it('should create an order with its appointments', async () => {
-const user = {
-id: 'user-1',
-};
-
-  const professional = {
-    id: 'professional-1',
+  const mockAppointmentsRepository = {
+    prepareAppointment: jest.fn(),
   };
 
-  const serviceEntity = {
-    id: 'service-1',
-    price: 5000,
+  const mockManager = {
+    create: jest.fn(),
+    save: jest.fn(),
   };
 
-  const preparedAppointment = {
-    user,
-    professional,
-    service: serviceEntity,
-    startAt: new Date('2026-10-02T10:00:00'),
-    endAt: new Date('2026-10-02T11:00:00'),
+  const mockDataSource = {
+    transaction: jest.fn(),
   };
 
-  appointmentsRepository.prepareAppointment.mockResolvedValue(
-    preparedAppointment,
-  );
+  beforeEach(async () => {
+    jest.clearAllMocks();
 
-  const createOrderDto = {
-    appointments: [
-      {
+    mockDataSource.transaction.mockImplementation(
+      async (callback) => callback(mockManager),
+    );
+
+    /*
+     * Simulamos el comportamiento de TypeORM:
+     *
+     * manager.create(Entity, object)
+     *   -> devuelve el objeto creado
+     *
+     * manager.create(Entity, array)
+     *   -> devuelve un array de objetos creados
+     */
+    mockManager.create.mockImplementation(
+      (_entity, data) => {
+        if (Array.isArray(data)) {
+          return data.map((item) => ({
+            ...item,
+          }));
+        }
+
+        return {
+          ...data,
+        };
+      },
+    );
+
+    /*
+     * El save mock devuelve los mismos objetos que recibe.
+     * Esto permite verificar correctamente expiresAt, status, etc.
+     *
+     * Para Order necesitamos simular order_id y status.
+     */
+    mockManager.save.mockImplementation(
+      async (entity, data) => {
+        if (entity === Order) {
+          return {
+            ...data,
+            order_id: 'order-1',
+            status: OrderStatus.PENDING,
+          };
+        }
+
+        if (entity === OrderDetail) {
+          return {
+            ...data,
+            total_price: data.total_price,
+          };
+        }
+
+        if (entity === Appointment) {
+          if (Array.isArray(data)) {
+            return data.map((appointment, index) => ({
+              ...appointment,
+              id: `appointment-${index + 1}`,
+            }));
+          }
+
+          return {
+            ...data,
+            id: 'appointment-1',
+          };
+        }
+
+        return data;
+      },
+    );
+
+    const module: TestingModule =
+      await Test.createTestingModule({
+        providers: [
+          OrdersService,
+          {
+            provide: DataSource,
+            useValue: mockDataSource,
+          },
+          {
+            provide: AppointmentsRepository,
+            useValue: mockAppointmentsRepository,
+          },
+        ],
+      }).compile();
+
+    service =
+      module.get<OrdersService>(OrdersService);
+  });
+
+  describe('create', () => {
+    const userId =
+      '550e8400-e29b-41d4-a716-446655440000';
+
+    const createPreparedAppointment = (
+      overrides = {},
+    ) => ({
+      user: {
+        id: userId,
+      },
+      professional: {
+        id: 'professional-1',
+      },
+      service: {
+        id: 'service-1',
+        price: 100,
+      },
+      startAt: new Date(
+        '2026-01-15T10:00:00.000Z',
+      ),
+      endAt: new Date(
+        '2026-01-15T11:00:00.000Z',
+      ),
+      ...overrides,
+    });
+
+    it('should prepare all appointments using the authenticated user id', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+          {
+            serviceId: 'service-2',
+            professionalId: 'professional-2',
+            startAt:
+              '2026-01-15T11:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-1',
+              price: 100,
+            },
+          }),
+        )
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-2',
+              price: 200,
+            },
+            startAt: new Date(
+              '2026-01-15T11:00:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T12:00:00.000Z',
+            ),
+          }),
+        );
+
+      await service.create(userId, dto);
+
+      expect(
+        mockAppointmentsRepository.prepareAppointment,
+      ).toHaveBeenCalledTimes(2);
+
+      expect(
+        mockAppointmentsRepository.prepareAppointment,
+      ).toHaveBeenNthCalledWith(1, {
+        userId,
         professionalId: 'professional-1',
         serviceId: 'service-1',
-        startAt: new Date('2026-10-02T10:00:00'),
+        startAt:
+          '2026-01-15T10:00:00.000Z',
+      });
+
+      expect(
+        mockAppointmentsRepository.prepareAppointment,
+      ).toHaveBeenNthCalledWith(2, {
+        userId,
+        professionalId: 'professional-2',
+        serviceId: 'service-2',
+        startAt:
+          '2026-01-15T11:00:00.000Z',
+      });
+    });
+
+    it('should calculate the total price using database service prices', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+          {
+            serviceId: 'service-2',
+            professionalId: 'professional-2',
+            startAt:
+              '2026-01-15T11:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-1',
+              price: 150,
+            },
+          }),
+        )
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-2',
+              price: 250,
+            },
+            startAt: new Date(
+              '2026-01-15T11:00:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T12:00:00.000Z',
+            ),
+          }),
+        );
+
+      const result = await service.create(
+        userId,
+        dto,
+      );
+
+      expect(result.totalPrice).toBe(400);
+
+      expect(
+        mockManager.create,
+      ).toHaveBeenCalledWith(
+        OrderDetail,
+        expect.objectContaining({
+          total_price: 400,
+        }),
+      );
+    });
+
+    it('should create the order with PENDING status', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        createPreparedAppointment(),
+      );
+
+      await service.create(userId, dto);
+
+      expect(
+        mockManager.create,
+      ).toHaveBeenCalledWith(
+        Order,
+        expect.objectContaining({
+          user: expect.anything(),
+          status: OrderStatus.PENDING,
+        }),
+      );
+
+      expect(
+        mockManager.save,
+      ).toHaveBeenCalledWith(
+        Order,
+        expect.anything(),
+      );
+    });
+
+    it('should create one OrderDetail with the calculated total price', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+          {
+            serviceId: 'service-2',
+            professionalId: 'professional-2',
+            startAt:
+              '2026-01-15T11:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-1',
+              price: 100,
+            },
+          }),
+        )
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-2',
+              price: 200,
+            },
+            startAt: new Date(
+              '2026-01-15T11:00:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T12:00:00.000Z',
+            ),
+          }),
+        );
+
+      await service.create(userId, dto);
+
+      expect(
+        mockManager.create,
+      ).toHaveBeenCalledWith(
+        OrderDetail,
+        expect.objectContaining({
+          total_price: 300,
+        }),
+      );
+
+      expect(
+        mockManager.save,
+      ).toHaveBeenCalledWith(
+        OrderDetail,
+        expect.anything(),
+      );
+    });
+
+    it('should create appointments with PENDING status', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      const prepared =
+        createPreparedAppointment();
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        prepared,
+      );
+
+      await service.create(userId, dto);
+
+      expect(
+        mockManager.create,
+      ).toHaveBeenCalledWith(
+        Appointment,
+        expect.objectContaining({
+          user: prepared.user,
+          professional:
+            prepared.professional,
+          service: prepared.service,
+          startAt: prepared.startAt,
+          endAt: prepared.endAt,
+          status: AppointmentStatus.PENDING,
+          expiresAt: expect.any(Date),
+        }),
+      );
+    });
+
+it('should use the same expiration date for all appointments', async () => {
+  const dto = {
+    appointments: [
+      {
+        serviceId: 'service-1',
+        professionalId: 'professional-1',
+        startAt: '2026-01-15T10:00:00.000Z',
+      },
+      {
+        serviceId: 'service-2',
+        professionalId: 'professional-2',
+        startAt: '2026-01-15T11:00:00.000Z',
       },
     ],
   } as any;
 
-  const savedOrder = {
-    order_id: 'order-1',
-    status: OrderStatus.PENDING,
-  };
+  mockAppointmentsRepository.prepareAppointment
+    .mockResolvedValueOnce(
+      createPreparedAppointment({
+        service: {
+          id: 'service-1',
+          price: 100,
+        },
+      }),
+    )
+    .mockResolvedValueOnce(
+      createPreparedAppointment({
+        service: {
+          id: 'service-2',
+          price: 200,
+        },
+        startAt: new Date(
+          '2026-01-15T11:00:00.000Z',
+        ),
+        endAt: new Date(
+          '2026-01-15T12:00:00.000Z',
+        ),
+      }),
+    );
 
-  const savedOrderDetail = {
-    id: 'order-detail-1',
-  };
+  await service.create(userId, dto);
 
-  const savedAppointment = {
-    id: 'appointment-1',
-    status: AppointmentStatus.PENDING,
-    startAt: preparedAppointment.startAt,
-    endAt: preparedAppointment.endAt,
-    expiresAt: expect.any(Date),
-  };
+  /*
+   * OrdersService llama manager.create(Appointment, ...)
+   * una vez por cada appointment.
+   */
+  const appointmentCalls =
+    mockManager.create.mock.calls.filter(
+      ([entity]) => entity === Appointment,
+    );
 
-  const manager = {
-    create: jest.fn()
-      .mockImplementationOnce((_entity, data) => data)
-      .mockImplementationOnce((_entity, data) => data)
-      .mockImplementationOnce((_entity, data) => data),
+  expect(appointmentCalls).toHaveLength(2);
 
-    save: jest.fn()
-      .mockResolvedValueOnce(savedOrder)
-      .mockResolvedValueOnce(savedOrderDetail)
-      .mockResolvedValueOnce([savedAppointment]),
-  };
+  const firstAppointment =
+    appointmentCalls[0][1];
 
-  dataSource.transaction.mockImplementation(async (callback) => {
-    return callback(manager);
-  });
-
-  const result = await service.create('user-1', createOrderDto);
+  const secondAppointment =
+    appointmentCalls[1][1];
 
   expect(
-    appointmentsRepository.prepareAppointment,
-  ).toHaveBeenCalledWith({
-    userId: 'user-1',
-    professionalId: 'professional-1',
-    serviceId: 'service-1',
-    startAt: createOrderDto.appointments[0].startAt,
-  });
-
-  expect(dataSource.transaction).toHaveBeenCalled();
-
-  expect(manager.create).toHaveBeenCalledWith(Order, {
-    user,
-    status: OrderStatus.PENDING,
-  });
-
-  expect(manager.create).toHaveBeenCalledWith(OrderDetail, {
-    order: savedOrder,
-    total_price: 5000,
-  });
-
-  expect(manager.create).toHaveBeenCalledWith(
-    expect.any(Function),
-    expect.objectContaining({
-      user,
-      professional,
-      service: serviceEntity,
-      orderDetail: savedOrderDetail,
-      status: AppointmentStatus.PENDING,
-    }),
-  );
-
-  expect(result.orderId).toBe('order-1');
-  expect(result.status).toBe(OrderStatus.PENDING);
-  expect(result.totalPrice).toBe(5000);
-  expect(result.appointments).toHaveLength(1);
-  expect(result.appointments[0].id).toBe('appointment-1');
-});
-
-it('should calculate the total price using all services', async () => {
-  const user = {
-    id: 'user-1',
-  };
-
-  const appointment1 = {
-    user,
-    professional: { id: 'professional-1' },
-    service: {
-      id: 'service-1',
-      price: 5000,
-    },
-    startAt: new Date('2026-10-02T10:00:00'),
-    endAt: new Date('2026-10-02T11:00:00'),
-  };
-
-  const appointment2 = {
-    user,
-    professional: { id: 'professional-2' },
-    service: {
-      id: 'service-2',
-      price: 3000,
-    },
-    startAt: new Date('2026-10-02T12:00:00'),
-    endAt: new Date('2026-10-02T13:00:00'),
-  };
-
-  appointmentsRepository.prepareAppointment
-    .mockResolvedValueOnce(appointment1)
-    .mockResolvedValueOnce(appointment2);
-
-  const manager = {
-    create: jest.fn((_, data) => data),
-    save: jest.fn()
-      .mockResolvedValueOnce({
-        order_id: 'order-1',
-        status: OrderStatus.PENDING,
-      })
-      .mockResolvedValueOnce({
-        id: 'detail-1',
-      })
-      .mockResolvedValueOnce([
-        {
-          id: 'appointment-1',
-          status: AppointmentStatus.PENDING,
-          startAt: appointment1.startAt,
-          endAt: appointment1.endAt,
-          expiresAt: new Date(),
-        },
-        {
-          id: 'appointment-2',
-          status: AppointmentStatus.PENDING,
-          startAt: appointment2.startAt,
-          endAt: appointment2.endAt,
-          expiresAt: new Date(),
-        },
-      ]),
-  };
-
-  dataSource.transaction.mockImplementation(async (callback) => {
-    return callback(manager);
-  });
-
-  const dto = {
-    appointments: [
-      {
-        professionalId: 'professional-1',
-        serviceId: 'service-1',
-        startAt: appointment1.startAt,
-      },
-      {
-        professionalId: 'professional-2',
-        serviceId: 'service-2',
-        startAt: appointment2.startAt,
-      },
-    ],
-  } as any;
-
-  const result = await service.create('user-1', dto);
-
-  expect(result.totalPrice).toBe(8000);
-});
-
-it('should throw ConflictException when total price is invalid', async () => {
-  const preparedAppointment = {
-    user: { id: 'user-1' },
-    professional: { id: 'professional-1' },
-    service: {
-      id: 'service-1',
-      price: 0,
-    },
-    startAt: new Date('2026-10-02T10:00:00'),
-    endAt: new Date('2026-10-02T11:00:00'),
-  };
-
-  appointmentsRepository.prepareAppointment.mockResolvedValue(
-    preparedAppointment,
-  );
-
-  const dto = {
-    appointments: [
-      {
-        professionalId: 'professional-1',
-        serviceId: 'service-1',
-        startAt: preparedAppointment.startAt,
-      },
-    ],
-  } as any;
-
-  await expect(
-    service.create('user-1', dto),
-  ).rejects.toThrow(
-    new ConflictException(
-      'No se pudo calcular un precio válido para la orden',
-    ),
-  );
-
-  expect(dataSource.transaction).not.toHaveBeenCalled();
-});
-
-it('should throw ConflictException when appointments overlap internally', async () => {
-  const firstAppointment = {
-    user: { id: 'user-1' },
-    professional: { id: 'professional-1' },
-    service: {
-      id: 'service-1',
-      price: 5000,
-    },
-    startAt: new Date('2026-10-02T10:00:00'),
-    endAt: new Date('2026-10-02T11:00:00'),
-  };
-
-  const secondAppointment = {
-    user: { id: 'user-1' },
-    professional: { id: 'professional-2' },
-    service: {
-      id: 'service-2',
-      price: 3000,
-    },
-    startAt: new Date('2026-10-02T10:30:00'),
-    endAt: new Date('2026-10-02T11:30:00'),
-  };
-
-  appointmentsRepository.prepareAppointment
-    .mockResolvedValueOnce(firstAppointment)
-    .mockResolvedValueOnce(secondAppointment);
-
-  const dto = {
-    appointments: [
-      {
-        professionalId: 'professional-1',
-        serviceId: 'service-1',
-        startAt: firstAppointment.startAt,
-      },
-      {
-        professionalId: 'professional-2',
-        serviceId: 'service-2',
-        startAt: secondAppointment.startAt,
-      },
-    ],
-  } as any;
-
-  await expect(
-    service.create('user-1', dto),
-  ).rejects.toThrow(
-    new ConflictException(
-      'La orden contiene turnos con horarios superpuestos',
-    ),
-  );
-
-  expect(dataSource.transaction).not.toHaveBeenCalled();
-});
-
-it('should allow appointments that do not overlap', async () => {
-  const firstAppointment = {
-    user: { id: 'user-1' },
-    professional: { id: 'professional-1' },
-    service: {
-      id: 'service-1',
-      price: 5000,
-    },
-    startAt: new Date('2026-10-02T10:00:00'),
-    endAt: new Date('2026-10-02T11:00:00'),
-  };
-
-  const secondAppointment = {
-    user: { id: 'user-1' },
-    professional: { id: 'professional-2' },
-    service: {
-      id: 'service-2',
-      price: 3000,
-    },
-    startAt: new Date('2026-10-02T11:00:00'),
-    endAt: new Date('2026-10-02T12:00:00'),
-  };
-
-  appointmentsRepository.prepareAppointment
-    .mockResolvedValueOnce(firstAppointment)
-    .mockResolvedValueOnce(secondAppointment);
-
-  const manager = {
-    create: jest.fn((_, data) => data),
-    save: jest.fn()
-      .mockResolvedValueOnce({
-        order_id: 'order-1',
-        status: OrderStatus.PENDING,
-      })
-      .mockResolvedValueOnce({
-        id: 'detail-1',
-      })
-      .mockResolvedValueOnce([
-        {
-          id: 'appointment-1',
-          status: AppointmentStatus.PENDING,
-          startAt: firstAppointment.startAt,
-          endAt: firstAppointment.endAt,
-          expiresAt: new Date(),
-        },
-        {
-          id: 'appointment-2',
-          status: AppointmentStatus.PENDING,
-          startAt: secondAppointment.startAt,
-          endAt: secondAppointment.endAt,
-          expiresAt: new Date(),
-        },
-      ]),
-  };
-
-  dataSource.transaction.mockImplementation(async (callback) => {
-    return callback(manager);
-  });
-
-  const dto = {
-    appointments: [
-      {
-        professionalId: 'professional-1',
-        serviceId: 'service-1',
-        startAt: firstAppointment.startAt,
-      },
-      {
-        professionalId: 'professional-2',
-        serviceId: 'service-2',
-        startAt: secondAppointment.startAt,
-      },
-    ],
-  } as any;
-
-  const result = await service.create('user-1', dto);
-
-  expect(result.totalPrice).toBe(8000);
-  expect(dataSource.transaction).toHaveBeenCalled();
-});
-
-it('should propagate prepareAppointment errors', async () => {
-  const error = new ConflictException(
-    'El profesional no está disponible',
-  );
-
-  appointmentsRepository.prepareAppointment.mockRejectedValue(error);
-
-  const dto = {
-    appointments: [
-      {
-        professionalId: 'professional-1',
-        serviceId: 'service-1',
-        startAt: new Date('2026-10-02T10:00:00'),
-      },
-    ],
-  } as any;
-
-  await expect(
-    service.create('user-1', dto),
-  ).rejects.toThrow(
-    'El profesional no está disponible',
-  );
-
-  expect(dataSource.transaction).not.toHaveBeenCalled();
-});
-
-it('should use the authenticated user id when preparing appointments', async () => {
-  const preparedAppointment = {
-    user: { id: 'user-1' },
-    professional: { id: 'professional-1' },
-    service: {
-      id: 'service-1',
-      price: 5000,
-    },
-    startAt: new Date('2026-10-02T10:00:00'),
-    endAt: new Date('2026-10-02T11:00:00'),
-  };
-
-  appointmentsRepository.prepareAppointment.mockResolvedValue(
-    preparedAppointment,
-  );
-
-  const manager = {
-    create: jest.fn((_, data) => data),
-    save: jest.fn()
-      .mockResolvedValueOnce({
-        order_id: 'order-1',
-        status: OrderStatus.PENDING,
-      })
-      .mockResolvedValueOnce({
-        id: 'detail-1',
-      })
-      .mockResolvedValueOnce([
-        {
-          id: 'appointment-1',
-          status: AppointmentStatus.PENDING,
-          startAt: preparedAppointment.startAt,
-          endAt: preparedAppointment.endAt,
-          expiresAt: new Date(),
-        },
-      ]),
-  };
-
-  dataSource.transaction.mockImplementation(async (callback) => {
-    return callback(manager);
-  });
-
-  const dto = {
-    appointments: [
-      {
-        professionalId: 'professional-1',
-        serviceId: 'service-1',
-        startAt: preparedAppointment.startAt,
-      },
-    ],
-  } as any;
-
-  await service.create('authenticated-user', dto);
+    firstAppointment.expiresAt,
+  ).toBeInstanceOf(Date);
 
   expect(
-    appointmentsRepository.prepareAppointment,
-  ).toHaveBeenCalledWith({
-    userId: 'authenticated-user',
-    professionalId: 'professional-1',
-    serviceId: 'service-1',
-    startAt: preparedAppointment.startAt,
+    secondAppointment.expiresAt,
+  ).toBeInstanceOf(Date);
+
+  /*
+   * Ambos appointments deben compartir exactamente
+   * la misma instancia de Date porque el service calcula
+   * expiresAt una sola vez antes del map().
+   */
+  expect(
+    firstAppointment.expiresAt,
+  ).toBe(secondAppointment.expiresAt);
+});
+
+
+    it('should reject overlapping appointments inside the same order', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+          {
+            serviceId: 'service-2',
+            professionalId: 'professional-2',
+            startAt:
+              '2026-01-15T10:30:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            startAt: new Date(
+              '2026-01-15T10:00:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T11:00:00.000Z',
+            ),
+          }),
+        )
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            startAt: new Date(
+              '2026-01-15T10:30:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T11:30:00.000Z',
+            ),
+          }),
+        );
+
+      await expect(
+        service.create(userId, dto),
+      ).rejects.toThrow(
+        new ConflictException(
+          'La orden contiene turnos con horarios superpuestos',
+        ),
+      );
+
+      expect(
+        mockDataSource.transaction,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should allow appointments that touch but do not overlap', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+          {
+            serviceId: 'service-2',
+            professionalId: 'professional-2',
+            startAt:
+              '2026-01-15T11:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-1',
+              price: 100,
+            },
+            startAt: new Date(
+              '2026-01-15T10:00:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T11:00:00.000Z',
+            ),
+          }),
+        )
+        .mockResolvedValueOnce(
+          createPreparedAppointment({
+            service: {
+              id: 'service-2',
+              price: 200,
+            },
+            startAt: new Date(
+              '2026-01-15T11:00:00.000Z',
+            ),
+            endAt: new Date(
+              '2026-01-15T12:00:00.000Z',
+            ),
+          }),
+        );
+
+      await expect(
+        service.create(userId, dto),
+      ).resolves.toBeDefined();
+
+      expect(
+        mockDataSource.transaction,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject a non-positive total price', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        createPreparedAppointment({
+          service: {
+            id: 'service-1',
+            price: 0,
+          },
+        }),
+      );
+
+      await expect(
+        service.create(userId, dto),
+      ).rejects.toThrow(
+        new ConflictException(
+          'No se pudo calcular un precio válido para la orden',
+        ),
+      );
+
+      expect(
+        mockDataSource.transaction,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should reject an invalid total price', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        createPreparedAppointment({
+          service: {
+            id: 'service-1',
+            price: 'invalid',
+          },
+        }),
+      );
+
+      await expect(
+        service.create(userId, dto),
+      ).rejects.toThrow(
+        new ConflictException(
+          'No se pudo calcular un precio válido para la orden',
+        ),
+      );
+
+      expect(
+        mockDataSource.transaction,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should execute order creation inside a transaction', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        createPreparedAppointment(),
+      );
+
+      await service.create(userId, dto);
+
+      expect(
+        mockDataSource.transaction,
+      ).toHaveBeenCalledTimes(1);
+
+      expect(
+        mockDataSource.transaction,
+      ).toHaveBeenCalledWith(
+        expect.any(Function),
+      );
+    });
+
+    it('should return the created order information', async () => {
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      const startAt = new Date(
+        '2026-01-15T10:00:00.000Z',
+      );
+
+      const endAt = new Date(
+        '2026-01-15T11:00:00.000Z',
+      );
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        createPreparedAppointment({
+          startAt,
+          endAt,
+        }),
+      );
+
+      const result = await service.create(
+        userId,
+        dto,
+      );
+
+      expect(result.orderId).toBe('order-1');
+
+      expect(result.status).toBe(
+        OrderStatus.PENDING,
+      );
+
+      expect(result.totalPrice).toBe(100);
+
+      expect(
+        result.appointments,
+      ).toHaveLength(1);
+
+      expect(
+        result.appointments[0],
+      ).toEqual(
+        expect.objectContaining({
+          id: 'appointment-1',
+          status: AppointmentStatus.PENDING,
+          startAt,
+          endAt,
+          expiresAt: expect.any(Date),
+        }),
+      );
+
+      expect(
+        result.appointments[0].expiresAt,
+      ).toBeInstanceOf(Date);
+    });
+
+    it('should propagate errors from prepareAppointment', async () => {
+      const error =
+        new ConflictException(
+          'Appointment unavailable',
+        );
+
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment.mockRejectedValue(
+        error,
+      );
+
+      await expect(
+        service.create(userId, dto),
+      ).rejects.toThrow(error);
+
+      expect(
+        mockDataSource.transaction,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should propagate transaction errors', async () => {
+      const error = new Error(
+        'Database transaction failed',
+      );
+
+      const dto = {
+        appointments: [
+          {
+            serviceId: 'service-1',
+            professionalId: 'professional-1',
+            startAt:
+              '2026-01-15T10:00:00.000Z',
+          },
+        ],
+      } as any;
+
+      mockAppointmentsRepository.prepareAppointment.mockResolvedValue(
+        createPreparedAppointment(),
+      );
+
+      mockDataSource.transaction.mockRejectedValue(
+        error,
+      );
+
+      await expect(
+        service.create(userId, dto),
+      ).rejects.toThrow(error);
+    });
   });
-});
-
-
-});
 });

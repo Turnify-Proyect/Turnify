@@ -16,6 +16,11 @@ export enum PaymentStatus {
   REFUNDED = 'refunded',
 }
 
+export enum PaymentType {
+  DEPOSIT_PAYMENT = 'deposit_payment',
+  FULL_PAYMENT = 'full_payment',
+}
+
 @Entity({ name: 'PAYMENTS' })
 export class Payment {
   @ApiProperty({
@@ -61,6 +66,19 @@ export class Payment {
   @ApiProperty({ example: '4500.00', description: 'Monto procesado' })
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
   amount!: string;
+
+  @ApiProperty({
+    enum: PaymentType,
+    description: 'Indica si el pago corresponde a una seña o al valor total',
+    nullable: true,
+  })
+  @Column({
+    name: 'payment_type',
+    type: 'enum',
+    enum: PaymentType,
+    nullable: true,
+  })
+  paymentType!: PaymentType | null;
 
   @ApiProperty({ enum: PaymentStatus, example: PaymentStatus.PENDING })
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })

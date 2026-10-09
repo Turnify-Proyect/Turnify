@@ -7,296 +7,668 @@ import { Category } from './category.entity';
 import { Service } from '../services/entities/service.entity';
 
 describe('CategoriesRepository', () => {
-  let repository: CategoriesRepository;
-  let categoryRepository: jest.Mocked<Repository<Category>>;
-  let serviceRepository: jest.Mocked<Repository<Service>>;
+let repository: CategoriesRepository;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CategoriesRepository,
-        {
-          provide: getRepositoryToken(Category),
-          useValue: {
-            findOneBy: jest.fn(),
-            createQueryBuilder: jest.fn(),
-            find: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-          },
-        },
-        {
-          provide: getRepositoryToken(Service),
-          useValue: {
-            createQueryBuilder: jest.fn(),
-          },
-        },
-      ],
-    }).compile();
+let categoryRepository: jest.Mocked<Partial<Repository<Category>>>;
+let serviceRepository: jest.Mocked<Partial<Repository<Service>>>;
 
-    repository = module.get<CategoriesRepository>(CategoriesRepository);
+beforeEach(async () => {
+categoryRepository = {
+findOneBy: jest.fn(),
+createQueryBuilder: jest.fn(),
+find: jest.fn(),
+create: jest.fn(),
+save: jest.fn(),
+};
 
-    categoryRepository = module.get(getRepositoryToken(Category));
-    serviceRepository = module.get(getRepositoryToken(Service));
+serviceRepository = {
+  createQueryBuilder: jest.fn(),
+};
+
+const module: TestingModule = await Test.createTestingModule({
+  providers: [
+    CategoriesRepository,
+    {
+      provide: getRepositoryToken(Category),
+      useValue: categoryRepository,
+    },
+    {
+      provide: getRepositoryToken(Service),
+      useValue: serviceRepository,
+    },
+  ],
+}).compile();
+
+repository = module.get<CategoriesRepository>(
+  CategoriesRepository,
+);
+
+});
+
+afterEach(() => {
+jest.clearAllMocks();
+});
+
+describe('getCategoryById', () => {
+it('should return a category by id', async () => {
+const id = '550e8400-e29b-41d4-a716-446655440000';
+
+  const category = {
+    id,
+    name: 'Psicología',
+    isActive: true,
+  } as Category;
+
+  categoryRepository.findOneBy!.mockResolvedValue(category);
+
+  const result = await repository.getCategoryById(id);
+
+  expect(result).toEqual(category);
+
+  expect(
+    categoryRepository.findOneBy,
+  ).toHaveBeenCalledTimes(1);
+
+  expect(
+    categoryRepository.findOneBy,
+  ).toHaveBeenCalledWith({ id });
+});
+
+it('should return null when the category does not exist', async () => {
+  const id = '550e8400-e29b-41d4-a716-446655440000';
+
+  categoryRepository.findOneBy!.mockResolvedValue(null);
+
+  const result = await repository.getCategoryById(id);
+
+  expect(result).toBeNull();
+
+  expect(
+    categoryRepository.findOneBy,
+  ).toHaveBeenCalledWith({ id });
+});
+
+it('should propagate repository errors', async () => {
+  const id = '550e8400-e29b-41d4-a716-446655440000';
+  const error = new Error('Database error');
+
+  categoryRepository.findOneBy!.mockRejectedValue(error);
+
+  await expect(
+    repository.getCategoryById(id),
+  ).rejects.toThrow(error);
+});
+
+});
+
+describe('getCategoryByName', () => {
+it('should find a category by name using a case-insensitive query', async () => {
+const category = {
+id: '550e8400-e29b-41d4-a716-446655440000',
+name: 'Psicología',
+isActive: true,
+} as Category;
+
+  const getOne = jest.fn().mockResolvedValue(category);
+
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getOne,
+  };
+
+  categoryRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
+
+  const result = await repository.getCategoryByName(
+    '  PSICOLOGÍA  ',
+  );
+
+  expect(result).toEqual(category);
+
+  expect(
+    categoryRepository.createQueryBuilder,
+  ).toHaveBeenCalledTimes(1);
+
+  expect(
+    categoryRepository.createQueryBuilder,
+  ).toHaveBeenCalledWith('category');
+
+  expect(queryBuilder.where).toHaveBeenCalledTimes(1);
+
+  expect(queryBuilder.where).toHaveBeenCalledWith(
+    'LOWER(category.name) = LOWER(:name)',
+    {
+      name: 'PSICOLOGÍA',
+    },
+  );
+
+  expect(getOne).toHaveBeenCalledTimes(1);
+});
+
+it('should return null when the category does not exist', async () => {
+  const getOne = jest.fn().mockResolvedValue(null);
+
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getOne,
+  };
+
+  categoryRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
+
+  const result = await repository.getCategoryByName(
+    'Nutrición',
+  );
+
+  expect(result).toBeNull();
+
+  expect(queryBuilder.where).toHaveBeenCalledWith(
+    'LOWER(category.name) = LOWER(:name)',
+    {
+      name: 'Nutrición',
+    },
+  );
+
+  expect(getOne).toHaveBeenCalledTimes(1);
+});
+
+it('should trim the name before querying', async () => {
+  const getOne = jest.fn().mockResolvedValue(null);
+
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getOne,
+  };
+
+  categoryRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
+
+  await repository.getCategoryByName(
+    '   Psicología   ',
+  );
+
+  expect(queryBuilder.where).toHaveBeenCalledWith(
+    'LOWER(category.name) = LOWER(:name)',
+    {
+      name: 'Psicología',
+    },
+  );
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Database error');
+
+  const getOne = jest.fn().mockRejectedValue(error);
+
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getOne,
+  };
+
+  categoryRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
+
+  await expect(
+    repository.getCategoryByName('Psicología'),
+  ).rejects.toThrow(error);
+});
+
+});
+
+describe('getAllCategories', () => {
+it('should return all categories ordered by name ascending', async () => {
+const categories = [
+{
+id: '1',
+name: 'Nutrición',
+isActive: true,
+},
+{
+id: '2',
+name: 'Psicología',
+isActive: true,
+},
+] as Category[];
+
+  categoryRepository.find!.mockResolvedValue(categories);
+
+  const result = await repository.getAllCategories();
+
+  expect(result).toEqual(categories);
+
+  expect(categoryRepository.find).toHaveBeenCalledTimes(1);
+
+  expect(categoryRepository.find).toHaveBeenCalledWith({
+    order: {
+      name: 'ASC',
+    },
+  });
+});
+
+it('should return an empty array when there are no categories', async () => {
+  categoryRepository.find!.mockResolvedValue([]);
+
+  const result = await repository.getAllCategories();
+
+  expect(result).toEqual([]);
+
+  expect(categoryRepository.find).toHaveBeenCalledWith({
+    order: {
+      name: 'ASC',
+    },
+  });
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Database error');
+
+  categoryRepository.find!.mockRejectedValue(error);
+
+  await expect(
+    repository.getAllCategories(),
+  ).rejects.toThrow(error);
+});
+
+});
+
+describe('getAllActiveCategories', () => {
+it('should return all active categories ordered by name ascending', async () => {
+const categories = [
+{
+id: '1',
+name: 'Nutrición',
+isActive: true,
+},
+{
+id: '2',
+name: 'Psicología',
+isActive: true,
+},
+] as Category[];
+
+  categoryRepository.find!.mockResolvedValue(categories);
+
+  const result =
+    await repository.getAllActiveCategories();
+
+  expect(result).toEqual(categories);
+
+  expect(categoryRepository.find).toHaveBeenCalledTimes(1);
+
+  expect(categoryRepository.find).toHaveBeenCalledWith({
+    where: {
+      isActive: true,
+    },
+    order: {
+      name: 'ASC',
+    },
+  });
+});
+
+it('should return an empty array when there are no active categories', async () => {
+  categoryRepository.find!.mockResolvedValue([]);
+
+  const result =
+    await repository.getAllActiveCategories();
+
+  expect(result).toEqual([]);
+
+  expect(categoryRepository.find).toHaveBeenCalledWith({
+    where: {
+      isActive: true,
+    },
+    order: {
+      name: 'ASC',
+    },
+  });
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Database error');
+
+  categoryRepository.find!.mockRejectedValue(error);
+
+  await expect(
+    repository.getAllActiveCategories(),
+  ).rejects.toThrow(error);
+});
+
+});
+
+describe('createCategory', () => {
+it('should create and save a category with the provided name and icon', async () => {
+const category = {
+id: '550e8400-e29b-41d4-a716-446655440000',
+name: 'Psicología',
+icon: 'brain',
+isActive: true,
+} as Category;
+
+  categoryRepository.create!.mockReturnValue(category);
+  categoryRepository.save!.mockResolvedValue(category);
+
+  const result = await repository.createCategory(
+    '  Psicología  ',
+    '  brain  ',
+  );
+
+  expect(result).toEqual(category);
+
+  expect(categoryRepository.create).toHaveBeenCalledTimes(1);
+
+  expect(categoryRepository.create).toHaveBeenCalledWith({
+    name: 'Psicología',
+    icon: 'brain',
+    isActive: true,
   });
 
-  describe('getCategoryById', () => {
-    it('should return a category by id', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        isActive: true,
-      } as Category;
+  expect(categoryRepository.save).toHaveBeenCalledTimes(1);
+  expect(categoryRepository.save).toHaveBeenCalledWith(
+    category,
+  );
+});
 
-      categoryRepository.findOneBy.mockResolvedValue(category);
+it('should trim the name', async () => {
+  const category = {} as Category;
 
-      const result = await repository.getCategoryById('category-1');
+  categoryRepository.create!.mockReturnValue(category);
+  categoryRepository.save!.mockResolvedValue(category);
 
-      expect(result).toEqual(category);
-      expect(categoryRepository.findOneBy).toHaveBeenCalledWith({
-        id: 'category-1',
-      });
-    });
+  await repository.createCategory(
+    '   Psicología   ',
+  );
 
-    it('should return null when category does not exist', async () => {
-      categoryRepository.findOneBy.mockResolvedValue(null);
+  expect(categoryRepository.create).toHaveBeenCalledWith({
+    name: 'Psicología',
+    icon: null,
+    isActive: true,
+  });
+});
 
-      const result = await repository.getCategoryById('category-1');
+it('should set icon to null when icon is not provided', async () => {
+  const category = {} as Category;
 
-      expect(result).toBeNull();
-    });
+  categoryRepository.create!.mockReturnValue(category);
+  categoryRepository.save!.mockResolvedValue(category);
+
+  await repository.createCategory('Psicología');
+
+  expect(categoryRepository.create).toHaveBeenCalledWith({
+    name: 'Psicología',
+    icon: null,
+    isActive: true,
+  });
+});
+
+it('should set icon to null when icon contains only whitespace', async () => {
+  const category = {} as Category;
+
+  categoryRepository.create!.mockReturnValue(category);
+  categoryRepository.save!.mockResolvedValue(category);
+
+  await repository.createCategory(
+    'Psicología',
+    '     ',
+  );
+
+  expect(categoryRepository.create).toHaveBeenCalledWith({
+    name: 'Psicología',
+    icon: null,
+    isActive: true,
+  });
+});
+
+it('should propagate errors from create', async () => {
+  const error = new Error('Create error');
+
+  categoryRepository.create!.mockImplementation(() => {
+    throw error;
   });
 
-  describe('getCategoryByName', () => {
-    it('should return a category by name', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        isActive: true,
-      } as Category;
+  await expect(
+    repository.createCategory('Psicología'),
+  ).rejects.toThrow(error);
+});
 
-      const getOne = jest.fn().mockResolvedValue(category);
+it('should propagate errors from save', async () => {
+  const category = {} as Category;
+  const error = new Error('Save error');
 
-      const queryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        getOne,
-      };
+  categoryRepository.create!.mockReturnValue(category);
+  categoryRepository.save!.mockRejectedValue(error);
 
-      categoryRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
-      );
+  await expect(
+    repository.createCategory('Psicología'),
+  ).rejects.toThrow(error);
+});
 
-      const result = await repository.getCategoryByName('  Peluquería  ');
+});
 
-      expect(result).toEqual(category);
-      expect(categoryRepository.createQueryBuilder).toHaveBeenCalledWith(
-        'category',
-      );
-      expect(queryBuilder.where).toHaveBeenCalledWith(
-        'LOWER(category.name) = LOWER(:name)',
-        {
-          name: 'Peluquería',
-        },
-      );
-      expect(getOne).toHaveBeenCalled();
-    });
-  });
+describe('deactivateCategory', () => {
+it('should set isActive to false and save the category', async () => {
+const category = {
+id: '550e8400-e29b-41d4-a716-446655440000',
+name: 'Psicología',
+isActive: true,
+} as Category;
 
-  describe('getAllCategories', () => {
-    it('should return all categories ordered by name', async () => {
-      const categories = [
-        { id: '1', name: 'Barbería' },
-        { id: '2', name: 'Peluquería' },
-      ] as Category[];
+  categoryRepository.save!.mockResolvedValue(category);
 
-      categoryRepository.find.mockResolvedValue(categories);
+  const result =
+    await repository.deactivateCategory(category);
 
-      const result = await repository.getAllCategories();
+  expect(category.isActive).toBe(false);
+  expect(result).toEqual(category);
 
-      expect(result).toEqual(categories);
-      expect(categoryRepository.find).toHaveBeenCalledWith({
-        order: {
-          name: 'ASC',
-        },
-      });
-    });
-  });
+  expect(categoryRepository.save).toHaveBeenCalledTimes(1);
+  expect(categoryRepository.save).toHaveBeenCalledWith(
+    category,
+  );
+});
 
-  describe('getAllActiveCategories', () => {
-    it('should return only active categories ordered by name', async () => {
-      const categories = [
-        {
-          id: '1',
-          name: 'Barbería',
-          isActive: true,
-        },
-      ] as Category[];
+it('should propagate repository errors', async () => {
+  const category = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'Psicología',
+    isActive: true,
+  } as Category;
 
-      categoryRepository.find.mockResolvedValue(categories);
+  const error = new Error('Save error');
 
-      const result = await repository.getAllActiveCategories();
+  categoryRepository.save!.mockRejectedValue(error);
 
-      expect(result).toEqual(categories);
-      expect(categoryRepository.find).toHaveBeenCalledWith({
-        where: {
-          isActive: true,
-        },
-        order: {
-          name: 'ASC',
-        },
-      });
-    });
-  });
+  await expect(
+    repository.deactivateCategory(category),
+  ).rejects.toThrow(error);
 
-  describe('createCategory', () => {
-    it('should create and save a category', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        icon: 'scissors',
-        isActive: true,
-      } as Category;
+  expect(category.isActive).toBe(false);
+});
 
-      categoryRepository.create.mockReturnValue(category);
-      categoryRepository.save.mockResolvedValue(category);
+});
 
-      const result = await repository.createCategory(
-        '  Peluquería  ',
-        '  scissors  ',
-      );
+describe('reactivateCategory', () => {
+it('should reactivate a category and keep the existing icon when no icon is provided', async () => {
+const category = {
+id: '550e8400-e29b-41d4-a716-446655440000',
+name: 'Psicología',
+icon: 'brain',
+isActive: false,
+} as Category;
 
-      expect(categoryRepository.create).toHaveBeenCalledWith({
-        name: 'Peluquería',
-        icon: 'scissors',
-        isActive: true,
-      });
+  categoryRepository.save!.mockResolvedValue(category);
 
-      expect(categoryRepository.save).toHaveBeenCalledWith(category);
-      expect(result).toEqual(category);
-    });
+  const result =
+    await repository.reactivateCategory(category);
 
-    it('should save null when icon is not provided', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        icon: null,
-        isActive: true,
-      } as Category;
+  expect(category.isActive).toBe(true);
+  expect(category.icon).toBe('brain');
+  expect(result).toEqual(category);
 
-      categoryRepository.create.mockReturnValue(category);
-      categoryRepository.save.mockResolvedValue(category);
+  expect(categoryRepository.save).toHaveBeenCalledWith(
+    category,
+  );
+});
 
-      await repository.createCategory('Peluquería');
+it('should update the icon when a valid icon is provided', async () => {
+  const category = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'Psicología',
+    icon: 'old-icon',
+    isActive: false,
+  } as Category;
 
-      expect(categoryRepository.create).toHaveBeenCalledWith({
-        name: 'Peluquería',
-        icon: null,
-        isActive: true,
-      });
-    });
-  });
+  categoryRepository.save!.mockResolvedValue(category);
 
-  describe('deactivateCategory', () => {
-    it('should deactivate and save the category', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        isActive: true,
-      } as Category;
+  const result =
+    await repository.reactivateCategory(
+      category,
+      '  new-icon  ',
+    );
 
-      categoryRepository.save.mockResolvedValue(category);
+  expect(category.isActive).toBe(true);
+  expect(category.icon).toBe('new-icon');
+  expect(result).toEqual(category);
 
-      const result = await repository.deactivateCategory(category);
+  expect(categoryRepository.save).toHaveBeenCalledWith(
+    category,
+  );
+});
 
-      expect(category.isActive).toBe(false);
-      expect(categoryRepository.save).toHaveBeenCalledWith(category);
-      expect(result).toEqual(category);
-    });
-  });
+it('should keep the existing icon when the provided icon is only whitespace', async () => {
+  const category = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'Psicología',
+    icon: 'existing-icon',
+    isActive: false,
+  } as Category;
 
-  describe('reactivateCategory', () => {
-    it('should reactivate the category and update the icon when provided', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        icon: 'old-icon',
-        isActive: false,
-      } as Category;
+  categoryRepository.save!.mockResolvedValue(category);
 
-      categoryRepository.save.mockResolvedValue(category);
+  await repository.reactivateCategory(
+    category,
+    '     ',
+  );
 
-      const result = await repository.reactivateCategory(
-        category,
-        '  new-icon  ',
-      );
+  expect(category.isActive).toBe(true);
+  expect(category.icon).toBe('existing-icon');
 
-      expect(category.isActive).toBe(true);
-      expect(category.icon).toBe('new-icon');
-      expect(categoryRepository.save).toHaveBeenCalledWith(category);
-      expect(result).toEqual(category);
-    });
+  expect(categoryRepository.save).toHaveBeenCalledWith(
+    category,
+  );
+});
 
-    it('should reactivate the category without changing the icon when no icon is provided', async () => {
-      const category = {
-        id: 'category-1',
-        name: 'Peluquería',
-        icon: 'old-icon',
-        isActive: false,
-      } as Category;
+it('should propagate repository errors', async () => {
+  const category = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'Psicología',
+    icon: 'brain',
+    isActive: false,
+  } as Category;
 
-      categoryRepository.save.mockResolvedValue(category);
+  const error = new Error('Save error');
 
-      await repository.reactivateCategory(category);
+  categoryRepository.save!.mockRejectedValue(error);
 
-      expect(category.isActive).toBe(true);
-      expect(category.icon).toBe('old-icon');
-      expect(categoryRepository.save).toHaveBeenCalledWith(category);
-    });
-  });
+  await expect(
+    repository.reactivateCategory(category),
+  ).rejects.toThrow(error);
 
-  describe('isInUse', () => {
-    it('should return true when the category is associated with services', async () => {
-      const getCount = jest.fn().mockResolvedValue(2);
+  expect(category.isActive).toBe(true);
+});
 
-      const queryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        getCount,
-      };
+});
 
-      serviceRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
-      );
+describe('isInUse', () => {
+it('should return true when the category is being used by at least one service', async () => {
+const getCount = jest.fn().mockResolvedValue(2);
 
-      const result = await repository.isInUse('category-1');
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getCount,
+  };
 
-      expect(result).toBe(true);
-      expect(serviceRepository.createQueryBuilder).toHaveBeenCalledWith(
-        'service',
-      );
-      expect(queryBuilder.where).toHaveBeenCalledWith(
-        'service.category_id = :categoryId',
-        {
-          categoryId: 'category-1',
-        },
-      );
-      expect(getCount).toHaveBeenCalled();
-    });
+  serviceRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
 
-    it('should return false when the category is not associated with services', async () => {
-      const getCount = jest.fn().mockResolvedValue(0);
+  const categoryId =
+    '550e8400-e29b-41d4-a716-446655440000';
 
-      const queryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        getCount,
-      };
+  const result = await repository.isInUse(categoryId);
 
-      serviceRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
-      );
+  expect(result).toBe(true);
 
-      const result = await repository.isInUse('category-1');
+  expect(
+    serviceRepository.createQueryBuilder,
+  ).toHaveBeenCalledTimes(1);
 
-      expect(result).toBe(false);
-    });
-  });
+  expect(
+    serviceRepository.createQueryBuilder,
+  ).toHaveBeenCalledWith('service');
+
+  expect(queryBuilder.where).toHaveBeenCalledWith(
+    'service.category_id = :categoryId',
+    {
+      categoryId,
+    },
+  );
+
+  expect(getCount).toHaveBeenCalledTimes(1);
+});
+
+it('should return false when the category is not being used', async () => {
+  const getCount = jest.fn().mockResolvedValue(0);
+
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getCount,
+  };
+
+  serviceRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
+
+  const categoryId =
+    '550e8400-e29b-41d4-a716-446655440000';
+
+  const result = await repository.isInUse(categoryId);
+
+  expect(result).toBe(false);
+
+  expect(queryBuilder.where).toHaveBeenCalledWith(
+    'service.category_id = :categoryId',
+    {
+      categoryId,
+    },
+  );
+
+  expect(getCount).toHaveBeenCalledTimes(1);
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Database error');
+
+  const getCount = jest.fn().mockRejectedValue(error);
+
+  const queryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    getCount,
+  };
+
+  serviceRepository.createQueryBuilder!.mockReturnValue(
+    queryBuilder as any,
+  );
+
+  await expect(
+    repository.isInUse(
+      '550e8400-e29b-41d4-a716-446655440000',
+    ),
+  ).rejects.toThrow(error);
+});
+
+});
 });

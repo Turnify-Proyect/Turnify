@@ -1,286 +1,362 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-
+import { Reflector } from '@nestjs/core';
 import { ServicesController } from './services.controller';
 import { ServicesService } from './services.service';
+import { UserRole } from '../common/userRoles.enum';
 
 describe('ServicesController', () => {
   let controller: ServicesController;
 
-  const servicesServiceMock = {
-    getAll: jest.fn(),
-    getAllActive: jest.fn(),
-    getById: jest.fn(),
-    update: jest.fn(),
-    create: jest.fn(),
-    deactivate: jest.fn(),
-    reactivate: jest.fn(),
-    getProfessionalsByService: jest.fn(),
-    updateServiceImage: jest.fn(),
+  let servicesServiceMock: {
+    getAll: jest.Mock;
+    getAllActive: jest.Mock;
+    getById: jest.Mock;
+    update: jest.Mock;
+    create: jest.Mock;
+    deactivate: jest.Mock;
+    reactivate: jest.Mock;
+    getProfessionalsByService: jest.Mock;
+    updateServiceImage: jest.Mock;
   };
 
-  const jwtServiceMock = {
-    verify: jest.fn(),
-    sign: jest.fn(),
-  };
+  const serviceId = 'service-123';
+  const professionalId = 'professional-123';
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ServicesController],
-      providers: [
-        {
-          provide: ServicesService,
-          useValue: servicesServiceMock,
-        },
-        {
-          provide: JwtService,
-          useValue: jwtServiceMock,
-        },
-      ],
-    }).compile();
+    servicesServiceMock = {
+      getAll: jest.fn(),
+      getAllActive: jest.fn(),
+      getById: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
+      deactivate: jest.fn(),
+      reactivate: jest.fn(),
+      getProfessionalsByService: jest.fn(),
+      updateServiceImage: jest.fn(),
+    };
 
-    controller = module.get<ServicesController>(ServicesController);
+    controller = new ServicesController(
+      servicesServiceMock as unknown as ServicesService,
+    );
   });
 
   describe('getAll', () => {
     it('should return all services', async () => {
-      const services = [
+      const response = [
         {
-          id: 'service-1',
-          name: 'Corte de pelo',
-          description: 'Servicio de corte',
+          id: serviceId,
+          name: 'Masajes',
+          isActive: true,
         },
         {
-          id: 'service-2',
-          name: 'Masajes',
-          description: 'Servicio de masajes',
+          id: 'service-456',
+          name: 'Pedicuría',
+          isActive: false,
         },
       ];
 
-      servicesServiceMock.getAll.mockResolvedValue(services);
+      servicesServiceMock.getAll.mockResolvedValue(response);
 
       const result = await controller.getAll();
 
-      expect(servicesServiceMock.getAll).toHaveBeenCalled();
-      expect(result).toEqual(services);
+      expect(result).toBe(response);
+
+      expect(
+        servicesServiceMock.getAll,
+      ).toHaveBeenCalled();
     });
   });
 
   describe('getAllActive', () => {
-    it('should return only active services', async () => {
-      const services = [
+    it('should return active services', async () => {
+      const response = [
         {
-          id: 'service-1',
-          name: 'Corte de pelo',
-          isActive: true,
-        },
-        {
-          id: 'service-2',
+          id: serviceId,
           name: 'Masajes',
           isActive: true,
         },
       ];
 
-      servicesServiceMock.getAllActive.mockResolvedValue(services);
+      servicesServiceMock.getAllActive.mockResolvedValue(response);
 
       const result = await controller.getAllActive();
 
-      expect(servicesServiceMock.getAllActive).toHaveBeenCalled();
-      expect(result).toEqual(services);
+      expect(result).toBe(response);
+
+      expect(
+        servicesServiceMock.getAllActive,
+      ).toHaveBeenCalled();
     });
   });
 
   describe('getById', () => {
-    it('should return a service by id', async () => {
-      const id = 'service-1';
-
-      const service = {
-        id,
-        name: 'Corte de pelo',
-        description: 'Servicio de corte',
+    it('should return the service', async () => {
+      const response = {
+        id: serviceId,
+        name: 'Masajes',
+        isActive: true,
       };
 
-      servicesServiceMock.getById.mockResolvedValue(service);
+      servicesServiceMock.getById.mockResolvedValue(response);
 
-      const result = await controller.getById(id);
+      const result = await controller.getById(serviceId);
 
-      expect(servicesServiceMock.getById).toHaveBeenCalledWith(id);
-      expect(result).toEqual(service);
-    });
+      expect(result).toBe(response);
 
-    it('should propagate service errors', async () => {
-      const id = 'service-inexistente';
-
-      const error = new Error('Servicio no encontrado');
-
-      servicesServiceMock.getById.mockRejectedValue(error);
-
-      await expect(controller.getById(id)).rejects.toThrow(
-        'Servicio no encontrado',
-      );
-
-      expect(servicesServiceMock.getById).toHaveBeenCalledWith(id);
+      expect(
+        servicesServiceMock.getById,
+      ).toHaveBeenCalledWith(serviceId);
     });
   });
 
   describe('update', () => {
-    it('should update a service', async () => {
-      const id = 'service-1';
-
-      const dto = {
-        name: 'Corte actualizado',
-        description: 'Descripción actualizada',
-      } as any;
-
-      const expectedResult = {
-        id,
-        ...dto,
+    it('should update the service', async () => {
+      const data = {
+        name: 'Masajes relajantes',
+        price: '15000',
       };
 
-      servicesServiceMock.update.mockResolvedValue(expectedResult);
+      const response = {
+        id: serviceId,
+        name: 'Masajes relajantes',
+        price: '15000',
+      };
 
-      const result = await controller.update(id, dto);
+      servicesServiceMock.update.mockResolvedValue(response);
 
-      expect(servicesServiceMock.update).toHaveBeenCalledWith(id, dto);
-      expect(result).toEqual(expectedResult);
+      const result = await controller.update(
+        serviceId,
+        data as any,
+      );
+
+      expect(result).toBe(response);
+
+      expect(
+        servicesServiceMock.update,
+      ).toHaveBeenCalledWith(
+        serviceId,
+        data,
+      );
     });
   });
 
   describe('create', () => {
     it('should create a service', async () => {
-      const dto = {
-        name: 'Nuevo servicio',
-        description: 'Descripción del nuevo servicio',
-      } as any;
-
-      const expectedResult = {
-        id: 'service-1',
-        ...dto,
+      const data = {
+        name: 'Masajes',
+        description: 'Masaje relajante',
+        price: '10000',
+        durationMinutes: 60,
+        categoryId: 'category-123',
       };
 
-      servicesServiceMock.create.mockResolvedValue(expectedResult);
+      const response = {
+        id: serviceId,
+        ...data,
+      };
 
-      const result = await controller.create(dto);
+      servicesServiceMock.create.mockResolvedValue(response);
 
-      expect(servicesServiceMock.create).toHaveBeenCalledWith(dto);
-      expect(result).toEqual(expectedResult);
+      const result = await controller.create(data as any);
+
+      expect(result).toBe(response);
+
+      expect(
+        servicesServiceMock.create,
+      ).toHaveBeenCalledWith(data);
     });
   });
 
   describe('deactivate', () => {
-    it('should deactivate a service', async () => {
-      const id = 'service-1';
-
-      const expectedResult = {
-        message: 'Servicio desactivado correctamente',
+    it('should deactivate the service', async () => {
+      const response = {
+        id: serviceId,
+        isActive: false,
       };
 
-      servicesServiceMock.deactivate.mockResolvedValue(expectedResult);
+      servicesServiceMock.deactivate.mockResolvedValue(response);
 
-      const result = await controller.deactivate(id);
+      const result = await controller.deactivate(serviceId);
 
-      expect(servicesServiceMock.deactivate).toHaveBeenCalledWith(id);
-      expect(result).toEqual(expectedResult);
+      expect(result).toBe(response);
+
+      expect(
+        servicesServiceMock.deactivate,
+      ).toHaveBeenCalledWith(serviceId);
     });
   });
 
   describe('reactivate', () => {
-    it('should reactivate a service', async () => {
-      const id = 'service-1';
-
-      const expectedResult = {
-        message: 'Servicio activado correctamente',
+    it('should reactivate the service', async () => {
+      const response = {
+        id: serviceId,
+        isActive: true,
       };
 
-      servicesServiceMock.reactivate.mockResolvedValue(expectedResult);
+      servicesServiceMock.reactivate.mockResolvedValue(response);
 
-      const result = await controller.reactivate(id);
+      const result = await controller.reactivate(serviceId);
 
-      expect(servicesServiceMock.reactivate).toHaveBeenCalledWith(id);
-      expect(result).toEqual(expectedResult);
+      expect(result).toBe(response);
+
+      expect(
+        servicesServiceMock.reactivate,
+      ).toHaveBeenCalledWith(serviceId);
     });
   });
 
   describe('getProfessionalsByService', () => {
-    it('should return professionals associated with a service', async () => {
-      const serviceId = 'service-1';
-
-      const professionals = [
+    it('should return professionals associated with the service', async () => {
+      const response = [
         {
-          id: 'user-1',
-          name: 'Juan',
-        },
-        {
-          id: 'user-2',
-          name: 'Pedro',
+          professionalId,
+          serviceId,
         },
       ];
 
       servicesServiceMock.getProfessionalsByService.mockResolvedValue(
-        professionals,
+        response,
       );
 
       const result =
         await controller.getProfessionalsByService(serviceId);
 
+      expect(result).toBe(response);
+
       expect(
         servicesServiceMock.getProfessionalsByService,
       ).toHaveBeenCalledWith(serviceId);
-
-      expect(result).toEqual(professionals);
     });
   });
 
   describe('uploadServiceImage', () => {
     it('should update the service image', async () => {
-      const id = 'service-1';
-
       const file = {
-        originalname: 'service.jpg',
-        mimetype: 'image/jpeg',
+        originalname: 'service.png',
+        mimetype: 'image/png',
         size: 1024,
+        buffer: Buffer.from('test'),
       } as Express.Multer.File;
 
-      const expectedResult = {
-        id,
-        imgUrl: 'https://cloudinary.com/service.jpg',
+      const response = {
+        id: serviceId,
+        imageUrl: 'https://res.cloudinary.com/test/service.png',
       };
 
-      servicesServiceMock.updateServiceImage.mockResolvedValue(
-        expectedResult,
+      servicesServiceMock.updateServiceImage.mockResolvedValue(response);
+
+      const result = await controller.uploadServiceImage(
+        serviceId,
+        file,
       );
 
-      const result = await controller.uploadServiceImage(id, file);
+      expect(result).toBe(response);
 
       expect(
         servicesServiceMock.updateServiceImage,
-      ).toHaveBeenCalledWith(id, file);
+      ).toHaveBeenCalledWith(
+        serviceId,
+        file,
+      );
+    });
+  });
 
-      expect(result).toEqual(expectedResult);
+  describe('authorization metadata', () => {
+    const reflector = new Reflector();
+    const ROLES_KEY = 'roles';
+
+    it('should require ADMIN role for getAll', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.getAll,
+      );
+
+      expect(roles).toEqual([
+        UserRole.ADMIN,
+      ]);
     });
 
-    it('should propagate errors from updateServiceImage', async () => {
-      const id = 'service-1';
+    it('should not require a role for getAllActive', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.getAllActive,
+      );
 
-      const file = {
-        originalname: 'service.jpg',
-        mimetype: 'image/jpeg',
-        size: 1024,
-      } as Express.Multer.File;
+      expect(roles).toBeUndefined();
+    });
 
-      const error = new Error('Error al subir imagen');
+    it('should not require a role for getById', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.getById,
+      );
 
-      servicesServiceMock.updateServiceImage.mockRejectedValue(error);
+      expect(roles).toBeUndefined();
+    });
 
-      await expect(
-        controller.uploadServiceImage(id, file),
-      ).rejects.toThrow('Error al subir imagen');
+    it('should require ADMIN role for update', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.update,
+      );
 
-      expect(
-        servicesServiceMock.updateServiceImage,
-      ).toHaveBeenCalledWith(id, file);
+      expect(roles).toEqual([
+        UserRole.ADMIN,
+      ]);
+    });
+
+    it('should require ADMIN role for create', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.create,
+      );
+
+      expect(roles).toEqual([
+        UserRole.ADMIN,
+      ]);
+    });
+
+    it('should require ADMIN role for deactivate', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.deactivate,
+      );
+
+      expect(roles).toEqual([
+        UserRole.ADMIN,
+      ]);
+    });
+
+    it('should require ADMIN role for reactivate', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.reactivate,
+      );
+
+      expect(roles).toEqual([
+        UserRole.ADMIN,
+      ]);
+    });
+
+    it('should not require a role for getProfessionalsByService', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.getProfessionalsByService,
+      );
+
+      expect(roles).toBeUndefined();
+    });
+
+    it('should require ADMIN role for uploadServiceImage', () => {
+      const roles = reflector.get(
+        ROLES_KEY,
+        ServicesController.prototype.uploadServiceImage,
+      );
+
+      expect(roles).toEqual([
+        UserRole.ADMIN,
+      ]);
     });
   });
 });

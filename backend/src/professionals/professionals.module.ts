@@ -19,5 +19,6 @@ import { Service } from 'src/services/entities/service.entity';
   ],
   controllers: [ProfessionalsController],
   providers: [ProfessionalsService, ProfessionalsRepository],
+  exports: [ProfessionalsService],
 })
 export class ProfessionalsModule {}

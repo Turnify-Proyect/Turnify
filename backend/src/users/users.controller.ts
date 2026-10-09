@@ -18,8 +18,9 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
-
+import { ApiResponse } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '../decorators/roles.decorators';
 import { UseGuards } from '@nestjs/common';
@@ -31,7 +32,6 @@ import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import {
   ApiBearerAuth,
   ApiQuery,
-  ApiResponse,
   ApiParam,
   ApiOperation,
   ApiConsumes,

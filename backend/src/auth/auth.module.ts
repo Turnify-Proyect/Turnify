@@ -4,11 +4,17 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { EmailVerificationModule } from 'src/auth/email-verification/email-verification.module';
 import { MailModule } from 'src/mail/mail.module';
+import { PasswordResetModule } from './password-reset/password-reset.module';
 
 // Quité el JwtModule.register, que se estaba duplicando con app.module
 //coemntado por:Lautaro-dev
 @Module({
-  imports: [UsersModule, EmailVerificationModule, MailModule],
+  imports: [
+    UsersModule,
+    EmailVerificationModule,
+    MailModule,
+    PasswordResetModule,
+  ],
   controllers: [AuthController],
   providers: [AuthService],
 })

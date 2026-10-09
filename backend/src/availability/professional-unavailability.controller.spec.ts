@@ -1,262 +1,477 @@
+import { ForbiddenException } from '@nestjs/common';
 import { ProfessionalUnavailabilityController } from './professional-unavailability.controller';
 import { ProfessionalUnavailabilityService } from './professional-unavailability.service';
+import { ProfessionalsService } from '../professionals/professionals.service';
 import { UserRole } from '../common/userRoles.enum';
 
 describe('ProfessionalUnavailabilityController', () => {
 let controller: ProfessionalUnavailabilityController;
-let service: {
+
+let professionalUnavailabilityService: {
 getByProfessionalId: jest.Mock;
 create: jest.Mock;
+getById: jest.Mock;
 delete: jest.Mock;
 };
 
+let professionalsService: {
+getProfessionalByUserId: jest.Mock;
+};
+
+const professionalId = 'professional-uuid';
+const otherProfessionalId = 'other-professional-uuid';
+const userId = 'user-uuid';
+const unavailabilityId = 'unavailability-uuid';
+
+const unavailability = {
+id: unavailabilityId,
+professional: {
+id: professionalId,
+},
+};
+
 beforeEach(() => {
-service = {
+professionalUnavailabilityService = {
 getByProfessionalId: jest.fn(),
 create: jest.fn(),
+getById: jest.fn(),
 delete: jest.fn(),
 };
 
+professionalsService = {
+  getProfessionalByUserId: jest.fn(),
+};
+
 controller = new ProfessionalUnavailabilityController(
-  service as unknown as ProfessionalUnavailabilityService,
+  professionalUnavailabilityService as unknown as ProfessionalUnavailabilityService,
+  professionalsService as unknown as ProfessionalsService,
 );
 
 
 });
 
-afterEach(() => {
-jest.clearAllMocks();
-});
-
-// ===========================================================================
-// getByProfessionalId
-// ===========================================================================
-
 describe('getByProfessionalId', () => {
-it('debería devolver los bloqueos del profesional', async () => {
-const professionalId = 'professional-uuid';
+it('should return the professional unavailabilities', async () => {
+const blocks = [
+{
+id: 'block-1',
+professional: {
+id: professionalId,
+},
+},
+{
+id: 'block-2',
+professional: {
+id: professionalId,
+},
+},
+];
 
-  const blocks = [
-    {
-      id: 'block-1',
-      professionalId,
-      startAt: new Date('2030-10-02T12:00:00.000Z'),
-      endAt: new Date('2030-10-02T14:00:00.000Z'),
-    },
-    {
-      id: 'block-2',
-      professionalId,
-      startAt: new Date('2030-10-03T15:00:00.000Z'),
-      endAt: new Date('2030-10-03T17:00:00.000Z'),
-    },
-  ];
+  professionalUnavailabilityService.getByProfessionalId.mockResolvedValue(
+    blocks,
+  );
 
-  service.getByProfessionalId.mockResolvedValue(blocks);
-
-  const result =
-    await controller.getByProfessionalId(professionalId);
-
-  expect(result).toBe(blocks);
+  const result = await controller.getByProfessionalId(professionalId);
 
   expect(
-    service.getByProfessionalId,
-  ).toHaveBeenCalledTimes(1);
-
-  expect(
-    service.getByProfessionalId,
+    professionalUnavailabilityService.getByProfessionalId,
   ).toHaveBeenCalledWith(professionalId);
+
+  expect(result).toEqual(blocks);
 });
 
-it('debería devolver un array vacío si el profesional no tiene bloqueos', async () => {
-  const professionalId = 'professional-uuid';
+it('should return an empty array when there are no blocks', async () => {
+  professionalUnavailabilityService.getByProfessionalId.mockResolvedValue(
+    [],
+  );
 
-  service.getByProfessionalId.mockResolvedValue([]);
-
-  const result =
-    await controller.getByProfessionalId(professionalId);
+  const result = await controller.getByProfessionalId(professionalId);
 
   expect(result).toEqual([]);
-
-  expect(
-    service.getByProfessionalId,
-  ).toHaveBeenCalledWith(professionalId);
 });
 
-it('debería propagar el error del service', async () => {
-  const professionalId = 'professional-uuid';
-  const error = new Error('Error obteniendo bloqueos');
+it('should propagate service errors', async () => {
+  const error = new Error('Database error');
 
-  service.getByProfessionalId.mockRejectedValue(error);
+  professionalUnavailabilityService.getByProfessionalId.mockRejectedValue(
+    error,
+  );
 
   await expect(
     controller.getByProfessionalId(professionalId),
   ).rejects.toThrow(error);
-
-  expect(
-    service.getByProfessionalId,
-  ).toHaveBeenCalledWith(professionalId);
 });
 
 
 });
-
-// ===========================================================================
-// create
-// ===========================================================================
 
 describe('create', () => {
-it('debería crear un bloqueo para el profesional', async () => {
-const professionalId = 'professional-uuid';
+const createData = {
+date: '2026-10-10',
+startTime: '09:00',
+endTime: '12:00',
+};
 
-  const data = {
-    startAt: '2030-10-02T12:00:00.000Z',
-    endAt: '2030-10-02T14:00:00.000Z',
-  } as any;
-
-  const createdBlock = {
-    id: 'block-1',
-    professionalId,
-    ...data,
+it('should allow an admin to create a block for any professional', async () => {
+  const adminRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.ADMIN],
+    },
   };
 
-  service.create.mockResolvedValue(createdBlock);
+  const createdBlock = {
+    id: unavailabilityId,
+    professional: {
+      id: professionalId,
+    },
+    ...createData,
+  };
+
+  professionalUnavailabilityService.create.mockResolvedValue(
+    createdBlock,
+  );
 
   const result = await controller.create(
     professionalId,
-    data,
+    createData as any,
+    adminRequest,
   );
 
-  expect(result).toBe(createdBlock);
+  expect(
+    professionalsService.getProfessionalByUserId,
+  ).not.toHaveBeenCalled();
 
-  expect(service.create).toHaveBeenCalledTimes(1);
+  expect(
+    professionalUnavailabilityService.create,
+  ).toHaveBeenCalledWith(professionalId, createData);
 
-  expect(service.create).toHaveBeenCalledWith(
-    professionalId,
-    data,
-  );
+  expect(result).toEqual(createdBlock);
 });
 
-it('debería pasar el DTO completo al service', async () => {
-  const professionalId = 'professional-uuid';
+it('should allow a professional to create a block for their own professional profile', async () => {
+  const professionalRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.PROFESSIONAL],
+    },
+  };
 
-  const data = {
-    startAt: '2030-10-02T12:00:00.000Z',
-    endAt: '2030-10-02T14:00:00.000Z',
-    reason: 'Vacaciones',
-  } as any;
+  const professional = {
+    id: professionalId,
+  };
 
-  service.create.mockResolvedValue({
-    id: 'block-1',
+  const createdBlock = {
+    id: unavailabilityId,
+    professional,
+    ...createData,
+  };
+
+  professionalsService.getProfessionalByUserId.mockResolvedValue(
+    professional,
+  );
+
+  professionalUnavailabilityService.create.mockResolvedValue(
+    createdBlock,
+  );
+
+  const result = await controller.create(
     professionalId,
-    ...data,
+    createData as any,
+    professionalRequest,
+  );
+
+  expect(
+    professionalsService.getProfessionalByUserId,
+  ).toHaveBeenCalledWith(userId);
+
+  expect(
+    professionalUnavailabilityService.create,
+  ).toHaveBeenCalledWith(professionalId, createData);
+
+  expect(result).toEqual(createdBlock);
+});
+
+it('should reject a professional trying to create a block for another professional', async () => {
+  const professionalRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.PROFESSIONAL],
+    },
+  };
+
+  professionalsService.getProfessionalByUserId.mockResolvedValue({
+    id: professionalId,
   });
 
-  await controller.create(
-    professionalId,
-    data,
+  await expect(
+    controller.create(
+      otherProfessionalId,
+      createData as any,
+      professionalRequest,
+    ),
+  ).rejects.toThrow(ForbiddenException);
+
+  await expect(
+    controller.create(
+      otherProfessionalId,
+      createData as any,
+      professionalRequest,
+    ),
+  ).rejects.toThrow(
+    'No tenés permiso para crear bloqueos para otro profesional',
   );
 
-  expect(service.create).toHaveBeenCalledWith(
-    professionalId,
-    data,
-  );
+  expect(
+    professionalUnavailabilityService.create,
+  ).not.toHaveBeenCalled();
 });
 
-it('debería propagar el error del service', async () => {
-  const professionalId = 'professional-uuid';
+it('should not perform ownership validation for a non-professional role', async () => {
+  const clientRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.CLIENT],
+    },
+  };
 
-  const data = {
-    startAt: '2030-10-02T12:00:00.000Z',
-    endAt: '2030-10-02T14:00:00.000Z',
-  } as any;
-
-  const error = new Error(
-    'El profesional ya tiene un bloqueo en ese horario',
+  professionalUnavailabilityService.create.mockResolvedValue(
+    unavailability,
   );
 
-  service.create.mockRejectedValue(error);
+  const result = await controller.create(
+    professionalId,
+    createData as any,
+    clientRequest,
+  );
+
+  expect(
+    professionalsService.getProfessionalByUserId,
+  ).not.toHaveBeenCalled();
+
+  expect(
+    professionalUnavailabilityService.create,
+  ).toHaveBeenCalledWith(professionalId, createData);
+
+  expect(result).toEqual(unavailability);
+});
+
+it('should propagate errors from ProfessionalsService', async () => {
+  const professionalRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.PROFESSIONAL],
+    },
+  };
+
+  const error = new Error('Professional not found');
+
+  professionalsService.getProfessionalByUserId.mockRejectedValue(error);
 
   await expect(
     controller.create(
       professionalId,
-      data,
+      createData as any,
+      professionalRequest,
     ),
   ).rejects.toThrow(error);
 
-  expect(service.create).toHaveBeenCalledWith(
-    professionalId,
-    data,
-  );
+  expect(
+    professionalUnavailabilityService.create,
+  ).not.toHaveBeenCalled();
 });
 
-
-});
-
-// ===========================================================================
-// delete
-// ===========================================================================
-
-describe('delete', () => {
-it('debería eliminar el bloqueo indicado', async () => {
-const id = 'block-uuid';
-
-  const response = {
-    message: 'Bloqueo eliminado correctamente',
+it('should propagate errors from ProfessionalUnavailabilityService', async () => {
+  const adminRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.ADMIN],
+    },
   };
 
-  service.delete.mockResolvedValue(response);
+  const error = new Error('Create error');
 
-  const result = await controller.delete(id);
-
-  expect(result).toBe(response);
-
-  expect(service.delete).toHaveBeenCalledTimes(1);
-
-  expect(service.delete).toHaveBeenCalledWith(id);
-});
-
-it('debería propagar el error del service', async () => {
-  const id = 'block-uuid';
-  const error = new Error(
-    'No existe el bloqueo solicitado',
-  );
-
-  service.delete.mockRejectedValue(error);
+  professionalUnavailabilityService.create.mockRejectedValue(error);
 
   await expect(
-    controller.delete(id),
+    controller.create(
+      professionalId,
+      createData as any,
+      adminRequest,
+    ),
+  ).rejects.toThrow(error);
+});
+
+
+});
+
+describe('delete', () => {
+it('should allow an admin to delete any professional block', async () => {
+const adminRequest = {
+user: {
+id: userId,
+roles: [UserRole.ADMIN],
+},
+};
+
+  professionalUnavailabilityService.getById.mockResolvedValue(
+    unavailability,
+  );
+
+  professionalUnavailabilityService.delete.mockResolvedValue(
+    undefined,
+  );
+
+  await expect(
+    controller.delete(unavailabilityId, adminRequest),
+  ).resolves.toBeUndefined();
+
+  expect(
+    professionalUnavailabilityService.getById,
+  ).toHaveBeenCalledWith(unavailabilityId);
+
+  expect(
+    professionalsService.getProfessionalByUserId,
+  ).not.toHaveBeenCalled();
+
+  expect(
+    professionalUnavailabilityService.delete,
+  ).toHaveBeenCalledWith(unavailabilityId);
+});
+
+it('should allow a professional to delete their own block', async () => {
+  const professionalRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.PROFESSIONAL],
+    },
+  };
+
+  professionalUnavailabilityService.getById.mockResolvedValue(
+    unavailability,
+  );
+
+  professionalsService.getProfessionalByUserId.mockResolvedValue({
+    id: professionalId,
+  });
+
+  professionalUnavailabilityService.delete.mockResolvedValue(
+    undefined,
+  );
+
+  await expect(
+    controller.delete(unavailabilityId, professionalRequest),
+  ).resolves.toBeUndefined();
+
+  expect(
+    professionalUnavailabilityService.getById,
+  ).toHaveBeenCalledWith(unavailabilityId);
+
+  expect(
+    professionalsService.getProfessionalByUserId,
+  ).toHaveBeenCalledWith(userId);
+
+  expect(
+    professionalUnavailabilityService.delete,
+  ).toHaveBeenCalledWith(unavailabilityId);
+});
+
+it('should reject a professional trying to delete another professional block', async () => {
+  const professionalRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.PROFESSIONAL],
+    },
+  };
+
+  professionalUnavailabilityService.getById.mockResolvedValue(
+    unavailability,
+  );
+
+  professionalsService.getProfessionalByUserId.mockResolvedValue({
+    id: otherProfessionalId,
+  });
+
+  await expect(
+    controller.delete(unavailabilityId, professionalRequest),
+  ).rejects.toThrow(ForbiddenException);
+
+  await expect(
+    controller.delete(unavailabilityId, professionalRequest),
+  ).rejects.toThrow(
+    'No tenés permiso para eliminar bloqueos de otro profesional',
+  );
+
+  expect(
+    professionalUnavailabilityService.delete,
+  ).not.toHaveBeenCalled();
+});
+
+it('should propagate errors when getting the block', async () => {
+  const adminRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.ADMIN],
+    },
+  };
+
+  const error = new Error('Block not found');
+
+  professionalUnavailabilityService.getById.mockRejectedValue(error);
+
+  await expect(
+    controller.delete(unavailabilityId, adminRequest),
   ).rejects.toThrow(error);
 
-  expect(service.delete).toHaveBeenCalledWith(id);
+  expect(
+    professionalUnavailabilityService.delete,
+  ).not.toHaveBeenCalled();
 });
 
+it('should propagate errors from ProfessionalsService during delete', async () => {
+  const professionalRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.PROFESSIONAL],
+    },
+  };
 
+  professionalUnavailabilityService.getById.mockResolvedValue(
+    unavailability,
+  );
+
+  const error = new Error('Professional lookup error');
+
+  professionalsService.getProfessionalByUserId.mockRejectedValue(error);
+
+  await expect(
+    controller.delete(unavailabilityId, professionalRequest),
+  ).rejects.toThrow(error);
+
+  expect(
+    professionalUnavailabilityService.delete,
+  ).not.toHaveBeenCalled();
 });
 
-// ===========================================================================
-// Guards y roles
-// ===========================================================================
+it('should propagate errors from delete service', async () => {
+  const adminRequest = {
+    user: {
+      id: userId,
+      roles: [UserRole.ADMIN],
+    },
+  };
 
-describe('configuración de seguridad', () => {
-it('debería tener configurados los guards en los endpoints', () => {
-const getByProfessionalIdDescriptor = Object.getOwnPropertyDescriptor(
-ProfessionalUnavailabilityController.prototype,
-'getByProfessionalId',
-);
-
-  const createDescriptor = Object.getOwnPropertyDescriptor(
-    ProfessionalUnavailabilityController.prototype,
-    'create',
+  professionalUnavailabilityService.getById.mockResolvedValue(
+    unavailability,
   );
 
-  const deleteDescriptor = Object.getOwnPropertyDescriptor(
-    ProfessionalUnavailabilityController.prototype,
-    'delete',
-  );
+  const error = new Error('Delete error');
 
-  expect(getByProfessionalIdDescriptor).toBeDefined();
-  expect(createDescriptor).toBeDefined();
-  expect(deleteDescriptor).toBeDefined();
+  professionalUnavailabilityService.delete.mockRejectedValue(error);
+
+  await expect(
+    controller.delete(unavailabilityId, adminRequest),
+  ).rejects.toThrow(error);
 });
 
 

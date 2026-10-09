@@ -1,3 +1,5 @@
+// src/appointments/appointments.controller.spec.ts
+
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentStatus } from './entities/appointment.entity';
@@ -5,18 +7,7 @@ import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 
 describe('AppointmentsController', () => {
   let controller: AppointmentsController;
-
-  let appointmentsService: {
-    getAllAppointments: jest.Mock;
-    getAppointmentsByUserId: jest.Mock;
-    getAvailableSlots: jest.Mock;
-    getAppointmentById: jest.Mock;
-    getAppointmentsByProfessionalId: jest.Mock;
-    cancelAppointment: jest.Mock;
-    rescheduleAppointment: jest.Mock;
-    completeAppointment: jest.Mock;
-    updateAppointmentStatus: jest.Mock;
-  };
+  let appointmentsService: jest.Mocked<AppointmentsService>;
 
   beforeEach(() => {
     appointmentsService = {
@@ -29,23 +20,25 @@ describe('AppointmentsController', () => {
       rescheduleAppointment: jest.fn(),
       completeAppointment: jest.fn(),
       updateAppointmentStatus: jest.fn(),
-    };
+    } as unknown as jest.Mocked<AppointmentsService>;
 
-    controller = new AppointmentsController(
-      appointmentsService as unknown as AppointmentsService,
-    );
+    controller = new AppointmentsController(appointmentsService);
+  });
 
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe('getAllAppointments', () => {
-    it('debería obtener todos los turnos', async () => {
+    it('should call appointmentsService.getAllAppointments', async () => {
       const appointments = [
         { id: 'appointment-1' },
         { id: 'appointment-2' },
       ];
 
-      appointmentsService.getAllAppointments.mockResolvedValue(appointments);
+      appointmentsService.getAllAppointments.mockResolvedValue(
+        appointments as any,
+      );
 
       const result = await controller.getAllAppointments();
 
@@ -53,16 +46,22 @@ describe('AppointmentsController', () => {
         appointmentsService.getAllAppointments,
       ).toHaveBeenCalledTimes(1);
 
-      expect(
-        appointmentsService.getAllAppointments,
-      ).toHaveBeenCalledWith();
+      expect(result).toEqual(appointments);
+    });
 
-      expect(result).toBe(appointments);
+    it('should propagate service errors', async () => {
+      const error = new Error('Database error');
+
+      appointmentsService.getAllAppointments.mockRejectedValue(error);
+
+      await expect(controller.getAllAppointments()).rejects.toThrow(
+        'Database error',
+      );
     });
   });
 
   describe('getMyAppointments', () => {
-    it('debería obtener los turnos del usuario autenticado', async () => {
+    it('should get appointments using the authenticated user id', async () => {
       const userId = 'user-123';
 
       const req = {
@@ -77,7 +76,7 @@ describe('AppointmentsController', () => {
       ];
 
       appointmentsService.getAppointmentsByUserId.mockResolvedValue(
-        appointments,
+        appointments as any,
       );
 
       const result = await controller.getMyAppointments(req);
@@ -90,30 +89,46 @@ describe('AppointmentsController', () => {
         appointmentsService.getAppointmentsByUserId,
       ).toHaveBeenCalledWith(userId);
 
-      expect(result).toBe(appointments);
+      expect(result).toEqual(appointments);
+    });
+
+    it('should propagate service errors', async () => {
+      const req = {
+        user: {
+          id: 'user-123',
+        },
+      };
+
+      appointmentsService.getAppointmentsByUserId.mockRejectedValue(
+        new Error('User not found'),
+      );
+
+      await expect(controller.getMyAppointments(req)).rejects.toThrow(
+        'User not found',
+      );
     });
   });
 
   describe('getAvailableSlots', () => {
-    it('debería obtener los horarios disponibles', async () => {
+    it('should call the service with all provided parameters', async () => {
       const professionalId = 'professional-123';
       const serviceId = 'service-123';
-      const date = '2026-10-02';
+      const date = '2026-10-08';
+      const appointmentId = 'appointment-123';
 
-      const availableSlots = [
+      const slots = [
         '09:00',
         '10:00',
         '11:00',
       ];
 
-      appointmentsService.getAvailableSlots.mockResolvedValue(
-        availableSlots,
-      );
+      appointmentsService.getAvailableSlots.mockResolvedValue(slots as any);
 
       const result = await controller.getAvailableSlots(
         professionalId,
         serviceId,
         date,
+        appointmentId,
       );
 
       expect(
@@ -126,32 +141,23 @@ describe('AppointmentsController', () => {
         professionalId,
         serviceId,
         date,
-        undefined,
+        appointmentId,
       );
 
-      expect(result).toBe(availableSlots);
+      expect(result).toEqual(slots);
     });
 
-    it('debería pasar appointmentId cuando se proporciona', async () => {
+    it('should call the service without appointmentId when it is not provided', async () => {
       const professionalId = 'professional-123';
       const serviceId = 'service-123';
-      const date = '2026-10-02';
-      const appointmentId = 'appointment-123';
+      const date = '2026-10-08';
 
-      const availableSlots = [
-        '09:00',
-        '10:00',
-      ];
-
-      appointmentsService.getAvailableSlots.mockResolvedValue(
-        availableSlots,
-      );
+      appointmentsService.getAvailableSlots.mockResolvedValue([] as any);
 
       const result = await controller.getAvailableSlots(
         professionalId,
         serviceId,
         date,
-        appointmentId,
       );
 
       expect(
@@ -160,15 +166,29 @@ describe('AppointmentsController', () => {
         professionalId,
         serviceId,
         date,
-        appointmentId,
+        undefined,
       );
 
-      expect(result).toBe(availableSlots);
+      expect(result).toEqual([]);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.getAvailableSlots.mockRejectedValue(
+        new Error('Professional not found'),
+      );
+
+      await expect(
+        controller.getAvailableSlots(
+          'professional-123',
+          'service-123',
+          '2026-10-08',
+        ),
+      ).rejects.toThrow('Professional not found');
     });
   });
 
   describe('getAppointmentById', () => {
-    it('debería obtener un turno por su ID', async () => {
+    it('should call the service with the appointment id', async () => {
       const appointmentId = 'appointment-123';
 
       const appointment = {
@@ -177,7 +197,7 @@ describe('AppointmentsController', () => {
       };
 
       appointmentsService.getAppointmentById.mockResolvedValue(
-        appointment,
+        appointment as any,
       );
 
       const result = await controller.getAppointmentById(appointmentId);
@@ -190,20 +210,31 @@ describe('AppointmentsController', () => {
         appointmentsService.getAppointmentById,
       ).toHaveBeenCalledWith(appointmentId);
 
-      expect(result).toBe(appointment);
+      expect(result).toEqual(appointment);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.getAppointmentById.mockRejectedValue(
+        new Error('Appointment not found'),
+      );
+
+      await expect(
+        controller.getAppointmentById('appointment-123'),
+      ).rejects.toThrow('Appointment not found');
     });
   });
 
   describe('getAppointmentsByUserId', () => {
-    it('debería obtener los turnos de un usuario', async () => {
+    it('should call the service with the user id', async () => {
       const userId = 'user-123';
 
       const appointments = [
         { id: 'appointment-1' },
+        { id: 'appointment-2' },
       ];
 
       appointmentsService.getAppointmentsByUserId.mockResolvedValue(
-        appointments,
+        appointments as any,
       );
 
       const result = await controller.getAppointmentsByUserId(userId);
@@ -216,12 +247,22 @@ describe('AppointmentsController', () => {
         appointmentsService.getAppointmentsByUserId,
       ).toHaveBeenCalledWith(userId);
 
-      expect(result).toBe(appointments);
+      expect(result).toEqual(appointments);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.getAppointmentsByUserId.mockRejectedValue(
+        new Error('User not found'),
+      );
+
+      await expect(
+        controller.getAppointmentsByUserId('user-123'),
+      ).rejects.toThrow('User not found');
     });
   });
 
   describe('getAppointmentsByProfessionalId', () => {
-    it('debería obtener los turnos de un profesional', async () => {
+    it('should call the service with the professional id', async () => {
       const professionalId = 'professional-123';
 
       const appointments = [
@@ -230,13 +271,12 @@ describe('AppointmentsController', () => {
       ];
 
       appointmentsService.getAppointmentsByProfessionalId.mockResolvedValue(
-        appointments,
+        appointments as any,
       );
 
-      const result =
-        await controller.getAppointmentsByProfessionalId(
-          professionalId,
-        );
+      const result = await controller.getAppointmentsByProfessionalId(
+        professionalId,
+      );
 
       expect(
         appointmentsService.getAppointmentsByProfessionalId,
@@ -246,12 +286,22 @@ describe('AppointmentsController', () => {
         appointmentsService.getAppointmentsByProfessionalId,
       ).toHaveBeenCalledWith(professionalId);
 
-      expect(result).toBe(appointments);
+      expect(result).toEqual(appointments);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.getAppointmentsByProfessionalId.mockRejectedValue(
+        new Error('Professional not found'),
+      );
+
+      await expect(
+        controller.getAppointmentsByProfessionalId('professional-123'),
+      ).rejects.toThrow('Professional not found');
     });
   });
 
   describe('cancelAppointment', () => {
-    it('debería cancelar un turno', async () => {
+    it('should call the service with the appointment id', async () => {
       const appointmentId = 'appointment-123';
 
       const cancelledAppointment = {
@@ -260,11 +310,10 @@ describe('AppointmentsController', () => {
       };
 
       appointmentsService.cancelAppointment.mockResolvedValue(
-        cancelledAppointment,
+        cancelledAppointment as any,
       );
 
-      const result =
-        await controller.cancelAppointment(appointmentId);
+      const result = await controller.cancelAppointment(appointmentId);
 
       expect(
         appointmentsService.cancelAppointment,
@@ -274,26 +323,36 @@ describe('AppointmentsController', () => {
         appointmentsService.cancelAppointment,
       ).toHaveBeenCalledWith(appointmentId);
 
-      expect(result).toBe(cancelledAppointment);
+      expect(result).toEqual(cancelledAppointment);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.cancelAppointment.mockRejectedValue(
+        new Error('Appointment cannot be cancelled'),
+      );
+
+      await expect(
+        controller.cancelAppointment('appointment-123'),
+      ).rejects.toThrow('Appointment cannot be cancelled');
     });
   });
 
   describe('rescheduleAppointment', () => {
-    it('debería reprogramar un turno', async () => {
+    it('should call the service with appointment id and dto', async () => {
       const appointmentId = 'appointment-123';
 
-      const rescheduleAppointmentDto =
-        {
-          startAt: '2026-10-02T10:00:00.000Z',
-        } as unknown as RescheduleAppointmentDto;
+      const rescheduleAppointmentDto = {
+        startAt: '2026-10-09T10:00:00.000Z',
+      } as unknown as RescheduleAppointmentDto;
 
-      const updatedAppointment = {
+      const rescheduledAppointment = {
         id: appointmentId,
+        status: AppointmentStatus.CONFIRMED,
         startAt: rescheduleAppointmentDto.startAt,
       };
 
       appointmentsService.rescheduleAppointment.mockResolvedValue(
-        updatedAppointment,
+        rescheduledAppointment as any,
       );
 
       const result = await controller.rescheduleAppointment(
@@ -312,12 +371,29 @@ describe('AppointmentsController', () => {
         rescheduleAppointmentDto,
       );
 
-      expect(result).toBe(updatedAppointment);
+      expect(result).toEqual(rescheduledAppointment);
+    });
+
+    it('should propagate service errors', async () => {
+      const dto = {
+        startAt: '2026-10-09T10:00:00.000Z',
+      } as unknown as RescheduleAppointmentDto;
+
+      appointmentsService.rescheduleAppointment.mockRejectedValue(
+        new Error('Cannot reschedule appointment'),
+      );
+
+      await expect(
+        controller.rescheduleAppointment(
+          'appointment-123',
+          dto,
+        ),
+      ).rejects.toThrow('Cannot reschedule appointment');
     });
   });
 
   describe('completeAppointment', () => {
-    it('debería completar un turno', async () => {
+    it('should call the service with the appointment id', async () => {
       const appointmentId = 'appointment-123';
 
       const completedAppointment = {
@@ -326,11 +402,10 @@ describe('AppointmentsController', () => {
       };
 
       appointmentsService.completeAppointment.mockResolvedValue(
-        completedAppointment,
+        completedAppointment as any,
       );
 
-      const result =
-        await controller.completeAppointment(appointmentId);
+      const result = await controller.completeAppointment(appointmentId);
 
       expect(
         appointmentsService.completeAppointment,
@@ -340,12 +415,22 @@ describe('AppointmentsController', () => {
         appointmentsService.completeAppointment,
       ).toHaveBeenCalledWith(appointmentId);
 
-      expect(result).toBe(completedAppointment);
+      expect(result).toEqual(completedAppointment);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.completeAppointment.mockRejectedValue(
+        new Error('Appointment cannot be completed'),
+      );
+
+      await expect(
+        controller.completeAppointment('appointment-123'),
+      ).rejects.toThrow('Appointment cannot be completed');
     });
   });
 
   describe('updateAppointmentStatus', () => {
-    it('debería actualizar el estado de un turno', async () => {
+    it('should call the service with appointment id and new status', async () => {
       const appointmentId = 'appointment-123';
       const newStatus = AppointmentStatus.CONFIRMED;
 
@@ -355,7 +440,7 @@ describe('AppointmentsController', () => {
       };
 
       appointmentsService.updateAppointmentStatus.mockResolvedValue(
-        updatedAppointment,
+        updatedAppointment as any,
       );
 
       const result = await controller.updateAppointmentStatus(
@@ -374,7 +459,20 @@ describe('AppointmentsController', () => {
         newStatus,
       );
 
-      expect(result).toBe(updatedAppointment);
+      expect(result).toEqual(updatedAppointment);
+    });
+
+    it('should propagate service errors', async () => {
+      appointmentsService.updateAppointmentStatus.mockRejectedValue(
+        new Error('Invalid appointment status'),
+      );
+
+      await expect(
+        controller.updateAppointmentStatus(
+          'appointment-123',
+          AppointmentStatus.CONFIRMED,
+        ),
+      ).rejects.toThrow('Invalid appointment status');
     });
   });
 });

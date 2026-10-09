@@ -14,19 +14,20 @@ import {
   ApiExcludeEndpoint,
   ApiOperation,
   ApiParam,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { PaymentsService } from './payments.service';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
+import { ProcessCashPaymentDto } from './dto/process-cash-payment.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Payment } from './entities/payment.entity';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../decorators/roles.decorators';
 import { UserRole } from '../common/userRoles.enum';
+import { ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -61,6 +62,39 @@ export class PaymentsController {
     @Body() processPaymentDto: ProcessPaymentDto,
   ): Promise<Payment> {
     return this.paymentsService.processPayment(processPaymentDto);
+  }
+
+  @Post('cash')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Registrar un pago en efectivo',
+    description:
+      'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
+  })
+ @ApiResponse({
+    status: 200,
+    description: 'Detalle del pago encontrado',
+    type: Payment,
+  })
+    @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o falla en el procesamiento',
+  })
+      @ApiResponse({
+    status: 401,
+    description: 'Token no enviado, inválido o expirado',
+  })
+      @ApiResponse({
+    status: 403,
+    description: 'Sin permisos de administrador'
+  })
+
+  async processCashPayment(
+    @Body() processCashPaymentDto: ProcessCashPaymentDto,
+  ): Promise<Payment> {
+    return this.paymentsService.processCashPayment(processCashPaymentDto);
   }
 
   @Post('stripe/create-intent')

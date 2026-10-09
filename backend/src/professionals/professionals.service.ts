@@ -27,6 +27,10 @@ export class ProfessionalsService {
     return this.professionalsRepository.getProfessionalById(id);
   }
 
+  async getProfessionalByUserId(userId: string) {
+    return this.professionalsRepository.getProfessionalByUserId(userId);
+  }
+
   async updateProfessional(
     id: string,
     updateProfessionalDto: UpdateProfessionalDto,

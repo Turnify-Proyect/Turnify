@@ -8,7 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import Stripe from 'stripe';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
-import { Payment, PaymentStatus } from './entities/payment.entity';
+import { Payment, PaymentStatus, PaymentType } from './entities/payment.entity';
+import { ProcessCashPaymentDto } from './dto/process-cash-payment.dto';
 import { Order } from '../orders/entities/order.entity';
 import { OrderStatus } from '../orders/enums/order-status.enum';
 import {
@@ -34,8 +35,14 @@ export class PaymentsService {
   ) {}
 
   async processPayment(processPaymentDto: ProcessPaymentDto): Promise<Payment> {
-    const { orderId, amount, provider, externalPaymentId, status } =
-      processPaymentDto;
+    const {
+      orderId,
+      amount,
+      provider,
+      externalPaymentId,
+      status,
+      paymentType,
+    } = processPaymentDto;
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -122,13 +129,19 @@ export class PaymentsService {
           provider,
           status,
           externalPaymentId: externalPaymentId ?? null,
+          paymentType: paymentType ?? null,
         });
       } else {
         payment.amount = amount.toString();
         payment.provider = provider;
         payment.status = status;
+
         if (externalPaymentId) {
           payment.externalPaymentId = externalPaymentId;
+        }
+
+        if (paymentType) {
+          payment.paymentType = paymentType;
         }
       }
 
@@ -212,6 +225,7 @@ export class PaymentsService {
             appointmentsForNotification,
             depositAmount,
             totalAmount,
+            updatedPayment.paymentType,
           );
         } catch (error) {
           this.logger.error(
@@ -444,6 +458,7 @@ export class PaymentsService {
           provider: 'stripe',
           externalPaymentId: intent.id,
           status: PaymentStatus.PAID,
+          paymentType: PaymentType.DEPOSIT_PAYMENT,
         });
 
         return { received: true };
@@ -483,6 +498,7 @@ export class PaymentsService {
         provider: 'stripe',
         externalPaymentId: intent.id,
         status: PaymentStatus.PAID,
+        paymentType: PaymentType.DEPOSIT_PAYMENT,
       });
     }
 
@@ -721,4 +737,36 @@ try {
   emailSent,
 };
 }
+
+async processCashPayment(
+  processCashPaymentDto: ProcessCashPaymentDto,
+): Promise<Payment> {
+  const { orderId, paymentType } = processCashPaymentDto;
+
+  const order = await this.dataSource.getRepository(Order).findOne({
+    where: { order_id: orderId },
+    relations: ['orderDetails'],
+  });
+
+  if (!order) {
+    throw new NotFoundException(
+      `No se encontró la orden con ID: ${orderId}`,
+    );
+  }
+
+  const amount =
+    paymentType === PaymentType.DEPOSIT_PAYMENT
+      ? this.getOrderDeposit(order)
+      : this.getOrderTotal(order);
+
+  return this.processPayment({
+    orderId,
+    amount,
+    provider: 'cash',
+    externalPaymentId: undefined,
+    status: PaymentStatus.PAID,
+    paymentType,
+  });
+}
+
 }

@@ -1,537 +1,445 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { ProfessionalUnavailabilityRepository } from './professional-unavailability.repository';
 import { ProfessionalUnavailability } from './entities/professional-unavailability.entity';
+import { CreateProfessionalUnavailabilityDto } from './dto/create-professional-unavailability.dto';
 
 describe('ProfessionalUnavailabilityRepository', () => {
-let repository: ProfessionalUnavailabilityRepository;
+  let repository: ProfessionalUnavailabilityRepository;
 
-let ormRepository: any;
-let queryBuilder: any;
+  const ormRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    createQueryBuilder: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+  };
 
-beforeEach(() => {
-queryBuilder = {
-where: jest.fn().mockReturnThis(),
-andWhere: jest.fn().mockReturnThis(),
-getOne: jest.fn().mockResolvedValue(null),
-};
+  beforeEach(async () => {
+    jest.clearAllMocks();
 
-ormRepository = {
-  findOne: jest.fn(),
-  find: jest.fn(),
-  createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-  create: jest.fn(),
-  save: jest.fn(),
-  delete: jest.fn(),
-};
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ProfessionalUnavailabilityRepository,
+        {
+          provide: getRepositoryToken(ProfessionalUnavailability),
+          useValue: ormRepository,
+        },
+      ],
+    }).compile();
 
-repository = new ProfessionalUnavailabilityRepository(
-  ormRepository,
-);
-
-
-});
-
-afterEach(() => {
-jest.clearAllMocks();
-});
-
-// ===========================================================================
-// getById
-// ===========================================================================
-
-describe('getById', () => {
-it('debería devolver el bloqueo solicitado', async () => {
-const block = {
-id: 'block-1',
-startDate: '2030-10-02T12:00:00.000Z',
-endDate: '2030-10-02T14:00:00.000Z',
-reason: 'Vacaciones',
-professional: {
-id: 'professional-1',
-},
-};
-
-  ormRepository.findOne.mockResolvedValue(block);
-
-  const result = await repository.getById('block-1');
-
-  expect(result).toBe(block);
-
-  expect(ormRepository.findOne).toHaveBeenCalledTimes(1);
-
-  expect(ormRepository.findOne).toHaveBeenCalledWith({
-    where: {
-      id: 'block-1',
-    },
-    relations: {
-      professional: true,
-    },
-  });
-});
-
-it('debería devolver null si el bloqueo no existe', async () => {
-  ormRepository.findOne.mockResolvedValue(null);
-
-  const result = await repository.getById(
-    'block-inexistente',
-  );
-
-  expect(result).toBeNull();
-
-  expect(ormRepository.findOne).toHaveBeenCalledWith({
-    where: {
-      id: 'block-inexistente',
-    },
-    relations: {
-      professional: true,
-    },
-  });
-});
-
-
-});
-
-// ===========================================================================
-// getByProfessionalId
-// ===========================================================================
-
-describe('getByProfessionalId', () => {
-it('debería devolver los bloqueos del profesional ordenados por fecha de inicio', async () => {
-const blocks = [
-{
-id: 'block-1',
-startDate: '2030-10-02T09:00:00.000Z',
-endDate: '2030-10-02T12:00:00.000Z',
-},
-{
-id: 'block-2',
-startDate: '2030-10-03T14:00:00.000Z',
-endDate: '2030-10-03T16:00:00.000Z',
-},
-];
-
-  ormRepository.find.mockResolvedValue(blocks);
-
-  const result =
-    await repository.getByProfessionalId(
-      'professional-1',
+    repository = module.get<ProfessionalUnavailabilityRepository>(
+      ProfessionalUnavailabilityRepository,
     );
-
-  expect(result).toBe(blocks);
-
-  expect(ormRepository.find).toHaveBeenCalledTimes(1);
-
-  expect(ormRepository.find).toHaveBeenCalledWith({
-    where: {
-      professional: {
-        id: 'professional-1',
-      },
-    },
-    order: {
-      startDate: 'ASC',
-    },
-  });
-});
-
-it('debería devolver un array vacío si el profesional no tiene bloqueos', async () => {
-  ormRepository.find.mockResolvedValue([]);
-
-  const result =
-    await repository.getByProfessionalId(
-      'professional-1',
-    );
-
-  expect(result).toEqual([]);
-
-  expect(ormRepository.find).toHaveBeenCalledWith({
-    where: {
-      professional: {
-        id: 'professional-1',
-      },
-    },
-    order: {
-      startDate: 'ASC',
-    },
-  });
-});
-
-
-});
-
-// ===========================================================================
-// getOverlapping
-// ===========================================================================
-
-describe('getOverlapping', () => {
-it('debería devolver un bloqueo que se superpone', async () => {
-const block = {
-id: 'block-1',
-professional: {
-id: 'professional-1',
-},
-startDate: '2030-10-02T12:00:00.000Z',
-endDate: '2030-10-02T14:00:00.000Z',
-};
-
-  queryBuilder.getOne.mockResolvedValue(block);
-
-  const result = await repository.getOverlapping(
-    'professional-1',
-    '2030-10-02T13:00:00.000Z',
-    '2030-10-02T15:00:00.000Z',
-  );
-
-  expect(result).toBe(block);
-
-  expect(
-    ormRepository.createQueryBuilder,
-  ).toHaveBeenCalledWith('unavailability');
-
-  expect(queryBuilder.where).toHaveBeenCalledWith(
-    'unavailability.professional_id = :professionalId',
-    {
-      professionalId: 'professional-1',
-    },
-  );
-
-  expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
-    1,
-    'unavailability.start_date <= :endDate',
-    {
-      endDate: '2030-10-02T15:00:00.000Z',
-    },
-  );
-
-  expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
-    2,
-    'unavailability.end_date >= :startDate',
-    {
-      startDate: '2030-10-02T13:00:00.000Z',
-    },
-  );
-
-  expect(queryBuilder.getOne).toHaveBeenCalledTimes(1);
-});
-
-it('debería devolver null si no existe un bloqueo superpuesto', async () => {
-  queryBuilder.getOne.mockResolvedValue(null);
-
-  const result = await repository.getOverlapping(
-    'professional-1',
-    '2030-10-02T13:00:00.000Z',
-    '2030-10-02T15:00:00.000Z',
-  );
-
-  expect(result).toBeNull();
-
-  expect(
-    ormRepository.createQueryBuilder,
-  ).toHaveBeenCalledWith('unavailability');
-
-  expect(queryBuilder.getOne).toHaveBeenCalledTimes(1);
-});
-
-it('debería consultar usando correctamente el profesional y las fechas', async () => {
-  await repository.getOverlapping(
-    'professional-123',
-    '2030-10-05T10:00:00.000Z',
-    '2030-10-05T11:00:00.000Z',
-  );
-
-  expect(queryBuilder.where).toHaveBeenCalledWith(
-    'unavailability.professional_id = :professionalId',
-    {
-      professionalId: 'professional-123',
-    },
-  );
-
-  expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
-    1,
-    'unavailability.start_date <= :endDate',
-    {
-      endDate: '2030-10-05T11:00:00.000Z',
-    },
-  );
-
-  expect(queryBuilder.andWhere).toHaveBeenNthCalledWith(
-    2,
-    'unavailability.end_date >= :startDate',
-    {
-      startDate: '2030-10-05T10:00:00.000Z',
-    },
-  );
-});
-
-
-});
-
-// ===========================================================================
-// create
-// ===========================================================================
-
-describe('create', () => {
-it('debería crear y guardar un bloqueo', async () => {
-const data = {
-startDate: '2030-10-02T12:00:00.000Z',
-endDate: '2030-10-02T14:00:00.000Z',
-reason: ' Vacaciones ',
-} as any;
-
-  const createdBlock = {
-    id: 'block-1',
-    startDate: data.startDate,
-    endDate: data.endDate,
-    reason: 'Vacaciones',
-    professional: {
-      id: 'professional-1',
-    },
-  };
-
-  ormRepository.create.mockReturnValue(
-    createdBlock,
-  );
-
-  ormRepository.save.mockResolvedValue(
-    createdBlock,
-  );
-
-  const result = await repository.create(
-    'professional-1',
-    data,
-  );
-
-  expect(ormRepository.create).toHaveBeenCalledTimes(1);
-
-  expect(ormRepository.create).toHaveBeenCalledWith({
-    startDate: data.startDate,
-    endDate: data.endDate,
-    reason: 'Vacaciones',
-    professional: {
-      id: 'professional-1',
-    },
   });
 
-  expect(ormRepository.save).toHaveBeenCalledTimes(1);
+  describe('getById', () => {
+    it('should return the unavailability by id with the professional relation', async () => {
+      const unavailability = {
+        id: 'unavailability-id',
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        professional: {
+          id: 'professional-id',
+        },
+      } as ProfessionalUnavailability;
 
-  expect(ormRepository.save).toHaveBeenCalledWith(
-    createdBlock,
-  );
+      ormRepository.findOne.mockResolvedValue(unavailability);
 
-  expect(result).toBe(createdBlock);
-});
+      const result = await repository.getById('unavailability-id');
 
-it('debería convertir un reason vacío en null', async () => {
-  const data = {
-    startDate: '2030-10-02T12:00:00.000Z',
-    endDate: '2030-10-02T14:00:00.000Z',
-    reason: '   ',
-  } as any;
+      expect(ormRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'unavailability-id',
+        },
+        relations: {
+          professional: true,
+        },
+      });
 
-  const createdBlock = {
-    id: 'block-1',
-  };
+      expect(result).toBe(unavailability);
+    });
 
-  ormRepository.create.mockReturnValue(
-    createdBlock,
-  );
+    it('should return null when the unavailability does not exist', async () => {
+      ormRepository.findOne.mockResolvedValue(null);
 
-  ormRepository.save.mockResolvedValue(
-    createdBlock,
-  );
+      const result = await repository.getById('non-existent-id');
 
-  await repository.create(
-    'professional-1',
-    data,
-  );
+      expect(ormRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'non-existent-id',
+        },
+        relations: {
+          professional: true,
+        },
+      });
 
-  expect(ormRepository.create).toHaveBeenCalledWith({
-    startDate: data.startDate,
-    endDate: data.endDate,
-    reason: null,
-    professional: {
-      id: 'professional-1',
-    },
-  });
-});
+      expect(result).toBeNull();
+    });
 
-it('debería usar null cuando reason no está definido', async () => {
-  const data = {
-    startDate: '2030-10-02T12:00:00.000Z',
-    endDate: '2030-10-02T14:00:00.000Z',
-  } as any;
+    it('should propagate repository errors', async () => {
+      const error = new Error('Database error');
 
-  const createdBlock = {
-    id: 'block-1',
-  };
+      ormRepository.findOne.mockRejectedValue(error);
 
-  ormRepository.create.mockReturnValue(
-    createdBlock,
-  );
-
-  ormRepository.save.mockResolvedValue(
-    createdBlock,
-  );
-
-  await repository.create(
-    'professional-1',
-    data,
-  );
-
-  expect(ormRepository.create).toHaveBeenCalledWith({
-    startDate: data.startDate,
-    endDate: data.endDate,
-    reason: null,
-    professional: {
-      id: 'professional-1',
-    },
-  });
-});
-
-it('debería conservar el reason correctamente cuando no tiene espacios externos', async () => {
-  const data = {
-    startDate: '2030-10-02T12:00:00.000Z',
-    endDate: '2030-10-02T14:00:00.000Z',
-    reason: 'Turno médico',
-  } as any;
-
-  const createdBlock = {
-    id: 'block-1',
-  };
-
-  ormRepository.create.mockReturnValue(
-    createdBlock,
-  );
-
-  ormRepository.save.mockResolvedValue(
-    createdBlock,
-  );
-
-  await repository.create(
-    'professional-1',
-    data,
-  );
-
-  expect(ormRepository.create).toHaveBeenCalledWith({
-    startDate: data.startDate,
-    endDate: data.endDate,
-    reason: 'Turno médico',
-    professional: {
-      id: 'professional-1',
-    },
-  });
-});
-
-
-});
-
-// ===========================================================================
-// delete
-// ===========================================================================
-
-describe('delete', () => {
-it('debería eliminar el bloqueo por id', async () => {
-ormRepository.delete.mockResolvedValue({
-affected: 1,
-});
-
-  await repository.delete('block-1');
-
-  expect(ormRepository.delete).toHaveBeenCalledTimes(1);
-
-  expect(ormRepository.delete).toHaveBeenCalledWith(
-    'block-1',
-  );
-});
-
-it('debería completar correctamente aunque no exista el bloqueo', async () => {
-  ormRepository.delete.mockResolvedValue({
-    affected: 0,
+      await expect(repository.getById('unavailability-id')).rejects.toThrow(
+        error,
+      );
+    });
   });
 
-  await expect(
-    repository.delete('block-inexistente'),
-  ).resolves.toBeUndefined();
+  describe('getByProfessionalId', () => {
+    it('should return all unavailabilities for a professional ordered by start date', async () => {
+      const unavailabilities = [
+        {
+          id: 'unavailability-1',
+          startDate: '2026-10-10',
+          endDate: '2026-10-12',
+        },
+        {
+          id: 'unavailability-2',
+          startDate: '2026-10-20',
+          endDate: '2026-10-25',
+        },
+      ] as ProfessionalUnavailability[];
 
-  expect(ormRepository.delete).toHaveBeenCalledWith(
-    'block-inexistente',
-  );
-});
+      ormRepository.find.mockResolvedValue(unavailabilities);
 
+      const result =
+        await repository.getByProfessionalId('professional-id');
 
-});
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        where: {
+          professional: {
+            id: 'professional-id',
+          },
+        },
+        order: {
+          startDate: 'ASC',
+        },
+      });
 
-// ===========================================================================
-// Errores de TypeORM
-// ===========================================================================
+      expect(result).toBe(unavailabilities);
+    });
 
-describe('manejo de errores', () => {
-it('debería propagar el error de getById', async () => {
-const error = new Error('Database error');
+    it('should return an empty array when the professional has no unavailabilities', async () => {
+      ormRepository.find.mockResolvedValue([]);
 
-  ormRepository.findOne.mockRejectedValue(error);
+      const result =
+        await repository.getByProfessionalId('professional-id');
 
-  await expect(
-    repository.getById('block-1'),
-  ).rejects.toThrow(error);
-});
+      expect(result).toEqual([]);
+    });
 
-it('debería propagar el error de getByProfessionalId', async () => {
-  const error = new Error('Database error');
+    it('should propagate repository errors', async () => {
+      const error = new Error('Database error');
 
-  ormRepository.find.mockRejectedValue(error);
+      ormRepository.find.mockRejectedValue(error);
 
-  await expect(
-    repository.getByProfessionalId(
-      'professional-1',
-    ),
-  ).rejects.toThrow(error);
-});
-
-it('debería propagar el error de getOverlapping', async () => {
-  const error = new Error('Database error');
-
-  queryBuilder.getOne.mockRejectedValue(error);
-
-  await expect(
-    repository.getOverlapping(
-      'professional-1',
-      '2030-10-02T12:00:00.000Z',
-      '2030-10-02T14:00:00.000Z',
-    ),
-  ).rejects.toThrow(error);
-});
-
-it('debería propagar el error de save', async () => {
-  const error = new Error('Database error');
-
-  const data = {
-    startDate: '2030-10-02T12:00:00.000Z',
-    endDate: '2030-10-02T14:00:00.000Z',
-  } as any;
-
-  ormRepository.create.mockReturnValue({
-    id: 'block-1',
+      await expect(
+        repository.getByProfessionalId('professional-id'),
+      ).rejects.toThrow(error);
+    });
   });
 
-  ormRepository.save.mockRejectedValue(error);
+  describe('getOverlapping', () => {
+    it('should return an overlapping unavailability', async () => {
+      const unavailability = {
+        id: 'unavailability-id',
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+      } as ProfessionalUnavailability;
 
-  await expect(
-    repository.create(
-      'professional-1',
-      data,
-    ),
-  ).rejects.toThrow(error);
-});
+      const getOne = jest.fn().mockResolvedValue(unavailability);
+      const andWhereSecond = jest.fn().mockReturnValue({
+        getOne,
+      });
+      const andWhereFirst = jest.fn().mockReturnValue({
+        andWhere: andWhereSecond,
+      });
+      const where = jest.fn().mockReturnValue({
+        andWhere: andWhereFirst,
+      });
 
-it('debería propagar el error de delete', async () => {
-  const error = new Error('Database error');
+      ormRepository.createQueryBuilder.mockReturnValue({
+        where,
+      });
 
-  ormRepository.delete.mockRejectedValue(error);
+      const result = await repository.getOverlapping(
+        'professional-id',
+        '2026-10-12',
+        '2026-10-20',
+      );
 
-  await expect(
-    repository.delete('block-1'),
-  ).rejects.toThrow(error);
-});
+      expect(ormRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'unavailability',
+      );
 
+      expect(where).toHaveBeenCalledWith(
+        'unavailability.professional_id = :professionalId',
+        {
+          professionalId: 'professional-id',
+        },
+      );
 
-});
+      expect(andWhereFirst).toHaveBeenCalledWith(
+        'unavailability.start_date <= :endDate',
+        {
+          endDate: '2026-10-20',
+        },
+      );
+
+      expect(andWhereSecond).toHaveBeenCalledWith(
+        'unavailability.end_date >= :startDate',
+        {
+          startDate: '2026-10-12',
+        },
+      );
+
+      expect(getOne).toHaveBeenCalled();
+
+      expect(result).toBe(unavailability);
+    });
+
+    it('should return null when there is no overlapping unavailability', async () => {
+      const getOne = jest.fn().mockResolvedValue(null);
+
+      const andWhereSecond = jest.fn().mockReturnValue({
+        getOne,
+      });
+
+      const andWhereFirst = jest.fn().mockReturnValue({
+        andWhere: andWhereSecond,
+      });
+
+      const where = jest.fn().mockReturnValue({
+        andWhere: andWhereFirst,
+      });
+
+      ormRepository.createQueryBuilder.mockReturnValue({
+        where,
+      });
+
+      const result = await repository.getOverlapping(
+        'professional-id',
+        '2026-10-12',
+        '2026-10-20',
+      );
+
+      expect(result).toBeNull();
+      expect(getOne).toHaveBeenCalled();
+    });
+
+    it('should propagate query builder errors', async () => {
+      const error = new Error('Query failed');
+
+      const getOne = jest.fn().mockRejectedValue(error);
+
+      const andWhereSecond = jest.fn().mockReturnValue({
+        getOne,
+      });
+
+      const andWhereFirst = jest.fn().mockReturnValue({
+        andWhere: andWhereSecond,
+      });
+
+      const where = jest.fn().mockReturnValue({
+        andWhere: andWhereFirst,
+      });
+
+      ormRepository.createQueryBuilder.mockReturnValue({
+        where,
+      });
+
+      await expect(
+        repository.getOverlapping(
+          'professional-id',
+          '2026-10-12',
+          '2026-10-20',
+        ),
+      ).rejects.toThrow(error);
+    });
+  });
+
+  describe('create', () => {
+    it('should create and save a professional unavailability', async () => {
+      const data: CreateProfessionalUnavailabilityDto = {
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: 'Vacaciones',
+      };
+
+      const entity = {
+        id: 'unavailability-id',
+        startDate: data.startDate,
+        endDate: data.endDate,
+        reason: 'Vacaciones',
+        professional: {
+          id: 'professional-id',
+        },
+      } as ProfessionalUnavailability;
+
+      ormRepository.create.mockReturnValue(entity);
+      ormRepository.save.mockResolvedValue(entity);
+
+      const result = await repository.create(
+        'professional-id',
+        data,
+      );
+
+      expect(ormRepository.create).toHaveBeenCalledWith({
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: 'Vacaciones',
+        professional: {
+          id: 'professional-id',
+        },
+      });
+
+      expect(ormRepository.save).toHaveBeenCalledWith(entity);
+
+      expect(result).toBe(entity);
+    });
+
+    it('should trim the reason before saving', async () => {
+      const data: CreateProfessionalUnavailabilityDto = {
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: '  Vacaciones  ',
+      };
+
+      const entity = {
+        id: 'unavailability-id',
+      } as ProfessionalUnavailability;
+
+      ormRepository.create.mockReturnValue(entity);
+      ormRepository.save.mockResolvedValue(entity);
+
+      await repository.create('professional-id', data);
+
+      expect(ormRepository.create).toHaveBeenCalledWith({
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: 'Vacaciones',
+        professional: {
+          id: 'professional-id',
+        },
+      });
+    });
+
+    it('should use null when the reason is not provided', async () => {
+      const data: CreateProfessionalUnavailabilityDto = {
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+      };
+
+      const entity = {
+        id: 'unavailability-id',
+      } as ProfessionalUnavailability;
+
+      ormRepository.create.mockReturnValue(entity);
+      ormRepository.save.mockResolvedValue(entity);
+
+      await repository.create('professional-id', data);
+
+      expect(ormRepository.create).toHaveBeenCalledWith({
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: null,
+        professional: {
+          id: 'professional-id',
+        },
+      });
+    });
+
+    it('should use null when the reason is only whitespace', async () => {
+      const data: CreateProfessionalUnavailabilityDto = {
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: '   ',
+      };
+
+      const entity = {
+        id: 'unavailability-id',
+      } as ProfessionalUnavailability;
+
+      ormRepository.create.mockReturnValue(entity);
+      ormRepository.save.mockResolvedValue(entity);
+
+      await repository.create('professional-id', data);
+
+      expect(ormRepository.create).toHaveBeenCalledWith({
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: null,
+        professional: {
+          id: 'professional-id',
+        },
+      });
+    });
+
+    it('should propagate errors when creating the entity', async () => {
+      const data: CreateProfessionalUnavailabilityDto = {
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: 'Vacaciones',
+      };
+
+      const error = new Error('Create failed');
+
+      ormRepository.create.mockImplementation(() => {
+        throw error;
+      });
+
+      await expect(
+        repository.create('professional-id', data),
+      ).rejects.toThrow(error);
+    });
+
+    it('should propagate errors when saving the entity', async () => {
+      const data: CreateProfessionalUnavailabilityDto = {
+        startDate: '2026-10-10',
+        endDate: '2026-10-15',
+        reason: 'Vacaciones',
+      };
+
+      const entity = {
+        id: 'unavailability-id',
+      } as ProfessionalUnavailability;
+
+      const error = new Error('Save failed');
+
+      ormRepository.create.mockReturnValue(entity);
+      ormRepository.save.mockRejectedValue(error);
+
+      await expect(
+        repository.create('professional-id', data),
+      ).rejects.toThrow(error);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete the unavailability by id', async () => {
+      ormRepository.delete.mockResolvedValue({
+        affected: 1,
+      });
+
+      await repository.delete('unavailability-id');
+
+      expect(ormRepository.delete).toHaveBeenCalledWith(
+        'unavailability-id',
+      );
+    });
+
+    it('should propagate repository errors', async () => {
+      const error = new Error('Delete failed');
+
+      ormRepository.delete.mockRejectedValue(error);
+
+      await expect(
+        repository.delete('unavailability-id'),
+      ).rejects.toThrow(error);
+    });
+  });
 });

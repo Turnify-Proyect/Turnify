@@ -1,233 +1,475 @@
-import { AvailabilityRepository } from './availability.repository';
-import { Availability, DayOfWeek } from './entities/availability.entity';
 import { Repository } from 'typeorm';
 
+import { AvailabilityRepository } from './availability.repository';
+import { Availability, DayOfWeek } from './entities/availability.entity';
+import { Professional } from '../professionals/entities/professional.entity';
+
 describe('AvailabilityRepository', () => {
-  let repository: AvailabilityRepository;
-  let ormRepository: jest.Mocked<Repository<Availability>>;
+let repository: AvailabilityRepository;
+let ormAvailabilityRepository: jest.Mocked<Repository<Availability>>;
 
-  beforeEach(() => {
-    ormRepository = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-      update: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<Repository<Availability>>;
+beforeEach(() => {
+ormAvailabilityRepository = {
+findOne: jest.fn(),
+find: jest.fn(),
+update: jest.fn(),
+create: jest.fn(),
+save: jest.fn(),
+delete: jest.fn(),
+} as unknown as jest.Mocked<Repository<Availability>>;
 
-    repository = new AvailabilityRepository(ormRepository);
+repository = new AvailabilityRepository(
+  ormAvailabilityRepository,
+);
+
+
+});
+
+afterEach(() => {
+jest.clearAllMocks();
+});
+
+describe('getById', () => {
+it('should find an availability by id including the professional relation', async () => {
+const id = 'availability-uuid';
+
+  const availability = {
+    id,
+    professional: {
+      id: 'professional-uuid',
+    },
+  } as Availability;
+
+  ormAvailabilityRepository.findOne.mockResolvedValue(
+    availability,
+  );
+
+  const result = await repository.getById(id);
+
+  expect(ormAvailabilityRepository.findOne).toHaveBeenCalledTimes(1);
+
+  expect(ormAvailabilityRepository.findOne).toHaveBeenCalledWith({
+    where: {
+      id,
+    },
+    relations: {
+      professional: true,
+    },
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  expect(result).toEqual(availability);
+});
+
+it('should return null when the availability does not exist', async () => {
+  ormAvailabilityRepository.findOne.mockResolvedValue(null);
+
+  const result = await repository.getById(
+    'non-existent-id',
+  );
+
+  expect(result).toBeNull();
+
+  expect(ormAvailabilityRepository.findOne).toHaveBeenCalledWith({
+    where: {
+      id: 'non-existent-id',
+    },
+    relations: {
+      professional: true,
+    },
+  });
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Database error');
+
+  ormAvailabilityRepository.findOne.mockRejectedValue(error);
+
+  await expect(
+    repository.getById('availability-uuid'),
+  ).rejects.toThrow(error);
+});
+
+
+});
+
+describe('getByProfessionalId', () => {
+it('should return all availabilities belonging to a professional', async () => {
+const professionalId = 'professional-uuid';
+
+  const availabilities = [
+    {
+      id: 'availability-1',
+      professional: {
+        id: professionalId,
+      },
+    },
+    {
+      id: 'availability-2',
+      professional: {
+        id: professionalId,
+      },
+    },
+  ] as Availability[];
+
+  ormAvailabilityRepository.find.mockResolvedValue(
+    availabilities,
+  );
+
+  const result = await repository.getByProfessionalId(
+    professionalId,
+  );
+
+  expect(ormAvailabilityRepository.find).toHaveBeenCalledTimes(1);
+
+  expect(ormAvailabilityRepository.find).toHaveBeenCalledWith({
+    where: {
+      professional: {
+        id: professionalId,
+      },
+    },
   });
 
-  describe('getById', () => {
-    it('should return an availability by id with the professional relation', async () => {
-      const availability = {
-        id: 'availability-1',
-        startTime: '09:00:00',
-        endTime: '13:00:00',
-        dayOfWeek: DayOfWeek.MONDAY,
-      } as Availability;
+  expect(result).toEqual(availabilities);
+});
 
-      ormRepository.findOne.mockResolvedValue(availability);
+it('should return an empty array when the professional has no availabilities', async () => {
+  ormAvailabilityRepository.find.mockResolvedValue([]);
 
-      const result = await repository.getById('availability-1');
+  const result = await repository.getByProfessionalId(
+    'professional-without-availability',
+  );
 
-      expect(ormRepository.findOne).toHaveBeenCalledWith({
-        where: {
-          id: 'availability-1',
-        },
-        relations: {
-          professional: true,
-        },
-      });
+  expect(result).toEqual([]);
 
-      expect(result).toEqual(availability);
-    });
+  expect(ormAvailabilityRepository.find).toHaveBeenCalledWith({
+    where: {
+      professional: {
+        id: 'professional-without-availability',
+      },
+    },
+  });
+});
 
-    it('should return null when the availability does not exist', async () => {
-      ormRepository.findOne.mockResolvedValue(null);
+it('should propagate repository errors', async () => {
+  const error = new Error('Database unavailable');
 
-      const result = await repository.getById('non-existent-id');
+  ormAvailabilityRepository.find.mockRejectedValue(error);
 
-      expect(ormRepository.findOne).toHaveBeenCalledWith({
-        where: {
-          id: 'non-existent-id',
-        },
-        relations: {
-          professional: true,
-        },
-      });
+  await expect(
+    repository.getByProfessionalId('professional-uuid'),
+  ).rejects.toThrow(error);
+});
 
-      expect(result).toBeNull();
-    });
+
+});
+
+describe('getByProfessionalAndDay', () => {
+it('should find availabilities for a professional on a specific day', async () => {
+const professionalId = 'professional-uuid';
+const dayOfWeek = DayOfWeek.MONDAY;
+
+  const availabilities = [
+    {
+      id: 'availability-1',
+      dayOfWeek,
+      startTime: '09:00',
+      endTime: '12:00',
+    },
+    {
+      id: 'availability-2',
+      dayOfWeek,
+      startTime: '14:00',
+      endTime: '18:00',
+    },
+  ] as Availability[];
+
+  ormAvailabilityRepository.find.mockResolvedValue(
+    availabilities,
+  );
+
+  const result = await repository.getByProfessionalAndDay(
+    professionalId,
+    dayOfWeek,
+  );
+
+  expect(ormAvailabilityRepository.find).toHaveBeenCalledTimes(1);
+
+  expect(ormAvailabilityRepository.find).toHaveBeenCalledWith({
+    where: {
+      professional: {
+        id: professionalId,
+      },
+      dayOfWeek,
+    },
   });
 
-  describe('getByProfessionalId', () => {
-    it('should return all availabilities of a professional', async () => {
-      const availabilities = [
-        {
-          id: 'availability-1',
-          dayOfWeek: DayOfWeek.MONDAY,
-          startTime: '09:00:00',
-          endTime: '13:00:00',
-        },
-        {
-          id: 'availability-2',
-          dayOfWeek: DayOfWeek.TUESDAY,
-          startTime: '14:00:00',
-          endTime: '18:00:00',
-        },
-      ] as Availability[];
+  expect(result).toEqual(availabilities);
+});
 
-      ormRepository.find.mockResolvedValue(availabilities);
+it('should return an empty array when there are no availabilities for that day', async () => {
+  ormAvailabilityRepository.find.mockResolvedValue([]);
 
-      const result =
-        await repository.getByProfessionalId('professional-1');
+  const result = await repository.getByProfessionalAndDay(
+    'professional-uuid',
+    DayOfWeek.MONDAY,
+  );
 
-      expect(ormRepository.find).toHaveBeenCalledWith({
-        where: {
-          professional: {
-            id: 'professional-1',
-          },
-        },
-      });
+  expect(result).toEqual([]);
 
-      expect(result).toEqual(availabilities);
-    });
+  expect(ormAvailabilityRepository.find).toHaveBeenCalledWith({
+    where: {
+      professional: {
+        id: 'professional-uuid',
+      },
+      dayOfWeek: DayOfWeek.MONDAY,
+    },
+  });
+});
 
-    it('should return an empty array when the professional has no availabilities', async () => {
-      ormRepository.find.mockResolvedValue([]);
+it('should propagate repository errors', async () => {
+  const error = new Error('Database error');
 
-      const result =
-        await repository.getByProfessionalId('professional-1');
+  ormAvailabilityRepository.find.mockRejectedValue(error);
 
-      expect(result).toEqual([]);
-    });
+  await expect(
+    repository.getByProfessionalAndDay(
+      'professional-uuid',
+      DayOfWeek.MONDAY,
+    ),
+  ).rejects.toThrow(error);
+});
+
+
+});
+
+describe('update', () => {
+it('should update an availability with the provided data', async () => {
+const id = 'availability-uuid';
+
+  const data = {
+    dayOfWeek: DayOfWeek.TUESDAY,
+    startTime: '10:00',
+    endTime: '18:00',
+  } as any;
+
+  ormAvailabilityRepository.update.mockResolvedValue(
+    {} as any,
+  );
+
+  const result = await repository.update(id, data);
+
+  expect(ormAvailabilityRepository.update).toHaveBeenCalledTimes(1);
+
+  expect(ormAvailabilityRepository.update).toHaveBeenCalledWith(
+    id,
+    data,
+  );
+
+  expect(result).toBeUndefined();
+});
+
+it('should pass partial update data without modifying it', async () => {
+  const id = 'availability-uuid';
+
+  const data = {
+    startTime: '11:00',
+  } as any;
+
+  await repository.update(id, data);
+
+  expect(ormAvailabilityRepository.update).toHaveBeenCalledWith(
+    id,
+    data,
+  );
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Update failed');
+
+  ormAvailabilityRepository.update.mockRejectedValue(error);
+
+  await expect(
+    repository.update(
+      'availability-uuid',
+      {} as any,
+    ),
+  ).rejects.toThrow(error);
+});
+
+
+});
+
+describe('create', () => {
+it('should create and save an availability associated with the professional', async () => {
+const professionalId = 'professional-uuid';
+
+  const data = {
+    dayOfWeek: DayOfWeek.MONDAY,
+    startTime: '09:00',
+    endTime: '17:00',
+  } as any;
+
+  const availability = {
+    id: 'availability-uuid',
+    ...data,
+    professional: {
+      id: professionalId,
+    },
+  } as Availability;
+
+  ormAvailabilityRepository.create.mockReturnValue(
+    availability,
+  );
+
+  ormAvailabilityRepository.save.mockResolvedValue(
+    availability,
+  );
+
+  const result = await repository.create(
+    professionalId,
+    data,
+  );
+
+  expect(ormAvailabilityRepository.create).toHaveBeenCalledTimes(1);
+
+  expect(ormAvailabilityRepository.create).toHaveBeenCalledWith({
+    dayOfWeek: data.dayOfWeek,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    professional: {
+      id: professionalId,
+    },
   });
 
-  describe('getByProfessionalAndDay', () => {
-    it('should return availabilities for a professional on a specific day', async () => {
-      const availabilities = [
-        {
-          id: 'availability-1',
-          dayOfWeek: DayOfWeek.MONDAY,
-          startTime: '09:00:00',
-          endTime: '13:00:00',
-        },
-      ] as Availability[];
+  expect(ormAvailabilityRepository.save).toHaveBeenCalledTimes(1);
 
-      ormRepository.find.mockResolvedValue(availabilities);
+  expect(ormAvailabilityRepository.save).toHaveBeenCalledWith(
+    availability,
+  );
 
-      const result =
-        await repository.getByProfessionalAndDay(
-          'professional-1',
-          DayOfWeek.MONDAY,
-        );
+  expect(result).toEqual(availability);
+});
 
-      expect(ormRepository.find).toHaveBeenCalledWith({
-        where: {
-          professional: {
-            id: 'professional-1',
-          },
-          dayOfWeek: DayOfWeek.MONDAY,
-        },
-      });
+it('should use only the expected fields from the DTO', async () => {
+  const professionalId = 'professional-uuid';
 
-      expect(result).toEqual(availabilities);
-    });
+  const data = {
+    dayOfWeek: DayOfWeek.WEDNESDAY,
+    startTime: '08:00',
+    endTime: '12:00',
+    unexpectedField: 'should-not-be-persisted',
+  } as any;
 
-    it('should return an empty array when there are no availabilities for that day', async () => {
-      ormRepository.find.mockResolvedValue([]);
+  const availability = {
+    id: 'availability-uuid',
+  } as Availability;
 
-      const result =
-        await repository.getByProfessionalAndDay(
-          'professional-1',
-          DayOfWeek.FRIDAY,
-        );
+  ormAvailabilityRepository.create.mockReturnValue(
+    availability,
+  );
 
-      expect(result).toEqual([]);
-    });
+  ormAvailabilityRepository.save.mockResolvedValue(
+    availability,
+  );
+
+  await repository.create(
+    professionalId,
+    data,
+  );
+
+  expect(ormAvailabilityRepository.create).toHaveBeenCalledWith({
+    dayOfWeek: data.dayOfWeek,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    professional: {
+      id: professionalId,
+    },
+  });
+});
+
+it('should propagate errors from create', async () => {
+  const error = new Error('Create failed');
+
+  ormAvailabilityRepository.create.mockImplementation(() => {
+    throw error;
   });
 
-  describe('update', () => {
-    it('should update an availability', async () => {
-      const updateData = {
-        startTime: '10:00',
-        endTime: '14:00',
-      };
-
-      ormRepository.update.mockResolvedValue({
-        affected: 1,
-        generatedMaps: [],
-        raw: {},
-      });
-
-      await repository.update('availability-1', updateData);
-
-      expect(ormRepository.update).toHaveBeenCalledWith(
-        'availability-1',
-        updateData,
-      );
-    });
-  });
-
-  describe('create', () => {
-    it('should create and save an availability associated with the professional', async () => {
-      const createData = {
+  await expect(
+    repository.create(
+      'professional-uuid',
+      {
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '09:00',
-        endTime: '13:00',
-      };
+        endTime: '17:00',
+      } as any,
+    ),
+  ).rejects.toThrow(error);
 
-      const availability = {
-        id: 'availability-1',
-        ...createData,
-        professional: {
-          id: 'professional-1',
-        },
-      } as Availability;
+  expect(ormAvailabilityRepository.save).not.toHaveBeenCalled();
+});
 
-      ormRepository.create.mockReturnValue(availability);
-      ormRepository.save.mockResolvedValue(availability);
+it('should propagate errors from save', async () => {
+  const availability = {
+    id: 'availability-uuid',
+  } as Availability;
 
-      const result = await repository.create(
-        'professional-1',
-        createData,
-      );
+  const error = new Error('Save failed');
 
-      expect(ormRepository.create).toHaveBeenCalledWith({
+  ormAvailabilityRepository.create.mockReturnValue(
+    availability,
+  );
+
+  ormAvailabilityRepository.save.mockRejectedValue(error);
+
+  await expect(
+    repository.create(
+      'professional-uuid',
+      {
         dayOfWeek: DayOfWeek.MONDAY,
         startTime: '09:00',
-        endTime: '13:00',
-        professional: {
-          id: 'professional-1',
-        },
-      });
+        endTime: '17:00',
+      } as any,
+    ),
+  ).rejects.toThrow(error);
 
-      expect(ormRepository.save).toHaveBeenCalledWith(
-        availability,
-      );
+  expect(ormAvailabilityRepository.create).toHaveBeenCalled();
+  expect(ormAvailabilityRepository.save).toHaveBeenCalledWith(
+    availability,
+  );
+});
 
-      expect(result).toEqual(availability);
-    });
-  });
 
-  describe('delete', () => {
-    it('should delete an availability by id', async () => {
-      ormRepository.delete.mockResolvedValue({
-        affected: 1,
-        raw: {},
-      });
+});
 
-      await repository.delete('availability-1');
+describe('delete', () => {
+it('should delete an availability by id', async () => {
+const id = 'availability-uuid';
 
-      expect(ormRepository.delete).toHaveBeenCalledWith(
-        'availability-1',
-      );
-    });
-  });
+  ormAvailabilityRepository.delete.mockResolvedValue(
+    {} as any,
+  );
+
+  const result = await repository.delete(id);
+
+  expect(ormAvailabilityRepository.delete).toHaveBeenCalledTimes(1);
+
+  expect(ormAvailabilityRepository.delete).toHaveBeenCalledWith(
+    id,
+  );
+
+  expect(result).toBeUndefined();
+});
+
+it('should propagate repository errors', async () => {
+  const error = new Error('Delete failed');
+
+  ormAvailabilityRepository.delete.mockRejectedValue(error);
+
+  await expect(
+    repository.delete('availability-uuid'),
+  ).rejects.toThrow(error);
+});
+
+
+});
 });

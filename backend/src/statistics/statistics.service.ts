@@ -10,7 +10,10 @@ import {
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
 
-import { PaymentStatus } from '../payments/entities/payment.entity';
+import {
+  PaymentStatus,
+  PaymentType,
+} from '../payments/entities/payment.entity';
 
 @Injectable()
 export class StatisticsService {

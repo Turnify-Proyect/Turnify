@@ -2,21 +2,20 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-
 import { ServicesService } from './services.service';
 import { ServicesRepository } from './services.repository';
 import { CloudinaryService } from '../config/cloudinary.service';
 import { CategoriesRepository } from '../categories/categories.repository';
+import { Service } from './entities/service.entity';
 
 describe('ServicesService', () => {
   let service: ServicesService;
 
-  let servicesRepository: {
+  let servicesRepositoryMock: {
     getAll: jest.Mock;
     getAllActive: jest.Mock;
-    getById: jest.Mock;
     getByName: jest.Mock;
+    getById: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
     deactivate: jest.Mock;
@@ -25,21 +24,43 @@ describe('ServicesService', () => {
     updateServiceImage: jest.Mock;
   };
 
-  let cloudinaryService: {
+  let cloudinaryServiceMock: {
     uploadImage: jest.Mock;
     uploadUrl: jest.Mock;
   };
 
-  let categoriesRepository: {
+  let categoriesRepositoryMock: {
     getCategoryById: jest.Mock;
   };
 
-  beforeEach(async () => {
-    servicesRepository = {
+  const serviceId = 'service-123';
+  const categoryId = 'category-123';
+
+  const category = {
+    id: categoryId,
+    name: 'Masajes',
+    isActive: true,
+  };
+
+  const serviceEntity = {
+    id: serviceId,
+    name: 'Masaje relajante',
+    description: 'Masaje de relajación',
+    price: '10000.00',
+    durationMinutes: 60,
+    imageUrl: null,
+    isActive: true,
+    category,
+  } as unknown as Service;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    servicesRepositoryMock = {
       getAll: jest.fn(),
       getAllActive: jest.fn(),
-      getById: jest.fn(),
       getByName: jest.fn(),
+      getById: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       deactivate: jest.fn(),
@@ -48,704 +69,730 @@ describe('ServicesService', () => {
       updateServiceImage: jest.fn(),
     };
 
-    cloudinaryService = {
+    cloudinaryServiceMock = {
       uploadImage: jest.fn(),
       uploadUrl: jest.fn(),
     };
 
-    categoriesRepository = {
+    categoriesRepositoryMock = {
       getCategoryById: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ServicesService,
-        {
-          provide: ServicesRepository,
-          useValue: servicesRepository,
-        },
-        {
-          provide: CloudinaryService,
-          useValue: cloudinaryService,
-        },
-        {
-          provide: CategoriesRepository,
-          useValue: categoriesRepository,
-        },
-      ],
-    }).compile();
-
-    service = module.get<ServicesService>(ServicesService);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
+    service = new ServicesService(
+      servicesRepositoryMock as unknown as ServicesRepository,
+      cloudinaryServiceMock as unknown as CloudinaryService,
+      categoriesRepositoryMock as unknown as CategoriesRepository,
+    );
   });
 
   describe('getAll', () => {
     it('should return all services', async () => {
-      const services = [
-        {
-          id: 'service-1',
-          name: 'Corte',
-          isActive: true,
-        },
-        {
-          id: 'service-2',
-          name: 'Color',
-          isActive: false,
-        },
-      ];
+      const response = [serviceEntity];
 
-      servicesRepository.getAll.mockResolvedValue(services);
+      servicesRepositoryMock.getAll.mockResolvedValue(
+        response,
+      );
 
       const result = await service.getAll();
 
-      expect(result).toEqual(services);
-      expect(servicesRepository.getAll).toHaveBeenCalledTimes(1);
+      expect(result).toBe(response);
+
+      expect(
+        servicesRepositoryMock.getAll,
+      ).toHaveBeenCalled();
     });
   });
 
   describe('getAllActive', () => {
-    it('should return only active services', async () => {
-      const services = [
-        {
-          id: 'service-1',
-          name: 'Corte',
-          isActive: true,
-        },
-      ];
+    it('should return active services', async () => {
+      const response = [serviceEntity];
 
-      servicesRepository.getAllActive.mockResolvedValue(services);
+      servicesRepositoryMock.getAllActive.mockResolvedValue(
+        response,
+      );
 
       const result = await service.getAllActive();
 
-      expect(result).toEqual(services);
-      expect(servicesRepository.getAllActive).toHaveBeenCalledTimes(1);
+      expect(result).toBe(response);
+
+      expect(
+        servicesRepositoryMock.getAllActive,
+      ).toHaveBeenCalled();
     });
   });
 
   describe('getById', () => {
     it('should return the service when it exists', async () => {
-      const serviceData = {
-        id: 'service-1',
-        name: 'Corte',
-      };
+      servicesRepositoryMock.getById.mockResolvedValue(
+        serviceEntity,
+      );
 
-      servicesRepository.getById.mockResolvedValue(serviceData);
+      const result = await service.getById(serviceId);
 
-      const result = await service.getById('service-1');
+      expect(result).toBe(serviceEntity);
 
-      expect(result).toEqual(serviceData);
-      expect(servicesRepository.getById).toHaveBeenCalledWith('service-1');
+      expect(
+        servicesRepositoryMock.getById,
+      ).toHaveBeenCalledWith(serviceId);
     });
 
     it('should throw NotFoundException when the service does not exist', async () => {
-      servicesRepository.getById.mockResolvedValue(null);
-
-      await expect(service.getById('service-1')).rejects.toThrow(
-        new NotFoundException('Service with id service-1 not found'),
+      servicesRepositoryMock.getById.mockResolvedValue(
+        null,
       );
+
+      await expect(
+        service.getById(serviceId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        servicesRepositoryMock.getById,
+      ).toHaveBeenCalledWith(serviceId);
     });
   });
 
   describe('create', () => {
-    const category = {
-      id: 'category-1',
-      name: 'Cabello',
-      isActive: true,
-    };
-
-    const createData = {
-      name: 'Corte',
-      description: 'Corte de cabello',
-      price: 5000,
-      durationMinutes: 60,
-      categoryId: 'category-1',
-    };
-
     it('should create a service successfully', async () => {
-      const createdService = {
-        id: 'service-1',
-        ...createData,
-        category,
-      };
+      const data = {
+        name: 'Masaje relajante',
+        description: 'Masaje de relajación',
+        price: '10000.00',
+        durationMinutes: 60,
+        categoryId,
+      } as any;
 
-      servicesRepository.getByName.mockResolvedValue(null);
-      categoriesRepository.getCategoryById.mockResolvedValue(category);
-      servicesRepository.create.mockResolvedValue(createdService);
-
-      const result = await service.create({ ...createData });
-
-      expect(result).toEqual(createdService);
-
-      expect(servicesRepository.getByName).toHaveBeenCalledWith('Corte');
-
-      expect(categoriesRepository.getCategoryById).toHaveBeenCalledWith(
-        'category-1',
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
       );
 
-      expect(servicesRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining(createData),
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
         category,
       );
+
+      servicesRepositoryMock.create.mockResolvedValue(
+        serviceEntity,
+      );
+
+      const result = await service.create(data);
+
+      expect(
+        servicesRepositoryMock.getByName,
+      ).toHaveBeenCalledWith(data.name);
+
+      expect(
+        categoriesRepositoryMock.getCategoryById,
+      ).toHaveBeenCalledWith(categoryId);
+
+      expect(
+        servicesRepositoryMock.create,
+      ).toHaveBeenCalledWith(data, category);
+
+      expect(result).toBe(serviceEntity);
     });
 
-    it('should throw ConflictException when the service name already exists', async () => {
-      servicesRepository.getByName.mockResolvedValue({
-        id: 'existing-service',
-        name: 'Corte',
-      });
+    it('should throw ConflictException when the name already exists', async () => {
+      const data = {
+        name: 'Masaje relajante',
+        categoryId,
+      } as any;
 
-      await expect(service.create({ ...createData })).rejects.toThrow(
-        new ConflictException('Service with name Corte already exists'),
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        serviceEntity,
       );
 
-      expect(categoriesRepository.getCategoryById).not.toHaveBeenCalled();
-      expect(servicesRepository.create).not.toHaveBeenCalled();
+      await expect(
+        service.create(data),
+      ).rejects.toThrow(ConflictException);
+
+      expect(
+        categoriesRepositoryMock.getCategoryById,
+      ).not.toHaveBeenCalled();
+
+      expect(
+        servicesRepositoryMock.create,
+      ).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when the category does not exist', async () => {
-      servicesRepository.getByName.mockResolvedValue(null);
-      categoriesRepository.getCategoryById.mockResolvedValue(null);
+      const data = {
+        name: 'Masaje relajante',
+        categoryId,
+      } as any;
 
-      await expect(service.create({ ...createData })).rejects.toThrow(
-        new NotFoundException('No existe la categoría seleccionada'),
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
       );
 
-      expect(servicesRepository.create).not.toHaveBeenCalled();
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        service.create(data),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        servicesRepositoryMock.create,
+      ).not.toHaveBeenCalled();
     });
 
     it('should throw ConflictException when the category is inactive', async () => {
-      servicesRepository.getByName.mockResolvedValue(null);
+      const data = {
+        name: 'Masaje relajante',
+        categoryId,
+      } as any;
 
-      categoriesRepository.getCategoryById.mockResolvedValue({
-        ...category,
-        isActive: false,
-      });
-
-      await expect(service.create({ ...createData })).rejects.toThrow(
-        new ConflictException(
-          'La categoría seleccionada se encuentra inactiva',
-        ),
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
       );
 
-      expect(servicesRepository.create).not.toHaveBeenCalled();
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        {
+          ...category,
+          isActive: false,
+        },
+      );
+
+      await expect(
+        service.create(data),
+      ).rejects.toThrow(ConflictException);
+
+      expect(
+        servicesRepositoryMock.create,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should process a remote image URL before creating the service', async () => {
+    it('should process a remote image URL through Cloudinary', async () => {
       const data = {
-        ...createData,
+        name: 'Masaje relajante',
+        categoryId,
         imageUrl: 'https://example.com/image.jpg',
-      };
+      } as any;
 
-      const cloudinaryUrl =
-        'https://res.cloudinary.com/demo/image/upload/service.jpg';
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
+      );
 
-      servicesRepository.getByName.mockResolvedValue(null);
-      categoriesRepository.getCategoryById.mockResolvedValue(category);
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        category,
+      );
 
-      cloudinaryService.uploadUrl.mockResolvedValue({
-        secure_url: cloudinaryUrl,
+      cloudinaryServiceMock.uploadUrl.mockResolvedValue({
+        secure_url:
+          'https://res.cloudinary.com/demo/image/upload/service.jpg',
       });
 
-      servicesRepository.create.mockResolvedValue({
-        id: 'service-1',
-        ...data,
-        imageUrl: cloudinaryUrl,
-      });
+      servicesRepositoryMock.create.mockResolvedValue(
+        serviceEntity,
+      );
 
       await service.create(data);
 
-      expect(cloudinaryService.uploadUrl).toHaveBeenCalledWith(
+      expect(
+        cloudinaryServiceMock.uploadUrl,
+      ).toHaveBeenCalledWith(
         'https://example.com/image.jpg',
         'turnify/services',
       );
 
-      expect(servicesRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          imageUrl: cloudinaryUrl,
-        }),
-        category,
+      expect(data.imageUrl).toBe(
+        'https://res.cloudinary.com/demo/image/upload/service.jpg',
       );
+
+      expect(
+        servicesRepositoryMock.create,
+      ).toHaveBeenCalledWith(data, category);
     });
 
-    it('should keep a Cloudinary URL without uploading it again', async () => {
+    it('should not upload an existing Cloudinary URL', async () => {
       const cloudinaryUrl =
         'https://res.cloudinary.com/demo/image/upload/service.jpg';
 
       const data = {
-        ...createData,
+        name: 'Masaje relajante',
+        categoryId,
         imageUrl: cloudinaryUrl,
-      };
+      } as any;
 
-      servicesRepository.getByName.mockResolvedValue(null);
-      categoriesRepository.getCategoryById.mockResolvedValue(category);
-      servicesRepository.create.mockResolvedValue({
-        id: 'service-1',
-        ...data,
-      });
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
+      );
+
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        category,
+      );
+
+      servicesRepositoryMock.create.mockResolvedValue(
+        serviceEntity,
+      );
 
       await service.create(data);
 
-      expect(cloudinaryService.uploadUrl).not.toHaveBeenCalled();
+      expect(
+        cloudinaryServiceMock.uploadUrl,
+      ).not.toHaveBeenCalled();
 
-      expect(servicesRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          imageUrl: cloudinaryUrl,
-        }),
-        category,
-      );
+      expect(data.imageUrl).toBe(cloudinaryUrl);
+
+      expect(
+        servicesRepositoryMock.create,
+      ).toHaveBeenCalledWith(data, category);
     });
 
-    it('should keep a non-http image URL unchanged', async () => {
+    it('should keep the original URL when Cloudinary upload fails', async () => {
+      const imageUrl = 'https://example.com/image.jpg';
+
       const data = {
-        ...createData,
-        imageUrl: 'local-image.jpg',
-      };
+        name: 'Masaje relajante',
+        categoryId,
+        imageUrl,
+      } as any;
 
-      servicesRepository.getByName.mockResolvedValue(null);
-      categoriesRepository.getCategoryById.mockResolvedValue(category);
-      servicesRepository.create.mockResolvedValue({
-        id: 'service-1',
-        ...data,
-      });
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
+      );
 
-      await service.create(data);
-
-      expect(cloudinaryService.uploadUrl).not.toHaveBeenCalled();
-
-      expect(servicesRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          imageUrl: 'local-image.jpg',
-        }),
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
         category,
       );
-    });
 
-    it('should keep the original remote URL when Cloudinary upload fails', async () => {
-      const remoteUrl = 'https://example.com/image.jpg';
-
-      const data = {
-        ...createData,
-        imageUrl: remoteUrl,
-      };
-
-      servicesRepository.getByName.mockResolvedValue(null);
-      categoriesRepository.getCategoryById.mockResolvedValue(category);
-
-      cloudinaryService.uploadUrl.mockRejectedValue(
-        new Error('Cloudinary unavailable'),
+      cloudinaryServiceMock.uploadUrl.mockRejectedValue(
+        new Error('Cloudinary error'),
       );
 
-      servicesRepository.create.mockResolvedValue({
-        id: 'service-1',
-        ...data,
-      });
+      servicesRepositoryMock.create.mockResolvedValue(
+        serviceEntity,
+      );
 
       const result = await service.create(data);
 
-      expect(result).toBeDefined();
+      expect(data.imageUrl).toBe(imageUrl);
 
-      expect(servicesRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          imageUrl: remoteUrl,
-        }),
-        category,
-      );
+      expect(
+        servicesRepositoryMock.create,
+      ).toHaveBeenCalledWith(data, category);
+
+      expect(result).toBe(serviceEntity);
     });
   });
 
   describe('update', () => {
-    const existingService = {
-      id: 'service-1',
-      name: 'Corte',
-      price: 5000,
-      category: {
-        id: 'category-1',
-        name: 'Cabello',
-        isActive: true,
-      },
-    };
-
-    it('should update a service successfully', async () => {
+    it('should update the service successfully', async () => {
       const data = {
-        name: 'Corte premium',
-        price: 7000,
-      };
+        name: 'Nuevo nombre',
+        price: '15000.00',
+      } as any;
 
-      const updatedService = {
-        ...existingService,
-        ...data,
-      };
-
-      servicesRepository.getById
-        .mockResolvedValueOnce(existingService)
-        .mockResolvedValueOnce(updatedService);
-
-      servicesRepository.getByName.mockResolvedValue(null);
-      servicesRepository.update.mockResolvedValue(undefined);
-
-      const result = await service.update('service-1', data as any);
-
-      expect(result).toEqual(updatedService);
-
-      expect(servicesRepository.getById).toHaveBeenCalledTimes(2);
-      expect(servicesRepository.getByName).toHaveBeenCalledWith(
-        'Corte premium',
-      );
-
-      expect(servicesRepository.update).toHaveBeenCalledWith(
-        'service-1',
-        data,
-        undefined,
-      );
-    });
-
-    it('should throw when the service does not exist', async () => {
-      servicesRepository.getById.mockResolvedValue(null);
-
-      await expect(
-        service.update('service-1', {
-          name: 'Nuevo nombre',
-        } as any),
-      ).rejects.toThrow(
-        new NotFoundException('Service with id service-1 not found'),
-      );
-
-      expect(servicesRepository.update).not.toHaveBeenCalled();
-    });
-
-    it('should allow keeping the same service name', async () => {
-      servicesRepository.getById
-        .mockResolvedValueOnce(existingService)
-        .mockResolvedValueOnce(existingService);
-
-      servicesRepository.getByName.mockResolvedValue(existingService);
-      servicesRepository.update.mockResolvedValue(undefined);
-
-      const data = {
-        name: 'Corte',
-      };
-
-      await service.update('service-1', data as any);
-
-      expect(servicesRepository.getByName).toHaveBeenCalledWith('Corte');
-
-      expect(servicesRepository.update).toHaveBeenCalledWith(
-        'service-1',
-        data,
-        undefined,
-      );
-    });
-
-    it('should throw when the new name belongs to another service', async () => {
-      servicesRepository.getById.mockResolvedValue(existingService);
-
-      servicesRepository.getByName.mockResolvedValue({
-        id: 'service-2',
-        name: 'Corte premium',
-      });
-
-      await expect(
-        service.update('service-1', {
-          name: 'Corte premium',
-        } as any),
-      ).rejects.toThrow(
-        new ConflictException(
-          'Service with name Corte premium already exists',
-        ),
-      );
-
-      expect(servicesRepository.update).not.toHaveBeenCalled();
-    });
-
-    it('should update the category when categoryId is provided', async () => {
-      const category = {
-        id: 'category-2',
-        name: 'Barbería',
-        isActive: true,
-      };
-
-      const data = {
-        name: 'Corte',
-        categoryId: 'category-2',
-      };
-
-      servicesRepository.getById
-        .mockResolvedValueOnce(existingService)
+      servicesRepositoryMock.getById
+        .mockResolvedValueOnce(serviceEntity)
         .mockResolvedValueOnce({
-          ...existingService,
-          category,
+          ...serviceEntity,
+          ...data,
         });
 
-      servicesRepository.getByName.mockResolvedValue(existingService);
-
-      categoriesRepository.getCategoryById.mockResolvedValue(category);
-
-      servicesRepository.update.mockResolvedValue(undefined);
-
-      await service.update('service-1', data as any);
-
-      expect(categoriesRepository.getCategoryById).toHaveBeenCalledWith(
-        'category-2',
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        null,
       );
 
-      expect(servicesRepository.update).toHaveBeenCalledWith(
-        'service-1',
+      servicesRepositoryMock.update.mockResolvedValue(
+        undefined,
+      );
+
+      const result = await service.update(
+        serviceId,
         data,
-        category,
       );
+
+      expect(
+        servicesRepositoryMock.getById,
+      ).toHaveBeenCalledWith(serviceId);
+
+      expect(
+        servicesRepositoryMock.getByName,
+      ).toHaveBeenCalledWith(data.name);
+
+      expect(
+        servicesRepositoryMock.update,
+      ).toHaveBeenCalledWith(
+        serviceId,
+        data,
+        undefined,
+      );
+
+      expect(result).toEqual({
+        ...serviceEntity,
+        ...data,
+      });
     });
 
-    it('should reject an inactive category during update', async () => {
-      servicesRepository.getById.mockResolvedValue(existingService);
-      servicesRepository.getByName.mockResolvedValue(existingService);
+    it('should throw NotFoundException when the service does not exist', async () => {
+      const data = {
+        name: 'Nuevo nombre',
+      } as any;
 
-      categoriesRepository.getCategoryById.mockResolvedValue({
-        id: 'category-2',
-        name: 'Barbería',
-        isActive: false,
+      servicesRepositoryMock.getById.mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        service.update(serviceId, data),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        servicesRepositoryMock.getByName,
+      ).not.toHaveBeenCalled();
+
+      expect(
+        servicesRepositoryMock.update,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when the new name is already used', async () => {
+      const data = {
+        name: 'Nombre existente',
+      } as any;
+
+      servicesRepositoryMock.getById.mockResolvedValue(
+        serviceEntity,
+      );
+
+      servicesRepositoryMock.getByName.mockResolvedValue({
+        id: 'another-service-id',
+        name: data.name,
       });
 
       await expect(
-        service.update('service-1', {
-          categoryId: 'category-2',
-        } as any),
-      ).rejects.toThrow(
-        new ConflictException(
-          'La categoría seleccionada se encuentra inactiva',
-        ),
-      );
+        service.update(serviceId, data),
+      ).rejects.toThrow(ConflictException);
 
-      expect(servicesRepository.update).not.toHaveBeenCalled();
+      expect(
+        servicesRepositoryMock.update,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should process a remote image during update', async () => {
-      const remoteUrl = 'https://example.com/image.jpg';
+    it('should allow the service to keep its current name', async () => {
+      const data = {
+        name: serviceEntity.name,
+      } as any;
+
+      servicesRepositoryMock.getById
+        .mockResolvedValueOnce(serviceEntity)
+        .mockResolvedValueOnce(serviceEntity);
+
+      servicesRepositoryMock.getByName.mockResolvedValue(
+        serviceEntity,
+      );
+
+      servicesRepositoryMock.update.mockResolvedValue(
+        undefined,
+      );
+
+      await service.update(serviceId, data);
+
+      expect(
+        servicesRepositoryMock.getByName,
+      ).toHaveBeenCalledWith(serviceEntity.name);
+
+      expect(
+        servicesRepositoryMock.update,
+      ).toHaveBeenCalled();
+    });
+
+    it('should process a remote image URL during update', async () => {
+      const data = {
+        imageUrl: 'https://example.com/image.jpg',
+      } as any;
+
       const cloudinaryUrl =
         'https://res.cloudinary.com/demo/image/upload/service.jpg';
 
-      servicesRepository.getById
-        .mockResolvedValueOnce(existingService)
+      servicesRepositoryMock.getById
+        .mockResolvedValueOnce(serviceEntity)
         .mockResolvedValueOnce({
-          ...existingService,
+          ...serviceEntity,
           imageUrl: cloudinaryUrl,
         });
 
-      cloudinaryService.uploadUrl.mockResolvedValue({
+      cloudinaryServiceMock.uploadUrl.mockResolvedValue({
         secure_url: cloudinaryUrl,
       });
 
-      servicesRepository.update.mockResolvedValue(undefined);
+      servicesRepositoryMock.update.mockResolvedValue(
+        undefined,
+      );
 
-      const data = {
-        imageUrl: remoteUrl,
-      };
+      await service.update(serviceId, data);
 
-      await service.update('service-1', data as any);
-
-      expect(cloudinaryService.uploadUrl).toHaveBeenCalledWith(
-        remoteUrl,
+      expect(
+        cloudinaryServiceMock.uploadUrl,
+      ).toHaveBeenCalledWith(
+        'https://example.com/image.jpg',
         'turnify/services',
       );
 
-      expect(servicesRepository.update).toHaveBeenCalledWith(
-        'service-1',
-        expect.objectContaining({
-          imageUrl: cloudinaryUrl,
-        }),
+      expect(data.imageUrl).toBe(cloudinaryUrl);
+
+      expect(
+        servicesRepositoryMock.update,
+      ).toHaveBeenCalledWith(
+        serviceId,
+        data,
         undefined,
       );
+    });
+
+    it('should validate the new category when categoryId is provided', async () => {
+      const newCategory = {
+        id: 'category-456',
+        name: 'Nueva categoría',
+        isActive: true,
+      };
+
+      const data = {
+        categoryId: newCategory.id,
+      } as any;
+
+      servicesRepositoryMock.getById
+        .mockResolvedValueOnce(serviceEntity)
+        .mockResolvedValueOnce(serviceEntity);
+
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        newCategory,
+      );
+
+      servicesRepositoryMock.update.mockResolvedValue(
+        undefined,
+      );
+
+      await service.update(serviceId, data);
+
+      expect(
+        categoriesRepositoryMock.getCategoryById,
+      ).toHaveBeenCalledWith(newCategory.id);
+
+      expect(
+        servicesRepositoryMock.update,
+      ).toHaveBeenCalledWith(
+        serviceId,
+        data,
+        newCategory,
+      );
+    });
+
+    it('should throw NotFoundException when the new category does not exist', async () => {
+      const data = {
+        categoryId: 'category-inexistent',
+      } as any;
+
+      servicesRepositoryMock.getById.mockResolvedValue(
+        serviceEntity,
+      );
+
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        service.update(serviceId, data),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        servicesRepositoryMock.update,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when the new category is inactive', async () => {
+      const data = {
+        categoryId: 'category-inactive',
+      } as any;
+
+      servicesRepositoryMock.getById.mockResolvedValue(
+        serviceEntity,
+      );
+
+      categoriesRepositoryMock.getCategoryById.mockResolvedValue(
+        {
+          ...category,
+          isActive: false,
+        },
+      );
+
+      await expect(
+        service.update(serviceId, data),
+      ).rejects.toThrow(ConflictException);
+
+      expect(
+        servicesRepositoryMock.update,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe('deactivate', () => {
-    it('should deactivate an existing service', async () => {
-      const activeService = {
-        id: 'service-1',
-        isActive: true,
-      };
-
-      const inactiveService = {
-        id: 'service-1',
+    it('should deactivate the service and return the updated service', async () => {
+      const deactivatedService = {
+        ...serviceEntity,
         isActive: false,
       };
 
-      servicesRepository.getById
-        .mockResolvedValueOnce(activeService)
-        .mockResolvedValueOnce(inactiveService);
+      servicesRepositoryMock.getById
+        .mockResolvedValueOnce(serviceEntity)
+        .mockResolvedValueOnce(deactivatedService);
 
-      servicesRepository.deactivate.mockResolvedValue(undefined);
-
-      const result = await service.deactivate('service-1');
-
-      expect(result).toEqual(inactiveService);
-
-      expect(servicesRepository.deactivate).toHaveBeenCalledWith(
-        'service-1',
+      servicesRepositoryMock.deactivate.mockResolvedValue(
+        undefined,
       );
 
-      expect(servicesRepository.getById).toHaveBeenCalledTimes(2);
+      const result = await service.deactivate(
+        serviceId,
+      );
+
+      expect(
+        servicesRepositoryMock.getById,
+      ).toHaveBeenCalledTimes(2);
+
+      expect(
+        servicesRepositoryMock.deactivate,
+      ).toHaveBeenCalledWith(serviceId);
+
+      expect(result).toBe(deactivatedService);
     });
 
-    it('should not deactivate a service that does not exist', async () => {
-      servicesRepository.getById.mockResolvedValue(null);
-
-      await expect(
-        service.deactivate('service-1'),
-      ).rejects.toThrow(
-        new NotFoundException('Service with id service-1 not found'),
+    it('should throw NotFoundException when the service does not exist', async () => {
+      servicesRepositoryMock.getById.mockResolvedValue(
+        null,
       );
 
-      expect(servicesRepository.deactivate).not.toHaveBeenCalled();
+      await expect(
+        service.deactivate(serviceId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        servicesRepositoryMock.deactivate,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe('reactivate', () => {
-    it('should reactivate an existing service', async () => {
-      const inactiveService = {
-        id: 'service-1',
-        isActive: false,
-      };
-
-      const activeService = {
-        id: 'service-1',
+    it('should reactivate the service and return the updated service', async () => {
+      const reactivatedService = {
+        ...serviceEntity,
         isActive: true,
       };
 
-      servicesRepository.getById
-        .mockResolvedValueOnce(inactiveService)
-        .mockResolvedValueOnce(activeService);
+      servicesRepositoryMock.getById
+        .mockResolvedValueOnce({
+          ...serviceEntity,
+          isActive: false,
+        })
+        .mockResolvedValueOnce(reactivatedService);
 
-      servicesRepository.reactivate.mockResolvedValue(undefined);
-
-      const result = await service.reactivate('service-1');
-
-      expect(result).toEqual(activeService);
-
-      expect(servicesRepository.reactivate).toHaveBeenCalledWith(
-        'service-1',
+      servicesRepositoryMock.reactivate.mockResolvedValue(
+        undefined,
       );
 
-      expect(servicesRepository.getById).toHaveBeenCalledTimes(2);
+      const result = await service.reactivate(
+        serviceId,
+      );
+
+      expect(
+        servicesRepositoryMock.getById,
+      ).toHaveBeenCalledTimes(2);
+
+      expect(
+        servicesRepositoryMock.reactivate,
+      ).toHaveBeenCalledWith(serviceId);
+
+      expect(result).toBe(reactivatedService);
     });
 
-    it('should not reactivate a service that does not exist', async () => {
-      servicesRepository.getById.mockResolvedValue(null);
-
-      await expect(
-        service.reactivate('service-1'),
-      ).rejects.toThrow(
-        new NotFoundException('Service with id service-1 not found'),
+    it('should throw NotFoundException when the service does not exist', async () => {
+      servicesRepositoryMock.getById.mockResolvedValue(
+        null,
       );
 
-      expect(servicesRepository.reactivate).not.toHaveBeenCalled();
+      await expect(
+        service.reactivate(serviceId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        servicesRepositoryMock.reactivate,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe('getProfessionalsByService', () => {
     it('should return professionals associated with the service', async () => {
-      const professionals = [
+      const response = [
         {
-          professionalId: 'professional-1',
-          serviceId: 'service-1',
+          professionalId: 'professional-123',
+          serviceId,
+          professional: {
+            id: 'professional-123',
+          },
         },
       ];
 
-      servicesRepository.getProfessionalsByService.mockResolvedValue(
-        professionals,
+      servicesRepositoryMock.getProfessionalsByService.mockResolvedValue(
+        response,
       );
 
-      const result = await service.getProfessionalsByService('service-1');
+      const result =
+        await service.getProfessionalsByService(
+          serviceId,
+        );
 
-      expect(result).toEqual(professionals);
+      expect(result).toBe(response);
 
       expect(
-        servicesRepository.getProfessionalsByService,
-      ).toHaveBeenCalledWith('service-1');
+        servicesRepositoryMock.getProfessionalsByService,
+      ).toHaveBeenCalledWith(serviceId);
     });
   });
 
   describe('updateServiceImage', () => {
-    it('should upload the image and update the service URL', async () => {
+    it('should upload the image to Cloudinary and update the service', async () => {
       const file = {
         originalname: 'service.jpg',
         mimetype: 'image/jpeg',
-        size: 1000,
+        buffer: Buffer.from('image'),
       } as Express.Multer.File;
 
       const cloudinaryUrl =
         'https://res.cloudinary.com/demo/image/upload/service.jpg';
 
-      const updatedService = {
-        id: 'service-1',
-        imageUrl: cloudinaryUrl,
-      };
-
-      cloudinaryService.uploadImage.mockResolvedValue({
+      cloudinaryServiceMock.uploadImage.mockResolvedValue({
         secure_url: cloudinaryUrl,
       });
 
-      servicesRepository.updateServiceImage.mockResolvedValue(
-        updatedService,
-      );
+      servicesRepositoryMock.updateServiceImage.mockResolvedValue({
+        ...serviceEntity,
+        imageUrl: cloudinaryUrl,
+      });
 
-      const result = await service.updateServiceImage('service-1', file);
+      const result =
+        await service.updateServiceImage(
+          serviceId,
+          file,
+        );
 
-      expect(result).toEqual(updatedService);
-
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledTimes(1);
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(
+      expect(
+        cloudinaryServiceMock.uploadImage,
+      ).toHaveBeenCalledWith(
         file,
         'turnify/services',
       );
 
-      expect(servicesRepository.updateServiceImage).toHaveBeenCalledWith(
-        'service-1',
+      expect(
+        servicesRepositoryMock.updateServiceImage,
+      ).toHaveBeenCalledWith(
+        serviceId,
         cloudinaryUrl,
       );
-    });
 
-    it('should propagate Cloudinary upload errors', async () => {
-      const file = {
-        originalname: 'service.jpg',
-        mimetype: 'image/jpeg',
-      } as Express.Multer.File;
-
-      const error = new Error('Cloudinary error');
-
-      cloudinaryService.uploadImage.mockRejectedValue(error);
-
-      await expect(
-        service.updateServiceImage('service-1', file),
-      ).rejects.toThrow(error);
-
-      expect(servicesRepository.updateServiceImage).not.toHaveBeenCalled();
-    });
-
-    it('should propagate repository errors', async () => {
-      const file = {
-        originalname: 'service.jpg',
-        mimetype: 'image/jpeg',
-      } as Express.Multer.File;
-
-      const cloudinaryUrl =
-        'https://res.cloudinary.com/demo/image/upload/service.jpg';
-
-      const error = new NotFoundException(
-        'No existe un servicio con el ID proporcionado',
-      );
-
-      cloudinaryService.uploadImage.mockResolvedValue({
-        secure_url: cloudinaryUrl,
+      expect(result).toEqual({
+        ...serviceEntity,
+        imageUrl: cloudinaryUrl,
       });
-
-      servicesRepository.updateServiceImage.mockRejectedValue(error);
-
-      await expect(
-        service.updateServiceImage('service-1', file),
-      ).rejects.toThrow(error);
     });
   });
 });

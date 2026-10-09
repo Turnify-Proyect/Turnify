@@ -1,122 +1,149 @@
 import {
-ExecutionContext,
-ForbiddenException,
+  ExecutionContext,
+  ForbiddenException,
 } from '@nestjs/common';
+
 import { UserOwnerOrAdminGuard } from './user-owner-or-admin.guard';
 import { UserRole } from '../../common/userRoles.enum';
 
 describe('UserOwnerOrAdminGuard', () => {
-let guard: UserOwnerOrAdminGuard;
+  let guard: UserOwnerOrAdminGuard;
 
-const createContext = (
-user: any,
-userId: string,
-): ExecutionContext => {
-const request = {
-user,
-params: {
-id: userId,
-},
-};
+  beforeEach(() => {
+    guard = new UserOwnerOrAdminGuard();
+  });
 
-return {
-  switchToHttp: () => ({
-    getRequest: () => request,
-  }),
-} as ExecutionContext;
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
+  const createContext = (request: any): ExecutionContext =>
+    ({
+      switchToHttp: () => ({
+        getRequest: () => request,
+      }),
+    }) as unknown as ExecutionContext;
 
-};
+  describe('canActivate', () => {
+    it('should allow access when the user is an admin', () => {
+      const request = {
+        user: {
+          id: 'user-1',
+          roles: [UserRole.ADMIN],
+        },
+        params: {
+          id: 'user-2',
+        },
+      };
 
-beforeEach(() => {
-guard = new UserOwnerOrAdminGuard();
-});
+      const result = guard.canActivate(createContext(request));
 
-describe('canActivate', () => {
-it('debería estar definido', () => {
-expect(guard).toBeDefined();
-});
+      expect(result).toBe(true);
+    });
 
-it('debería permitir el acceso si el usuario es administrador', () => {
-  const user = {
-    id: 'user-1',
-    roles: [UserRole.ADMIN],
-  };
+    it('should allow access when the user is the owner', () => {
+      const request = {
+        user: {
+          id: 'user-1',
+          roles: [UserRole.CLIENT],
+        },
+        params: {
+          id: 'user-1',
+        },
+      };
 
-  const context = createContext(user, 'user-999');
+      const result = guard.canActivate(createContext(request));
 
-  const result = guard.canActivate(context);
+      expect(result).toBe(true);
+    });
 
-  expect(result).toBe(true);
-});
+    it('should allow access when the user is admin even if they are not the owner', () => {
+      const request = {
+        user: {
+          id: 'admin-1',
+          roles: [UserRole.ADMIN],
+        },
+        params: {
+          id: 'user-1',
+        },
+      };
 
-it('debería permitir el acceso si el usuario es propietario', () => {
-  const user = {
-    id: 'user-1',
-    roles: [],
-  };
+      const result = guard.canActivate(createContext(request));
 
-  const context = createContext(user, 'user-1');
+      expect(result).toBe(true);
+    });
 
-  const result = guard.canActivate(context);
+    it('should allow access when the user has multiple roles including admin', () => {
+      const request = {
+        user: {
+          id: 'admin-1',
+          roles: [
+            UserRole.CLIENT,
+            UserRole.ADMIN,
+          ],
+        },
+        params: {
+          id: 'user-1',
+        },
+      };
 
-  expect(result).toBe(true);
-});
+      const result = guard.canActivate(createContext(request));
 
-it('debería permitir el acceso si el usuario es propietario y además administrador', () => {
-  const user = {
-    id: 'user-1',
-    roles: [UserRole.ADMIN],
-  };
+      expect(result).toBe(true);
+    });
 
-  const context = createContext(user, 'user-1');
+    it('should throw when the user is neither admin nor owner', () => {
+      const request = {
+        user: {
+          id: 'user-1',
+          roles: [UserRole.CLIENT],
+        },
+        params: {
+          id: 'user-2',
+        },
+      };
 
-  const result = guard.canActivate(context);
+      expect(() =>
+        guard.canActivate(createContext(request)),
+      ).toThrow(
+        new ForbiddenException(
+          'No tienes permiso para acceder a este usuario',
+        ),
+      );
+    });
 
-  expect(result).toBe(true);
-});
+    it('should throw when the user has no roles', () => {
+      const request = {
+        user: {
+          id: 'user-1',
+          roles: [],
+        },
+        params: {
+          id: 'user-2',
+        },
+      };
 
-it('debería rechazar el acceso si el usuario no es propietario ni administrador', () => {
-  const user = {
-    id: 'user-1',
-    roles: [],
-  };
+      expect(() =>
+        guard.canActivate(createContext(request)),
+      ).toThrow(
+        new ForbiddenException(
+          'No tienes permiso para acceder a este usuario',
+        ),
+      );
+    });
 
-  const context = createContext(user, 'user-2');
+    it('should compare the authenticated user id with the route id', () => {
+      const request = {
+        user: {
+          id: 'user-123',
+          roles: [UserRole.CLIENT],
+        },
+        params: {
+          id: 'user-123',
+        },
+      };
 
-  expect(() => guard.canActivate(context)).toThrow(
-    new ForbiddenException(
-      'No tienes permiso para acceder a este usuario',
-    ),
-  );
-});
-
-it('debería rechazar el acceso si el usuario tiene otro rol pero no es propietario', () => {
-  const user = {
-    id: 'user-1',
-    roles: [UserRole.PROFESSIONAL],
-  };
-
-  const context = createContext(user, 'user-2');
-
-  expect(() => guard.canActivate(context)).toThrow(
-    new ForbiddenException(
-      'No tienes permiso para acceder a este usuario',
-    ),
-  );
-});
-
-it('debería comparar el id del usuario autenticado con el id de la URL', () => {
-  const user = {
-    id: 'user-123',
-    roles: [],
-  };
-
-  const context = createContext(user, 'user-123');
-
-  expect(guard.canActivate(context)).toBe(true);
-});
-
-
-});
+      expect(guard.canActivate(createContext(request))).toBe(true);
+    });
+  });
 });

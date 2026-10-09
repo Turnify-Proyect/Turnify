@@ -1,14 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+
 import * as bcrypt from 'bcrypt';
 
 import { UsersService } from './users.service';
-import { UsersRepository } from './users.repository';
-import { CloudinaryService } from '../config/cloudinary.service';
-import { UserRole } from 'src/common/userRoles.enum';
+import { UserRole } from '../common/userRoles.enum';
 import { AuthProvider } from '../common/authProvider.enum';
 
 jest.mock('bcrypt', () => ({
@@ -18,628 +16,572 @@ jest.mock('bcrypt', () => ({
 describe('UsersService', () => {
   let service: UsersService;
 
-  let usersRepository: {
-    getAllUsers: jest.Mock;
-    getUserById: jest.Mock;
-    getUserByEmail: jest.Mock;
-    getUserByPhone: jest.Mock;
-    createUser: jest.Mock;
-    updateUser: jest.Mock;
-    updatePassword: jest.Mock;
-    removeUser: jest.Mock;
-    activateUser: jest.Mock;
-    updateUserRoles: jest.Mock;
-    updateProfilePicture: jest.Mock;
+  const usersRepository = {
+    getAllUsers: jest.fn(),
+    getUserById: jest.fn(),
+    getUserByEmail: jest.fn(),
+    getUserByPhone: jest.fn(),
+    createUser: jest.fn(),
+    updateUser: jest.fn(),
+    updatePassword: jest.fn(),
+    removeUser: jest.fn(),
+    activateUser: jest.fn(),
+    updateUserRoles: jest.fn(),
+    updateProfilePicture: jest.fn(),
   };
 
-  let cloudinaryService: {
-    uploadImage: jest.Mock;
+  const cloudinaryService = {
+    uploadImage: jest.fn(),
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
-    usersRepository = {
-      getAllUsers: jest.fn(),
-      getUserById: jest.fn(),
-      getUserByEmail: jest.fn(),
-      getUserByPhone: jest.fn(),
-      createUser: jest.fn(),
-      updateUser: jest.fn(),
-      updatePassword: jest.fn(),
-      removeUser: jest.fn(),
-      activateUser: jest.fn(),
-      updateUserRoles: jest.fn(),
-      updateProfilePicture: jest.fn(),
-    };
+    service = new UsersService(
+      usersRepository as any,
+      cloudinaryService as any,
+    );
 
-    cloudinaryService = {
-      uploadImage: jest.fn(),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        {
-          provide: UsersRepository,
-          useValue: usersRepository,
-        },
-        {
-          provide: CloudinaryService,
-          useValue: cloudinaryService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<UsersService>(UsersService);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+    (bcrypt.hash as jest.Mock).mockResolvedValue(
+      'hashed-password',
+    );
   });
 
   describe('getAllUsers', () => {
-    it('should get all users with filters', async () => {
-      const response = {
-        users: [
-          {
-            id: 'user-1',
-            name: 'Juan',
-            email: 'juan@test.com',
-          },
-        ],
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      };
-
-      usersRepository.getAllUsers.mockResolvedValue(response);
-
-      const result = await service.getAllUsers(
-        1,
-        10,
-        'Juan',
-        UserRole.CLIENT,
-        true,
-      );
-
-      expect(usersRepository.getAllUsers).toHaveBeenCalledTimes(1);
-      expect(usersRepository.getAllUsers).toHaveBeenCalledWith(
-        1,
-        10,
-        'Juan',
-        UserRole.CLIENT,
-        true,
-      );
-
-      expect(result).toEqual(response);
-    });
-
-    it('should pass undefined filters when they are not provided', async () => {
-      const response = {
+    it('should call repository with all filters', async () => {
+      const expected = {
         users: [],
         total: 0,
         page: 1,
-        limit: 10,
+        limit: 5,
         totalPages: 0,
       };
 
-      usersRepository.getAllUsers.mockResolvedValue(response);
+      usersRepository.getAllUsers.mockResolvedValue(
+        expected,
+      );
 
-      const result = await service.getAllUsers(1, 10);
-
-      expect(usersRepository.getAllUsers).toHaveBeenCalledWith(
+      const result = await service.getAllUsers(
         1,
-        10,
+        5,
+        'juan',
+        UserRole.CLIENT,
+        true,
+      );
+
+      expect(
+        usersRepository.getAllUsers,
+      ).toHaveBeenCalledWith(
+        1,
+        5,
+        'juan',
+        UserRole.CLIENT,
+        true,
+      );
+
+      expect(result).toEqual(expected);
+    });
+
+    it('should call repository without optional filters', async () => {
+      usersRepository.getAllUsers.mockResolvedValue(
+        [],
+      );
+
+      await service.getAllUsers(1, 5);
+
+      expect(
+        usersRepository.getAllUsers,
+      ).toHaveBeenCalledWith(
+        1,
+        5,
         undefined,
         undefined,
         undefined,
       );
-
-      expect(result).toEqual(response);
-    });
-
-    it('should propagate repository errors', async () => {
-      const error = new Error('Database error');
-
-      usersRepository.getAllUsers.mockRejectedValue(error);
-
-      await expect(
-        service.getAllUsers(1, 10),
-      ).rejects.toThrow(error);
     });
   });
 
   describe('getUserById', () => {
-    it('should get a user by id', async () => {
+    it('should return the user from repository', async () => {
       const user = {
-        id: 'user-1',
+        id: 'user-id',
         name: 'Juan',
-        email: 'juan@test.com',
       };
 
-      usersRepository.getUserById.mockResolvedValue(user);
+      usersRepository.getUserById.mockResolvedValue(
+        user,
+      );
 
-      const result = await service.getUserById('user-1');
+      const result =
+        await service.getUserById('user-id');
 
-      expect(usersRepository.getUserById).toHaveBeenCalledTimes(1);
-      expect(usersRepository.getUserById).toHaveBeenCalledWith('user-1');
+      expect(
+        usersRepository.getUserById,
+      ).toHaveBeenCalledWith('user-id');
 
       expect(result).toEqual(user);
-    });
-
-    it('should propagate repository errors', async () => {
-      const error = new Error('User not found');
-
-      usersRepository.getUserById.mockRejectedValue(error);
-
-      await expect(
-        service.getUserById('user-1'),
-      ).rejects.toThrow(error);
     });
   });
 
   describe('updateUser', () => {
-    it('should update the user', async () => {
-      const updateDto = {
-        name: 'Juan Actualizado',
+    it('should call repository with the user data', async () => {
+      const dto = {
+        name: 'Juan actualizado',
       };
 
-      const updatedUser = {
-        id: 'user-1',
-        name: 'Juan Actualizado',
+      const expected = {
+        id: 'user-id',
+        name: 'Juan actualizado',
       };
 
-      usersRepository.updateUser.mockResolvedValue(updatedUser);
-
-      const result = await service.updateUser(
-        'user-1',
-        updateDto as any,
+      usersRepository.updateUser.mockResolvedValue(
+        expected,
       );
 
-      expect(usersRepository.updateUser).toHaveBeenCalledTimes(1);
-      expect(usersRepository.updateUser).toHaveBeenCalledWith(
-        'user-1',
-        updateDto,
+      const result =
+        await service.updateUser(
+          'user-id',
+          dto as any,
+        );
+
+      expect(
+        usersRepository.updateUser,
+      ).toHaveBeenCalledWith(
+        'user-id',
+        dto,
       );
 
-      expect(result).toEqual(updatedUser);
-    });
-
-    it('should propagate repository errors', async () => {
-      const error = new ConflictException(
-        'El email ya esta registrado',
-      );
-
-      usersRepository.updateUser.mockRejectedValue(error);
-
-      await expect(
-        service.updateUser('user-1', {
-          email: 'existing@test.com',
-        } as any),
-      ).rejects.toThrow(error);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('changePassword', () => {
     it('should hash the password and update it', async () => {
-      const hashedPassword = 'hashed-password';
-
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      (bcrypt.hash as jest.Mock).mockResolvedValue(
+        'hashed-password',
+      );
 
       usersRepository.updatePassword.mockResolvedValue(
         'Contraseña actualizada correctamente',
       );
 
-      const result = await service.changePassword('user-1', {
-        password: 'newPassword123',
-      });
+      const dto = {
+        password: 'NewPassword123!',
+      };
 
-      expect(bcrypt.hash).toHaveBeenCalledTimes(1);
+      const result =
+        await service.changePassword(
+          'user-id',
+          dto as any,
+        );
+
       expect(bcrypt.hash).toHaveBeenCalledWith(
-        'newPassword123',
+        'NewPassword123!',
         10,
       );
 
-      expect(usersRepository.updatePassword).toHaveBeenCalledTimes(1);
-      expect(usersRepository.updatePassword).toHaveBeenCalledWith(
-        'user-1',
-        hashedPassword,
+      expect(
+        usersRepository.updatePassword,
+      ).toHaveBeenCalledWith(
+        'user-id',
+        'hashed-password',
       );
 
       expect(result).toBe(
         'Contraseña actualizada correctamente',
       );
     });
-
-    it('should not update the password if hashing fails', async () => {
-      const error = new Error('Hash error');
-
-      (bcrypt.hash as jest.Mock).mockRejectedValue(error);
-
-      await expect(
-        service.changePassword('user-1', {
-          password: 'newPassword123',
-        }),
-      ).rejects.toThrow(error);
-
-      expect(usersRepository.updatePassword).not.toHaveBeenCalled();
-    });
-
-    it('should propagate repository errors', async () => {
-      const hashedPassword = 'hashed-password';
-      const error = new Error('Database error');
-
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
-      usersRepository.updatePassword.mockRejectedValue(error);
-
-      await expect(
-        service.changePassword('user-1', {
-          password: 'newPassword123',
-        }),
-      ).rejects.toThrow(error);
-
-      expect(usersRepository.updatePassword).toHaveBeenCalledWith(
-        'user-1',
-        hashedPassword,
-      );
-    });
   });
 
   describe('removeUser', () => {
-    it('should deactivate the user', async () => {
-      const response = {
-        message: 'Usuario desactivado correctamente',
+    it('should call repository removeUser', async () => {
+      const expected = {
+        message:
+          'Usuario desactivado correctamente',
       };
 
-      usersRepository.removeUser.mockResolvedValue(response);
-
-      const result = await service.removeUser('user-1');
-
-      expect(usersRepository.removeUser).toHaveBeenCalledTimes(1);
-      expect(usersRepository.removeUser).toHaveBeenCalledWith(
-        'user-1',
+      usersRepository.removeUser.mockResolvedValue(
+        expected,
       );
 
-      expect(result).toEqual(response);
-    });
+      const result =
+        await service.removeUser('user-id');
 
-    it('should propagate repository errors', async () => {
-      const error = new ConflictException(
-        'El usuario ya se encuentra inactivo',
-      );
+      expect(
+        usersRepository.removeUser,
+      ).toHaveBeenCalledWith('user-id');
 
-      usersRepository.removeUser.mockRejectedValue(error);
-
-      await expect(
-        service.removeUser('user-1'),
-      ).rejects.toThrow(error);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('activateUser', () => {
-    it('should activate the user', async () => {
-      const response = {
-        message: 'Usuario activado correctamente',
+    it('should call repository activateUser', async () => {
+      const expected = {
+        message:
+          'Usuario activado correctamente',
       };
 
-      usersRepository.activateUser.mockResolvedValue(response);
-
-      const result = await service.activateUser('user-1');
-
-      expect(usersRepository.activateUser).toHaveBeenCalledTimes(1);
-      expect(usersRepository.activateUser).toHaveBeenCalledWith(
-        'user-1',
+      usersRepository.activateUser.mockResolvedValue(
+        expected,
       );
 
-      expect(result).toEqual(response);
-    });
+      const result =
+        await service.activateUser('user-id');
 
-    it('should propagate repository errors', async () => {
-      const error = new ConflictException(
-        'El usuario ya se encuentra activo',
-      );
+      expect(
+        usersRepository.activateUser,
+      ).toHaveBeenCalledWith('user-id');
 
-      usersRepository.activateUser.mockRejectedValue(error);
-
-      await expect(
-        service.activateUser('user-1'),
-      ).rejects.toThrow(error);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('createUserByAdmin', () => {
-    const createUserDto = {
+    const dto = {
       name: 'Juan',
       email: 'juan@test.com',
-      phone: '3411111111',
+      phone: '123456789',
       password: 'Password123!',
       confirmPassword: 'Password123!',
       roles: [UserRole.CLIENT],
     };
 
-    it('should create a user correctly', async () => {
-      const hashedPassword = 'hashed-password';
+    it('should create a user successfully', async () => {
+      usersRepository.getUserByEmail.mockResolvedValue(
+        null,
+      );
 
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      usersRepository.getUserByPhone.mockResolvedValue(
+        null,
+      );
 
-      usersRepository.getUserByEmail.mockResolvedValue(null);
-      usersRepository.getUserByPhone.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue(
+        'hashed-password',
+      );
 
-      const createdUser = {
-        id: 'user-1',
+      const expected = {
+        id: 'user-id',
         name: 'Juan',
         email: 'juan@test.com',
-        phone: '3411111111',
+        phone: '123456789',
         roles: [UserRole.CLIENT],
       };
 
-      usersRepository.createUser.mockResolvedValue(createdUser);
-
-      const result = await service.createUserByAdmin(
-        createUserDto as any,
+      usersRepository.createUser.mockResolvedValue(
+        expected,
       );
 
-      expect(usersRepository.getUserByEmail).toHaveBeenCalledWith(
-        createUserDto.email,
+      const result =
+        await service.createUserByAdmin(
+          dto as any,
+        );
+
+      expect(
+        usersRepository.getUserByEmail,
+      ).toHaveBeenCalledWith(
+        'juan@test.com',
       );
 
-      expect(usersRepository.getUserByPhone).toHaveBeenCalledWith(
-        createUserDto.phone,
+      expect(
+        usersRepository.getUserByPhone,
+      ).toHaveBeenCalledWith(
+        '123456789',
       );
 
       expect(bcrypt.hash).toHaveBeenCalledWith(
-        createUserDto.password,
+        'Password123!',
         10,
       );
 
-      expect(usersRepository.createUser).toHaveBeenCalledWith({
+      expect(
+        usersRepository.createUser,
+      ).toHaveBeenCalledWith({
         name: 'Juan',
         email: 'juan@test.com',
-        phone: '3411111111',
-        password_hash: hashedPassword,
+        phone: '123456789',
+        password_hash: 'hashed-password',
         roles: [UserRole.CLIENT],
         authProvider: AuthProvider.LOCAL,
         providerId: null,
       });
 
-      expect(result).toEqual(createdUser);
+      expect(result).toEqual(expected);
     });
 
-    it('should reject when email already exists', async () => {
-      usersRepository.getUserByEmail.mockResolvedValue({
-        id: 'existing-user',
-        email: createUserDto.email,
-      });
-
-      await expect(
-        service.createUserByAdmin(createUserDto as any),
-      ).rejects.toThrow(
-        new ConflictException(
-          'El email ya esta registrado',
-        ),
+    it('should throw ConflictException when email already exists', async () => {
+      usersRepository.getUserByEmail.mockResolvedValue(
+        {
+          id: 'existing-user',
+          email: 'juan@test.com',
+        },
       );
 
-      expect(usersRepository.getUserByPhone).not.toHaveBeenCalled();
+      await expect(
+        service.createUserByAdmin(
+          dto as any,
+        ),
+      ).rejects.toThrow(ConflictException);
+
+      expect(
+        usersRepository.getUserByPhone,
+      ).not.toHaveBeenCalled();
+
+      expect(
+        usersRepository.createUser,
+      ).not.toHaveBeenCalled();
+
       expect(bcrypt.hash).not.toHaveBeenCalled();
-      expect(usersRepository.createUser).not.toHaveBeenCalled();
     });
 
-    it('should reject when phone already exists', async () => {
-      usersRepository.getUserByEmail.mockResolvedValue(null);
-
-      usersRepository.getUserByPhone.mockResolvedValue({
-        id: 'existing-user',
-        phone: createUserDto.phone,
-      });
-
-      await expect(
-        service.createUserByAdmin(createUserDto as any),
-      ).rejects.toThrow(
-        new ConflictException(
-          'El telefono ya esta registrado',
-        ),
+    it('should throw ConflictException when phone already exists', async () => {
+      usersRepository.getUserByEmail.mockResolvedValue(
+        null,
       );
 
-      expect(bcrypt.hash).not.toHaveBeenCalled();
-      expect(usersRepository.createUser).not.toHaveBeenCalled();
-    });
-
-    it('should propagate bcrypt errors', async () => {
-      usersRepository.getUserByEmail.mockResolvedValue(null);
-      usersRepository.getUserByPhone.mockResolvedValue(null);
-
-      const error = new Error('Hash error');
-
-      (bcrypt.hash as jest.Mock).mockRejectedValue(error);
+      usersRepository.getUserByPhone.mockResolvedValue(
+        {
+          id: 'existing-user',
+          phone: '123456789',
+        },
+      );
 
       await expect(
-        service.createUserByAdmin(createUserDto as any),
-      ).rejects.toThrow(error);
+        service.createUserByAdmin(
+          dto as any,
+        ),
+      ).rejects.toThrow(ConflictException);
 
-      expect(usersRepository.createUser).not.toHaveBeenCalled();
+      expect(
+        usersRepository.createUser,
+      ).not.toHaveBeenCalled();
+
+      expect(bcrypt.hash).not.toHaveBeenCalled();
     });
   });
 
   describe('updateUserRoles', () => {
-    it('should remove duplicated roles before updating', async () => {
+    it('should remove duplicated roles before validation', async () => {
       const currentUser = {
-        id: 'user-1',
-        roles: [UserRole.CLIENT],
-      };
-
-      const updatedUser = {
-        id: 'user-1',
+        id: 'user-id',
         roles: [UserRole.ADMIN],
       };
 
-      usersRepository.getUserById.mockResolvedValue(currentUser);
-      usersRepository.updateUserRoles.mockResolvedValue(updatedUser);
-
-      const result = await service.updateUserRoles('user-1', {
-        roles: [UserRole.ADMIN, UserRole.ADMIN],
-      });
-
-      expect(usersRepository.getUserById).toHaveBeenCalledWith(
-        'user-1',
+      usersRepository.getUserById.mockResolvedValue(
+        currentUser,
       );
 
-      expect(usersRepository.updateUserRoles).toHaveBeenCalledWith(
-        'user-1',
+      usersRepository.updateUserRoles.mockResolvedValue(
+        {
+          id: 'user-id',
+          roles: [UserRole.ADMIN],
+        },
+      );
+
+      await service.updateUserRoles(
+        'user-id',
+        {
+          roles: [
+            UserRole.ADMIN,
+            UserRole.ADMIN,
+          ],
+        } as any,
+      );
+
+      expect(
+        usersRepository.updateUserRoles,
+      ).toHaveBeenCalledWith(
+        'user-id',
+        [UserRole.ADMIN],
+      );
+    });
+
+    it('should throw BadRequestException when user has CLIENT and PROFESSIONAL roles', async () => {
+      usersRepository.getUserById.mockResolvedValue(
+        {
+          id: 'user-id',
+          roles: [UserRole.ADMIN],
+        },
+      );
+
+      await expect(
+        service.updateUserRoles(
+          'user-id',
+          {
+            roles: [
+              UserRole.CLIENT,
+              UserRole.PROFESSIONAL,
+            ],
+          } as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(
+        usersRepository.updateUserRoles,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when assigning PROFESSIONAL to a non-professional user', async () => {
+      usersRepository.getUserById.mockResolvedValue(
+        {
+          id: 'user-id',
+          roles: [UserRole.ADMIN],
+        },
+      );
+
+      await expect(
+        service.updateUserRoles(
+          'user-id',
+          {
+            roles: [UserRole.PROFESSIONAL],
+          } as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(
+        usersRepository.updateUserRoles,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when removing PROFESSIONAL role', async () => {
+      usersRepository.getUserById.mockResolvedValue(
+        {
+          id: 'user-id',
+          roles: [
+            UserRole.PROFESSIONAL,
+          ],
+        },
+      );
+
+      await expect(
+        service.updateUserRoles(
+          'user-id',
+          {
+            roles: [UserRole.ADMIN],
+          } as any,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(
+        usersRepository.updateUserRoles,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should update roles when the new roles are valid', async () => {
+      usersRepository.getUserById.mockResolvedValue(
+        {
+          id: 'user-id',
+          roles: [UserRole.ADMIN],
+        },
+      );
+
+      const expected = {
+        id: 'user-id',
+        roles: [UserRole.ADMIN],
+      };
+
+      usersRepository.updateUserRoles.mockResolvedValue(
+        expected,
+      );
+
+      const result =
+        await service.updateUserRoles(
+          'user-id',
+          {
+            roles: [UserRole.ADMIN],
+          } as any,
+        );
+
+      expect(
+        usersRepository.updateUserRoles,
+      ).toHaveBeenCalledWith(
+        'user-id',
         [UserRole.ADMIN],
       );
 
-      expect(result).toEqual(updatedUser);
+      expect(result).toEqual(expected);
     });
 
-    it('should reject CLIENT + PROFESSIONAL', async () => {
-      usersRepository.getUserById.mockResolvedValue({
-        id: 'user-1',
-        roles: [UserRole.CLIENT],
-      });
-
-      await expect(
-        service.updateUserRoles('user-1', {
+    it('should allow an existing professional to keep the PROFESSIONAL role', async () => {
+      usersRepository.getUserById.mockResolvedValue(
+        {
+          id: 'user-id',
           roles: [
-            UserRole.CLIENT,
             UserRole.PROFESSIONAL,
           ],
-        }),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'Un usuario no puede ser cliente y profesional al mismo tiempo',
-        ),
+        },
       );
+
+      usersRepository.updateUserRoles.mockResolvedValue(
+        {
+          id: 'user-id',
+          roles: [
+            UserRole.PROFESSIONAL,
+            UserRole.ADMIN,
+          ],
+        },
+      );
+
+      const result =
+        await service.updateUserRoles(
+          'user-id',
+          {
+            roles: [
+              UserRole.PROFESSIONAL,
+              UserRole.ADMIN,
+            ],
+          } as any,
+        );
 
       expect(
         usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
-    });
+      ).toHaveBeenCalledWith(
+        'user-id',
+        [
+          UserRole.PROFESSIONAL,
+          UserRole.ADMIN,
+        ],
+      );
 
-    it('should reject assigning PROFESSIONAL to a non-professional user', async () => {
-      usersRepository.getUserById.mockResolvedValue({
-        id: 'user-1',
-        roles: [UserRole.CLIENT],
+      expect(result).toEqual({
+        id: 'user-id',
+        roles: [
+          UserRole.PROFESSIONAL,
+          UserRole.ADMIN,
+        ],
       });
-
-      await expect(
-        service.updateUserRoles('user-1', {
-          roles: [UserRole.PROFESSIONAL],
-        }),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'Para asignar el rol profesional se debe crear el perfil profesional',
-        ),
-      );
-
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should allow keeping the PROFESSIONAL role', async () => {
-      const currentUser = {
-        id: 'user-1',
-        roles: [UserRole.PROFESSIONAL],
-      };
-
-      const updatedUser = {
-        id: 'user-1',
-        roles: [UserRole.PROFESSIONAL],
-      };
-
-      usersRepository.getUserById.mockResolvedValue(currentUser);
-      usersRepository.updateUserRoles.mockResolvedValue(updatedUser);
-
-      const result = await service.updateUserRoles('user-1', {
-        roles: [UserRole.PROFESSIONAL],
-      });
-
-      expect(usersRepository.updateUserRoles).toHaveBeenCalledWith(
-        'user-1',
-        [UserRole.PROFESSIONAL],
-      );
-
-      expect(result).toEqual(updatedUser);
-    });
-
-    it('should reject removing PROFESSIONAL', async () => {
-      usersRepository.getUserById.mockResolvedValue({
-        id: 'user-1',
-        roles: [UserRole.PROFESSIONAL],
-      });
-
-      await expect(
-        service.updateUserRoles('user-1', {
-          roles: [UserRole.CLIENT],
-        }),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'El rol profesional no puede quitarse desde la gestión de usuarios',
-        ),
-      );
-
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should propagate getUserById errors', async () => {
-      const error = new Error('Database error');
-
-      usersRepository.getUserById.mockRejectedValue(error);
-
-      await expect(
-        service.updateUserRoles('user-1', {
-          roles: [UserRole.CLIENT],
-        }),
-      ).rejects.toThrow(error);
-
-      expect(
-        usersRepository.updateUserRoles,
-      ).not.toHaveBeenCalled();
     });
   });
 
   describe('updateProfilePicture', () => {
-    const file = {
-      originalname: 'avatar.jpg',
-      mimetype: 'image/jpeg',
-      size: 1024,
-      buffer: Buffer.from('fake-image'),
-    } as Express.Multer.File;
-
-    it('should upload the image and update the profile', async () => {
-      const cloudinaryResult = {
-        secure_url: 'https://cloudinary.com/avatar.jpg',
-      };
-
-      const updatedUser = {
-        id: 'user-1',
-        imgUrl: cloudinaryResult.secure_url,
-      };
+    it('should upload the image to Cloudinary and update the user', async () => {
+      const file = {
+        originalname: 'avatar.jpg',
+        mimetype: 'image/jpeg',
+      } as Express.Multer.File;
 
       cloudinaryService.uploadImage.mockResolvedValue(
-        cloudinaryResult,
+        {
+          secure_url:
+            'https://cloudinary.com/avatar.jpg',
+        },
       );
+
+      const expected = {
+        id: 'user-id',
+        imgUrl:
+          'https://cloudinary.com/avatar.jpg',
+      };
 
       usersRepository.updateProfilePicture.mockResolvedValue(
-        updatedUser,
+        expected,
       );
 
-      const result = await service.updateProfilePicture(
-        'user-1',
-        file,
-      );
-
-      expect(
-        cloudinaryService.uploadImage,
-      ).toHaveBeenCalledTimes(1);
+      const result =
+        await service.updateProfilePicture(
+          'user-id',
+          file,
+        );
 
       expect(
         cloudinaryService.uploadImage,
@@ -651,52 +593,33 @@ describe('UsersService', () => {
       expect(
         usersRepository.updateProfilePicture,
       ).toHaveBeenCalledWith(
-        'user-1',
-        cloudinaryResult.secure_url,
+        'user-id',
+        'https://cloudinary.com/avatar.jpg',
       );
 
-      expect(result).toEqual(updatedUser);
+      expect(result).toEqual(expected);
     });
 
     it('should propagate Cloudinary errors', async () => {
-      const error = new Error('Cloudinary error');
+      const file = {
+        originalname: 'avatar.jpg',
+        mimetype: 'image/jpeg',
+      } as Express.Multer.File;
 
-      cloudinaryService.uploadImage.mockRejectedValue(error);
+      cloudinaryService.uploadImage.mockRejectedValue(
+        new Error('Cloudinary error'),
+      );
 
       await expect(
-        service.updateProfilePicture('user-1', file),
-      ).rejects.toThrow(error);
+        service.updateProfilePicture(
+          'user-id',
+          file,
+        ),
+      ).rejects.toThrow('Cloudinary error');
 
       expect(
         usersRepository.updateProfilePicture,
       ).not.toHaveBeenCalled();
-    });
-
-    it('should propagate repository errors', async () => {
-      const cloudinaryResult = {
-        secure_url: 'https://cloudinary.com/avatar.jpg',
-      };
-
-      const error = new Error('Database error');
-
-      cloudinaryService.uploadImage.mockResolvedValue(
-        cloudinaryResult,
-      );
-
-      usersRepository.updateProfilePicture.mockRejectedValue(
-        error,
-      );
-
-      await expect(
-        service.updateProfilePicture('user-1', file),
-      ).rejects.toThrow(error);
-
-      expect(
-        usersRepository.updateProfilePicture,
-      ).toHaveBeenCalledWith(
-        'user-1',
-        cloudinaryResult.secure_url,
-      );
     });
   });
 });

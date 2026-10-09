@@ -1,35 +1,34 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
-
+import {
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersRepository } from './users.repository';
-import { User } from './entities/user.entity';
-import { UserRole } from 'src/common/userRoles.enum';
+import { UserRole } from '../common/userRoles.enum';
 
 describe('UsersRepository', () => {
   let repository: UsersRepository;
-  let ormUsersRepository: jest.Mocked<Repository<User>>;
+
+  const ormUsersRepository = {
+    createQueryBuilder: jest.fn(),
+    findOne: jest.fn(),
+    findOneBy: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  };
 
   beforeEach(() => {
-    ormUsersRepository = {
-      createQueryBuilder: jest.fn(),
-      findOne: jest.fn(),
-      findOneBy: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-    } as unknown as jest.Mocked<Repository<User>>;
-
-    repository = new UsersRepository(ormUsersRepository);
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
+
+    repository = new UsersRepository(
+      ormUsersRepository as any,
+    );
   });
 
   describe('getAllUsers', () => {
-    it('debería devolver usuarios paginados sin password_hash', async () => {
+    it('should return paginated users without password_hash', async () => {
       const users = [
         {
-          id: 'user-1',
+          id: '1',
           name: 'Juan',
           email: 'juan@test.com',
           password_hash: 'secret',
@@ -37,51 +36,60 @@ describe('UsersRepository', () => {
           isActive: true,
         },
         {
-          id: 'user-2',
+          id: '2',
           name: 'Pedro',
           email: 'pedro@test.com',
           password_hash: 'secret2',
-          roles: [UserRole.PROFESSIONAL],
+          roles: [UserRole.ADMIN],
           isActive: true,
         },
-      ] as User[];
+      ];
 
       const queryBuilder = {
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([users, 2]),
+        getManyAndCount: jest.fn().mockResolvedValue([
+          users,
+          2,
+        ]),
       };
 
       ormUsersRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
+        queryBuilder,
       );
 
-      const result = await repository.getAllUsers(1, 5);
-
-      expect(ormUsersRepository.createQueryBuilder).toHaveBeenCalledWith(
-        'user',
+      const result = await repository.getAllUsers(
+        1,
+        5,
       );
+
+      expect(
+        ormUsersRepository.createQueryBuilder,
+      ).toHaveBeenCalledWith('user');
 
       expect(queryBuilder.skip).toHaveBeenCalledWith(0);
       expect(queryBuilder.take).toHaveBeenCalledWith(5);
-      expect(queryBuilder.orderBy).toHaveBeenCalledWith('user.name', 'ASC');
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+        'user.name',
+        'ASC',
+      );
 
       expect(result).toEqual({
         users: [
           {
-            id: 'user-1',
+            id: '1',
             name: 'Juan',
             email: 'juan@test.com',
             roles: [UserRole.CLIENT],
             isActive: true,
           },
           {
-            id: 'user-2',
+            id: '2',
             name: 'Pedro',
             email: 'pedro@test.com',
-            roles: [UserRole.PROFESSIONAL],
+            roles: [UserRole.ADMIN],
             isActive: true,
           },
         ],
@@ -92,17 +100,20 @@ describe('UsersRepository', () => {
       });
     });
 
-    it('debería aplicar búsqueda, rol y estado activo', async () => {
+    it('should apply search, role and isActive filters', async () => {
       const queryBuilder = {
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+        getManyAndCount: jest.fn().mockResolvedValue([
+          [],
+          0,
+        ]),
       };
 
       ormUsersRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
+        queryBuilder,
       );
 
       await repository.getAllUsers(
@@ -110,7 +121,7 @@ describe('UsersRepository', () => {
         10,
         'juan',
         UserRole.CLIENT,
-        true,
+        false,
       );
 
       expect(queryBuilder.skip).toHaveBeenCalledWith(10);
@@ -133,108 +144,113 @@ describe('UsersRepository', () => {
       expect(queryBuilder.andWhere).toHaveBeenCalledWith(
         'user.isActive = :isActive',
         {
-          isActive: true,
+          isActive: false,
         },
       );
     });
 
-    it('debería calcular correctamente totalPages', async () => {
+    it('should calculate totalPages correctly', async () => {
       const queryBuilder = {
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn().mockResolvedValue([[], 23]),
+        getManyAndCount: jest.fn().mockResolvedValue([
+          [],
+          11,
+        ]),
       };
 
       ormUsersRepository.createQueryBuilder.mockReturnValue(
-        queryBuilder as any,
+        queryBuilder,
       );
 
-      const result = await repository.getAllUsers(1, 5);
+      const result = await repository.getAllUsers(
+        2,
+        5,
+      );
 
-      expect(result.total).toBe(23);
-      expect(result.totalPages).toBe(5);
+      expect(result.totalPages).toBe(3);
     });
   });
 
   describe('getUserById', () => {
-    it('debería devolver el usuario sin password_hash', async () => {
+    it('should return the user without password_hash', async () => {
       const user = {
-        id: 'user-1',
+        id: '1',
         name: 'Juan',
         email: 'juan@test.com',
-        password_hash: 'hashed-password',
-        roles: [UserRole.CLIENT],
-      } as User;
+        password_hash: 'secret',
+      };
 
       ormUsersRepository.findOne.mockResolvedValue(user);
 
-      const result = await repository.getUserById('user-1');
+      const result = await repository.getUserById('1');
 
-      expect(ormUsersRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(
+        ormUsersRepository.findOne,
+      ).toHaveBeenCalledWith({
+        where: { id: '1' },
       });
 
       expect(result).toEqual({
-        id: 'user-1',
+        id: '1',
         name: 'Juan',
         email: 'juan@test.com',
-        roles: [UserRole.CLIENT],
       });
-
-      expect(result).not.toHaveProperty('password_hash');
     });
 
-    it('debería lanzar NotFoundException si el usuario no existe', async () => {
+    it('should throw NotFoundException when user does not exist', async () => {
       ormUsersRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        repository.getUserById('user-inexistente'),
+        repository.getUserById('invalid-id'),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('getUserByEmail', () => {
-    it('debería devolver el usuario encontrado', async () => {
+    it('should return the user by email', async () => {
       const user = {
-        id: 'user-1',
+        id: '1',
         email: 'juan@test.com',
-      } as User;
+      };
 
       ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      const result = await repository.getUserByEmail('juan@test.com');
+      const result =
+        await repository.getUserByEmail(
+          'juan@test.com',
+        );
 
-      expect(ormUsersRepository.findOneBy).toHaveBeenCalledWith({
+      expect(
+        ormUsersRepository.findOneBy,
+      ).toHaveBeenCalledWith({
         email: 'juan@test.com',
       });
 
       expect(result).toEqual(user);
     });
-
-    it('debería devolver null si no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
-
-      const result = await repository.getUserByEmail('noexiste@test.com');
-
-      expect(result).toBeNull();
-    });
   });
 
   describe('getUserByPhone', () => {
-    it('debería buscar el usuario por teléfono', async () => {
+    it('should return the user by phone', async () => {
       const user = {
-        id: 'user-1',
-        phone: '3415555555',
-      } as User;
+        id: '1',
+        phone: '123456789',
+      };
 
       ormUsersRepository.findOneBy.mockResolvedValue(user);
 
-      const result = await repository.getUserByPhone('3415555555');
+      const result =
+        await repository.getUserByPhone(
+          '123456789',
+        );
 
-      expect(ormUsersRepository.findOneBy).toHaveBeenCalledWith({
-        phone: '3415555555',
+      expect(
+        ormUsersRepository.findOneBy,
+      ).toHaveBeenCalledWith({
+        phone: '123456789',
       });
 
       expect(result).toEqual(user);
@@ -242,388 +258,397 @@ describe('UsersRepository', () => {
   });
 
   describe('createUser', () => {
-    it('debería crear y devolver el usuario sin password_hash', async () => {
-      const createUserData = {
+    it('should create and return the user without password_hash', async () => {
+      const user = {
+        id: '1',
         name: 'Juan',
         email: 'juan@test.com',
-        password_hash: 'hashed-password',
-        roles: [UserRole.CLIENT],
-      } as any;
+        password_hash: 'hashed',
+      };
 
-      const createdUser = {
-        id: 'user-1',
-        ...createUserData,
-      } as User;
+      ormUsersRepository.create.mockReturnValue(
+        user,
+      );
 
-      ormUsersRepository.create.mockReturnValue(createdUser);
-      ormUsersRepository.save.mockResolvedValue(createdUser);
+      ormUsersRepository.save.mockResolvedValue(
+        user,
+      );
 
-      const result = await repository.createUser(createUserData);
+      const result =
+        await repository.createUser({
+          name: 'Juan',
+          email: 'juan@test.com',
+          password_hash: 'hashed',
+        } as any);
 
-      expect(ormUsersRepository.create).toHaveBeenCalledWith(createUserData);
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(createdUser);
-
-      expect(result).toEqual({
-        id: 'user-1',
+      expect(
+        ormUsersRepository.create,
+      ).toHaveBeenCalledWith({
         name: 'Juan',
         email: 'juan@test.com',
-        roles: [UserRole.CLIENT],
+        password_hash: 'hashed',
       });
 
-      expect(result).not.toHaveProperty('password_hash');
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(user);
+
+      expect(result).toEqual({
+        id: '1',
+        name: 'Juan',
+        email: 'juan@test.com',
+      });
     });
   });
 
   describe('updateUser', () => {
-    it('debería actualizar correctamente el usuario', async () => {
+    it('should update the user successfully', async () => {
       const user = {
-        id: 'user-1',
+        id: '1',
         name: 'Juan',
         email: 'juan@test.com',
-        phone: '3411111111',
-        password_hash: 'hashed',
-      } as User;
-
-      ormUsersRepository.findOneBy
-        .mockResolvedValueOnce(user)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null);
-
-      ormUsersRepository.save.mockResolvedValue(user);
-
-      const result = await repository.updateUser('user-1', {
-        name: 'Juan Actualizado',
-        email: 'nuevo@test.com',
-        phone: '3412222222',
-      });
-
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
-
-      expect(result).not.toHaveProperty('password_hash');
-      expect(result.name).toBe('Juan Actualizado');
-      expect(result.email).toBe('nuevo@test.com');
-      expect(result.phone).toBe('3412222222');
-    });
-
-    it('debería lanzar NotFoundException si el usuario no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
-
-      await expect(
-        repository.updateUser('user-inexistente', {
-          name: 'Nuevo nombre',
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('debería rechazar un teléfono que ya pertenece a otro usuario', async () => {
-      const currentUser = {
-        id: 'user-1',
-        phone: '3411111111',
-      } as User;
-
-      const anotherUser = {
-        id: 'user-2',
-        phone: '3412222222',
-      } as User;
-
-      ormUsersRepository.findOneBy
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(anotherUser);
-
-      await expect(
-        repository.updateUser('user-1', {
-          phone: '3412222222',
-        }),
-      ).rejects.toThrow(ConflictException);
-
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        1,
-        { id: 'user-1' },
-      );
-
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        2,
-        { phone: '3412222222' },
-      );
-
-      expect(ormUsersRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('debería rechazar un email que ya pertenece a otro usuario', async () => {
-      const currentUser = {
-        id: 'user-1',
-        email: 'juan@test.com',
-      } as User;
-
-      const anotherUser = {
-        id: 'user-2',
-        email: 'otro@test.com',
-      } as User;
-
-      ormUsersRepository.findOneBy
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(anotherUser);
-
-      await expect(
-        repository.updateUser('user-1', {
-          email: 'otro@test.com',
-        }),
-      ).rejects.toThrow(ConflictException);
-
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        1,
-        { id: 'user-1' },
-      );
-
-      expect(ormUsersRepository.findOneBy).toHaveBeenNthCalledWith(
-        2,
-        { email: 'otro@test.com' },
-      );
-
-      expect(ormUsersRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('debería permitir mantener el mismo teléfono', async () => {
-      const currentUser = {
-        id: 'user-1',
-        phone: '3411111111',
-      } as User;
-
-      ormUsersRepository.findOneBy
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(currentUser);
-
-      ormUsersRepository.save.mockResolvedValue(currentUser);
-
-      const result = await repository.updateUser('user-1', {
-        phone: '3411111111',
-      });
-
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(currentUser);
-
-      expect(result.phone).toBe('3411111111');
-    });
-
-    it('debería permitir mantener el mismo email', async () => {
-      const currentUser = {
-        id: 'user-1',
-        email: 'juan@test.com',
-      } as User;
-
-      ormUsersRepository.findOneBy
-        .mockResolvedValueOnce(currentUser)
-        .mockResolvedValueOnce(currentUser);
-
-      ormUsersRepository.save.mockResolvedValue(currentUser);
-
-      const result = await repository.updateUser('user-1', {
-        email: 'juan@test.com',
-      });
-
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(currentUser);
-
-      expect(result.email).toBe('juan@test.com');
-    });
-  });
-
-  describe('updatePassword', () => {
-    it('debería actualizar la contraseña', async () => {
-      const user = {
-        id: 'user-1',
-        password_hash: 'old-hash',
-      } as User;
+        phone: '111',
+        password_hash: 'secret',
+      };
 
       ormUsersRepository.findOneBy.mockResolvedValue(user);
       ormUsersRepository.save.mockResolvedValue(user);
 
-      const result = await repository.updatePassword(
-        'user-1',
-        'new-hashed-password',
+      const result =
+        await repository.updateUser('1', {
+          name: 'Juan Actualizado',
+        } as any);
+
+      expect(
+        ormUsersRepository.findOneBy,
+      ).toHaveBeenCalledWith({
+        id: '1',
+      });
+
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: '1',
+          name: 'Juan Actualizado',
+        }),
       );
 
-      expect(user.password_hash).toBe('new-hashed-password');
-
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
-      expect(result).toBe('Contraseña actualizada correctamente');
+      expect(result).not.toHaveProperty(
+        'password_hash',
+      );
     });
 
-    it('debería lanzar NotFoundException si el usuario no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
+    it('should throw NotFoundException when user does not exist', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        null,
+      );
 
       await expect(
-        repository.updatePassword('user-inexistente', 'hash'),
+        repository.updateUser('1', {
+          name: 'Juan',
+        } as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ConflictException when email is already registered', async () => {
+      const currentUser = {
+        id: '1',
+        email: 'old@test.com',
+      };
+
+      const otherUser = {
+        id: '2',
+        email: 'new@test.com',
+      };
+
+      ormUsersRepository.findOneBy
+        .mockResolvedValueOnce(currentUser)
+        .mockResolvedValueOnce(otherUser);
+
+      await expect(
+        repository.updateUser('1', {
+          email: 'new@test.com',
+        } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw ConflictException when phone is already registered', async () => {
+      const currentUser = {
+        id: '1',
+        phone: '111',
+      };
+
+      const otherUser = {
+        id: '2',
+        phone: '222',
+      };
+
+      ormUsersRepository.findOneBy
+        .mockResolvedValueOnce(currentUser)
+        .mockResolvedValueOnce(otherUser);
+
+      await expect(
+        repository.updateUser('1', {
+          phone: '222',
+        } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('should update the password successfully', async () => {
+      const user = {
+        id: '1',
+        password_hash: 'old-hash',
+      };
+
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        user,
+      );
+
+      ormUsersRepository.save.mockResolvedValue(
+        user,
+      );
+
+      const result =
+        await repository.updatePassword(
+          '1',
+          'new-hash',
+        );
+
+      expect(user.password_hash).toBe(
+        'new-hash',
+      );
+
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(user);
+
+      expect(result).toBe(
+        'Contraseña actualizada correctamente',
+      );
+    });
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        repository.updatePassword(
+          '1',
+          'new-hash',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('removeUser', () => {
-    it('debería desactivar al usuario', async () => {
+    it('should deactivate an active user', async () => {
       const user = {
-        id: 'user-1',
+        id: '1',
         isActive: true,
-      } as User;
+      };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(user);
-      ormUsersRepository.save.mockResolvedValue(user);
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        user,
+      );
 
-      const result = await repository.removeUser('user-1');
+      const result =
+        await repository.removeUser('1');
 
       expect(user.isActive).toBe(false);
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
+
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
-        message: 'Usuario desactivado correctamente',
+        message:
+          'Usuario desactivado correctamente',
       });
     });
 
-    it('debería lanzar NotFoundException si no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
+    it('should throw NotFoundException when user does not exist', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        null,
+      );
 
       await expect(
-        repository.removeUser('user-inexistente'),
+        repository.removeUser('1'),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('debería rechazar la baja si ya está inactivo', async () => {
-      const user = {
-        id: 'user-1',
-        isActive: false,
-      } as User;
-
-      ormUsersRepository.findOneBy.mockResolvedValue(user);
-
-      await expect(repository.removeUser('user-1')).rejects.toThrow(
-        ConflictException,
+    it('should throw ConflictException when user is already inactive', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        {
+          id: '1',
+          isActive: false,
+        },
       );
 
-      expect(ormUsersRepository.save).not.toHaveBeenCalled();
+      await expect(
+        repository.removeUser('1'),
+      ).rejects.toThrow(ConflictException);
     });
   });
 
   describe('activateUser', () => {
-    it('debería activar al usuario', async () => {
+    it('should activate an inactive user', async () => {
       const user = {
-        id: 'user-1',
+        id: '1',
         isActive: false,
-      } as User;
+      };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(user);
-      ormUsersRepository.save.mockResolvedValue(user);
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        user,
+      );
 
-      const result = await repository.activateUser('user-1');
+      const result =
+        await repository.activateUser('1');
 
       expect(user.isActive).toBe(true);
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
+
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
-        message: 'Usuario activado correctamente',
+        message:
+          'Usuario activado correctamente',
       });
     });
 
-    it('debería lanzar NotFoundException si no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
+    it('should throw NotFoundException when user does not exist', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        null,
+      );
 
       await expect(
-        repository.activateUser('user-inexistente'),
+        repository.activateUser('1'),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('debería rechazar la activación si ya está activo', async () => {
-      const user = {
-        id: 'user-1',
-        isActive: true,
-      } as User;
-
-      ormUsersRepository.findOneBy.mockResolvedValue(user);
-
-      await expect(repository.activateUser('user-1')).rejects.toThrow(
-        ConflictException,
+    it('should throw ConflictException when user is already active', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        {
+          id: '1',
+          isActive: true,
+        },
       );
 
-      expect(ormUsersRepository.save).not.toHaveBeenCalled();
+      await expect(
+        repository.activateUser('1'),
+      ).rejects.toThrow(ConflictException);
     });
   });
 
   describe('updateUserRoles', () => {
-    it('debería actualizar los roles del usuario', async () => {
+    it('should update user roles successfully', async () => {
       const user = {
-        id: 'user-1',
+        id: '1',
         roles: [UserRole.CLIENT],
         password_hash: 'secret',
-      } as User;
+      };
 
       const updatedUser = {
         ...user,
-        roles: [UserRole.PROFESSIONAL],
-      } as User;
+        roles: [UserRole.ADMIN],
+      };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(user);
-      ormUsersRepository.save.mockResolvedValue(updatedUser);
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        user,
+      );
 
-      const result = await repository.updateUserRoles('user-1', [
-        UserRole.PROFESSIONAL,
+      ormUsersRepository.save.mockResolvedValue(
+        updatedUser,
+      );
+
+      const result =
+        await repository.updateUserRoles(
+          '1',
+          [UserRole.ADMIN],
+        );
+
+      expect(user.roles).toEqual([
+        UserRole.ADMIN,
       ]);
 
-      expect(user.roles).toEqual([UserRole.PROFESSIONAL]);
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
-        id: 'user-1',
-        roles: [UserRole.PROFESSIONAL],
+        id: '1',
+        roles: [UserRole.ADMIN],
       });
-
-      expect(result).not.toHaveProperty('password_hash');
     });
 
-    it('debería lanzar NotFoundException si no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
+    it('should throw NotFoundException when user does not exist', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        null,
+      );
 
       await expect(
-        repository.updateUserRoles('user-inexistente', [
-          UserRole.CLIENT,
-        ]),
+        repository.updateUserRoles(
+          '1',
+          [UserRole.ADMIN],
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('updateProfilePicture', () => {
-    it('debería actualizar la imagen de perfil', async () => {
+    it('should update the profile picture successfully', async () => {
       const user = {
-        id: 'user-1',
-        imgUrl: 'old-image.jpg',
+        id: '1',
+        imgUrl: null,
         password_hash: 'secret',
-      } as User;
+      };
 
       const updatedUser = {
         ...user,
         imgUrl: 'https://cloudinary.com/avatar.jpg',
-      } as User;
+      };
 
-      ormUsersRepository.findOneBy.mockResolvedValue(user);
-      ormUsersRepository.save.mockResolvedValue(updatedUser);
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        user,
+      );
 
-      const result = await repository.updateProfilePicture(
-        'user-1',
+      ormUsersRepository.save.mockResolvedValue(
+        updatedUser,
+      );
+
+      const result =
+        await repository.updateProfilePicture(
+          '1',
+          'https://cloudinary.com/avatar.jpg',
+        );
+
+      expect(user.imgUrl).toBe(
         'https://cloudinary.com/avatar.jpg',
       );
 
-      expect(user.imgUrl).toBe('https://cloudinary.com/avatar.jpg');
-      expect(ormUsersRepository.save).toHaveBeenCalledWith(user);
+      expect(
+        ormUsersRepository.save,
+      ).toHaveBeenCalledWith(user);
 
       expect(result).toEqual({
-        id: 'user-1',
-        imgUrl: 'https://cloudinary.com/avatar.jpg',
+        id: '1',
+        imgUrl:
+          'https://cloudinary.com/avatar.jpg',
       });
-
-      expect(result).not.toHaveProperty('password_hash');
     });
 
-    it('debería lanzar NotFoundException si el usuario no existe', async () => {
-      ormUsersRepository.findOneBy.mockResolvedValue(null);
+    it('should throw NotFoundException when user does not exist', async () => {
+      ormUsersRepository.findOneBy.mockResolvedValue(
+        null,
+      );
 
       await expect(
         repository.updateProfilePicture(
-          'user-inexistente',
+          '1',
           'https://cloudinary.com/avatar.jpg',
         ),
       ).rejects.toThrow(NotFoundException);

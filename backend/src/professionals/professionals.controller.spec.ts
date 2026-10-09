@@ -1,21 +1,39 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
+import { UserRole } from '../common/userRoles.enum';
+
 import { ProfessionalsController } from './professionals.controller';
 import { ProfessionalsService } from './professionals.service';
-import { CreateProfessionalDto } from './dto/create-professional.dto';
-import { UpdateProfessionalDto } from './dto/update-professional.dto';
-import { JwtService } from '@nestjs/jwt';
-
 
 describe('ProfessionalsController', () => {
   let controller: ProfessionalsController;
-  let service: jest.Mocked<ProfessionalsService>;
 
-  beforeEach(async () => {
-    const mockProfessionalsService = {
+  let professionalsServiceMock: {
+    createProfessional: jest.Mock;
+    getActiveProfessionals: jest.Mock;
+    getAllProfessionals: jest.Mock;
+    getProfessionalById: jest.Mock;
+    getProfessionalByUserId: jest.Mock;
+    updateProfessional: jest.Mock;
+    softDeleteProfessional: jest.Mock;
+    activateProfessional: jest.Mock;
+    associateService: jest.Mock;
+    getServicesByProfessional: jest.Mock;
+    removeServiceFromProfessional: jest.Mock;
+  };
+
+  const professionalId = 'professional-123';
+  const userId = 'user-123';
+  const serviceId = 'service-123';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    professionalsServiceMock = {
       createProfessional: jest.fn(),
       getActiveProfessionals: jest.fn(),
       getAllProfessionals: jest.fn(),
       getProfessionalById: jest.fn(),
+      getProfessionalByUserId: jest.fn(),
       updateProfessional: jest.fn(),
       softDeleteProfessional: jest.fn(),
       activateProfessional: jest.fn(),
@@ -24,273 +42,404 @@ describe('ProfessionalsController', () => {
       removeServiceFromProfessional: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ProfessionalsController],
-      providers: [
-        {
-          provide: ProfessionalsService,
-          useValue: mockProfessionalsService,
-        },
-        {
-          provide: JwtService,
-          useValue: {
-            canActivate: jest.fn().mockReturnValue(true),
-          },
-        },
-      ],
-    }).compile();
-
-    controller = module.get<ProfessionalsController>(ProfessionalsController);
-    service = module.get(ProfessionalsService);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
+    controller = new ProfessionalsController(
+      professionalsServiceMock as unknown as ProfessionalsService,
+    );
   });
 
   describe('createProfessional', () => {
-    it('should create a professional', async () => {
+    it('should call the service', async () => {
       const dto = {
-        name: 'Juan Pérez',
-      } as CreateProfessionalDto;
-
-      const expectedResult = {
-        id: 'professional-1',
-        ...dto,
+        userId,
+        specialty: 'masajes',
       };
 
-      service.createProfessional.mockResolvedValue(expectedResult as any);
+      const response = {
+        id: professionalId,
+      };
 
-      const result = await controller.createProfessional(dto);
+      professionalsServiceMock.createProfessional.mockResolvedValue(
+        response,
+      );
 
-      expect(result).toEqual(expectedResult);
-      expect(service.createProfessional).toHaveBeenCalledWith(dto);
-      expect(service.createProfessional).toHaveBeenCalledTimes(1);
+      const result =
+        await controller.createProfessional(dto as any);
+
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.createProfessional,
+      ).toHaveBeenCalledWith(dto);
     });
   });
 
   describe('getActiveProfessionals', () => {
     it('should return active professionals', async () => {
-      const expectedResult = [
-        {
-          id: 'professional-1',
-          name: 'Juan Pérez',
-        },
-        {
-          id: 'professional-2',
-          name: 'María López',
-        },
+      const response = [
+        { id: professionalId },
       ];
 
-      service.getActiveProfessionals.mockResolvedValue(expectedResult as any);
+      professionalsServiceMock.getActiveProfessionals.mockResolvedValue(
+        response,
+      );
 
-      const result = await controller.getActiveProfessionals();
+      const result =
+        await controller.getActiveProfessionals();
 
-      expect(result).toEqual(expectedResult);
-      expect(service.getActiveProfessionals).toHaveBeenCalledTimes(1);
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.getActiveProfessionals,
+      ).toHaveBeenCalled();
     });
   });
 
   describe('getAllProfessionals', () => {
     it('should return all professionals', async () => {
-      const expectedResult = [
-        {
-          id: 'professional-1',
-          name: 'Juan Pérez',
-          active: true,
-        },
-        {
-          id: 'professional-2',
-          name: 'María López',
-          active: false,
-        },
+      const response = [
+        { id: professionalId },
       ];
 
-      service.getAllProfessionals.mockResolvedValue(expectedResult as any);
+      professionalsServiceMock.getAllProfessionals.mockResolvedValue(
+        response,
+      );
 
-      const result = await controller.getAllProfessionals();
+      const result =
+        await controller.getAllProfessionals();
 
-      expect(result).toEqual(expectedResult);
-      expect(service.getAllProfessionals).toHaveBeenCalledTimes(1);
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.getAllProfessionals,
+      ).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMyProfessionalProfile', () => {
+    it('should use the authenticated user id', async () => {
+      const response = {
+        id: professionalId,
+      };
+
+      professionalsServiceMock.getProfessionalByUserId.mockResolvedValue(
+        response,
+      );
+
+      const request = {
+        user: {
+          id: userId,
+        },
+      };
+
+      const result =
+        await controller.getMyProfessionalProfile(
+          request,
+        );
+
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.getProfessionalByUserId,
+      ).toHaveBeenCalledWith(userId);
     });
   });
 
   describe('getProfessionalById', () => {
-    it('should return a professional by id', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-
-      const expectedResult = {
+    it('should return the professional', async () => {
+      const response = {
         id: professionalId,
-        name: 'Juan Pérez',
       };
 
-      service.getProfessionalById.mockResolvedValue(expectedResult as any);
+      professionalsServiceMock.getProfessionalById.mockResolvedValue(
+        response,
+      );
 
-      const result = await controller.getProfessionalById(professionalId);
+      const result =
+        await controller.getProfessionalById(
+          professionalId,
+        );
 
-      expect(result).toEqual(expectedResult);
-      expect(service.getProfessionalById).toHaveBeenCalledWith(
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.getProfessionalById,
+      ).toHaveBeenCalledWith(
         professionalId,
       );
-      expect(service.getProfessionalById).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('updateProfessional', () => {
-    it('should update a professional', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-
+    it('should update the professional', async () => {
       const dto = {
-        name: 'Juan Pérez Actualizado',
-      } as UpdateProfessionalDto;
-
-      const expectedResult = {
-        id: professionalId,
-        name: 'Juan Pérez Actualizado',
+        specialty: 'pedicuría',
       };
 
-      service.updateProfessional.mockResolvedValue(expectedResult as any);
+      const response = {
+        message:
+          'Profesional actualizado exitosamente',
+      };
 
-      const result = await controller.updateProfessional(
+      professionalsServiceMock.updateProfessional.mockResolvedValue(
+        response,
+      );
+
+      const result =
+        await controller.updateProfessional(
+          professionalId,
+          dto as any,
+        );
+
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.updateProfessional,
+      ).toHaveBeenCalledWith(
         professionalId,
         dto,
       );
-
-      expect(result).toEqual(expectedResult);
-      expect(service.updateProfessional).toHaveBeenCalledWith(
-        professionalId,
-        dto,
-      );
-      expect(service.updateProfessional).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('softDeleteProfessional', () => {
-    it('should soft delete a professional', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-
-      const expectedResult = {
-        id: professionalId,
-        active: false,
+    it('should deactivate the professional', async () => {
+      const response = {
+        message:
+          'Profesional eliminado correctamente',
       };
 
-      service.softDeleteProfessional.mockResolvedValue(expectedResult as any);
+      professionalsServiceMock.softDeleteProfessional.mockResolvedValue(
+        response,
+      );
 
       const result =
-        await controller.softDeleteProfessional(professionalId);
+        await controller.softDeleteProfessional(
+          professionalId,
+        );
 
-      expect(result).toEqual(expectedResult);
-      expect(service.softDeleteProfessional).toHaveBeenCalledWith(
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.softDeleteProfessional,
+      ).toHaveBeenCalledWith(
         professionalId,
       );
-      expect(service.softDeleteProfessional).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('activateProfessional', () => {
-    it('should activate a professional', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-
-      const expectedResult = {
-        id: professionalId,
-        active: true,
+    it('should activate the professional', async () => {
+      const response = {
+        message:
+          'Profesional activado correctamente',
       };
 
-      service.activateProfessional.mockResolvedValue(expectedResult as any);
+      professionalsServiceMock.activateProfessional.mockResolvedValue(
+        response,
+      );
 
       const result =
-        await controller.activateProfessional(professionalId);
+        await controller.activateProfessional(
+          professionalId,
+        );
 
-      expect(result).toEqual(expectedResult);
-      expect(service.activateProfessional).toHaveBeenCalledWith(
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.activateProfessional,
+      ).toHaveBeenCalledWith(
         professionalId,
       );
-      expect(service.activateProfessional).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('associateService', () => {
     it('should associate a service with a professional', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-      const serviceId = '650e8400-e29b-41d4-a716-446655440000';
-
-      const expectedResult = {
+      const response = {
         professionalId,
         serviceId,
       };
 
-      service.associateService.mockResolvedValue(expectedResult as any);
+      professionalsServiceMock.associateService.mockResolvedValue(
+        response,
+      );
 
-      const result = await controller.associateService(
+      const result =
+        await controller.associateService(
+          professionalId,
+          serviceId,
+        );
+
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.associateService,
+      ).toHaveBeenCalledWith(
         professionalId,
         serviceId,
       );
-
-      expect(result).toEqual(expectedResult);
-      expect(service.associateService).toHaveBeenCalledWith(
-        professionalId,
-        serviceId,
-      );
-      expect(service.associateService).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('getServicesByProfessional', () => {
-    it('should return services associated with a professional', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-
-      const expectedResult = [
+    it('should return the professional services', async () => {
+      const response = [
         {
-          id: 'service-1',
-          name: 'Corte de cabello',
-        },
-        {
-          id: 'service-2',
-          name: 'Barba',
+          professionalId,
+          serviceId,
         },
       ];
 
-      service.getServicesByProfessional.mockResolvedValue(
-        expectedResult as any,
+      professionalsServiceMock.getServicesByProfessional.mockResolvedValue(
+        response,
       );
 
       const result =
-        await controller.getServicesByProfessional(professionalId);
+        await controller.getServicesByProfessional(
+          professionalId,
+        );
 
-      expect(result).toEqual(expectedResult);
-      expect(service.getServicesByProfessional).toHaveBeenCalledWith(
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.getServicesByProfessional,
+      ).toHaveBeenCalledWith(
         professionalId,
       );
-      expect(service.getServicesByProfessional).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('removeServiceFromProfessional', () => {
-    it('should remove a service from a professional', async () => {
-      const professionalId = '550e8400-e29b-41d4-a716-446655440000';
-      const serviceId = '650e8400-e29b-41d4-a716-446655440000';
-
-      const expectedResult = {
-        professionalId,
-        serviceId,
+    it('should remove the service from the professional', async () => {
+      const response = {
+        message:
+          'Servicio desvinculado del profesional exitosamente',
       };
 
-      service.removeServiceFromProfessional.mockResolvedValue(
-        expectedResult as any,
+      professionalsServiceMock.removeServiceFromProfessional.mockResolvedValue(
+        response,
       );
 
-      const result = await controller.removeServiceFromProfessional(
+      const result =
+        await controller.removeServiceFromProfessional(
+          professionalId,
+          serviceId,
+        );
+
+      expect(result).toBe(response);
+
+      expect(
+        professionalsServiceMock.removeServiceFromProfessional,
+      ).toHaveBeenCalledWith(
         professionalId,
         serviceId,
       );
-
-      expect(result).toEqual(expectedResult);
-      expect(
-        service.removeServiceFromProfessional,
-      ).toHaveBeenCalledWith(professionalId, serviceId);
-      expect(
-        service.removeServiceFromProfessional,
-      ).toHaveBeenCalledTimes(1);
     });
   });
+
+describe('authorization metadata', () => {
+  const reflector = new Reflector();
+
+  const ROLES_KEY = 'roles';
+
+  it('should require ADMIN role for createProfessional', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.createProfessional,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require ADMIN role for getAllProfessionals', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.getAllProfessionals,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require PROFESSIONAL role for getMyProfessionalProfile', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.getMyProfessionalProfile,
+    );
+
+    expect(roles).toEqual([
+      UserRole.PROFESSIONAL,
+    ]);
+  });
+
+  it('should require ADMIN role for getProfessionalById', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.getProfessionalById,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require ADMIN role for updateProfessional', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.updateProfessional,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require ADMIN role for softDeleteProfessional', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.softDeleteProfessional,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require ADMIN role for activateProfessional', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.activateProfessional,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require ADMIN role for associateService', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.associateService,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+
+  it('should require ADMIN role for removeServiceFromProfessional', () => {
+    const roles = reflector.get(
+      ROLES_KEY,
+      ProfessionalsController.prototype.removeServiceFromProfessional,
+    );
+
+    expect(roles).toEqual([
+      UserRole.ADMIN,
+    ]);
+  });
+});
+
 });

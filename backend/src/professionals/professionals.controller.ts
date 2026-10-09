@@ -8,6 +8,7 @@ import {
   Delete,
   ParseUUIDPipe,
   Put,
+  Req,
 } from '@nestjs/common';
 import { ProfessionalsService } from './professionals.service';
 import { CreateProfessionalDto } from './dto/create-professional.dto';
@@ -60,6 +61,16 @@ export class ProfessionalsController {
   })
   async getAllProfessionals() {
     return this.professionalsService.getAllProfessionals();
+  }
+
+  @Get('me')
+  @Roles(UserRole.PROFESSIONAL)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  async getMyProfessionalProfile(@Req() request: any) {
+    return this.professionalsService.getProfessionalByUserId(
+      request.user.id,
+    );
   }
 
   @Get(':id')
@@ -173,7 +184,7 @@ export class ProfessionalsController {
   }
 
   @Post(':professionalId/services/:serviceId')
-  @Roles(UserRole.ADMIN, UserRole.CLIENT)
+  @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiParam({

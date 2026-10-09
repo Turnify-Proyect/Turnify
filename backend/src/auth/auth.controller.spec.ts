@@ -1,28 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { CreateUserDto, LoginUserDto } from 'src/users/dto/create-user.dto';
+import { VerifyEmailDto } from './email-verification/dto/verify-email.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
-
-  const authServiceMock = {
-    getAuth: jest.fn(),
-    signIn: jest.fn(),
-    signUp: jest.fn(),
-    googleSignIn: jest.fn(),
-    googleCompleteSignUp: jest.fn(),
-    verifyEmail: jest.fn(),
+  let authService: {
+    getAuth: jest.Mock;
+    signIn: jest.Mock;
+    signUp: jest.Mock;
+    googleSignIn: jest.Mock;
+    googleCompleteSignUp: jest.Mock;
+    verifyEmail: jest.Mock;
+    forgotPassword: jest.Mock;
+    resetPassword: jest.Mock;
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    authService = {
+      getAuth: jest.fn(),
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      googleSignIn: jest.fn(),
+      googleCompleteSignUp: jest.fn(),
+      verifyEmail: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
         {
           provide: AuthService,
-          useValue: authServiceMock,
+          useValue: authService,
         },
       ],
     }).compile();
@@ -30,40 +44,88 @@ describe('AuthController', () => {
     controller = module.get<AuthController>(AuthController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('getAuth', () => {
-    it('debería devolver la información de autenticación', () => {
-      authServiceMock.getAuth.mockReturnValue('Auth funcionando');
+    it('should return the value provided by AuthService', () => {
+      authService.getAuth.mockReturnValue('Informacion de autenticacion');
 
       const result = controller.getAuth();
 
-      expect(result).toBe('Auth funcionando');
-      expect(authServiceMock.getAuth).toHaveBeenCalledTimes(1);
+      expect(result).toBe('Informacion de autenticacion');
+      expect(authService.getAuth).toHaveBeenCalledTimes(1);
+    });
+
+    it('should propagate errors from AuthService', () => {
+      const error = new Error('Auth service error');
+
+      authService.getAuth.mockImplementation(() => {
+        throw error;
+      });
+
+      expect(() => controller.getAuth()).toThrow(error);
     });
   });
 
   describe('signIn', () => {
-    it('debería llamar al service con email y password', () => {
-      const credentials = {
-        email: 'usuario@test.com',
-        password: 'Password123',
+it('should call AuthService.signIn with email and password', async () => {
+  const credentials: LoginUserDto = {
+    email: 'juan@example.com',
+    password: 'Password123!',
+  };
+
+  const serviceResponse = {
+    access_token: 'jwt-token',
+  };
+
+  authService.signIn.mockResolvedValue(serviceResponse);
+
+  const result = await controller.signIn(credentials);
+
+  expect(authService.signIn).toHaveBeenCalledTimes(1);
+  expect(authService.signIn).toHaveBeenCalledWith(
+    credentials.email,
+    credentials.password,
+  );
+  expect(result).toEqual(serviceResponse);
+});
+
+
+    it('should return the AuthService.signIn result', async () => {
+      const credentials: LoginUserDto = {
+        email: 'maria@example.com',
+        password: 'Password456!',
       };
 
-      const serviceResult = {
-        access_token: 'jwt-token',
+      const serviceResponse = {
+        access_token: 'another-jwt-token',
+        user: {
+          id: 'user-1',
+        },
       };
 
-      authServiceMock.signIn.mockReturnValue(serviceResult);
+      authService.signIn.mockResolvedValue(serviceResponse);
 
-      const result = controller.signIn(credentials);
+      const result = await controller.signIn(credentials);
 
-      expect(result).toEqual(serviceResult);
+      expect(result).toEqual(serviceResponse);
+    });
 
-      expect(authServiceMock.signIn).toHaveBeenCalledTimes(1);
-      expect(authServiceMock.signIn).toHaveBeenCalledWith(
+    it('should propagate errors from AuthService.signIn', async () => {
+      const credentials: LoginUserDto = {
+        email: 'juan@example.com',
+        password: 'wrong-password',
+      };
+
+      const error = new Error('Credenciales invalidas');
+
+      authService.signIn.mockRejectedValue(error);
+
+      await expect(controller.signIn(credentials)).rejects.toThrow(error);
+
+      expect(authService.signIn).toHaveBeenCalledWith(
         credentials.email,
         credentials.password,
       );
@@ -71,63 +133,88 @@ describe('AuthController', () => {
   });
 
   describe('signUp', () => {
-    it('debería llamar al service con los datos del nuevo usuario', () => {
+    it('should call AuthService.signUp with the provided user data', async () => {
       const newUserData = {
-        email: 'nuevo@test.com',
-        password: 'Password123',
-        name: 'Juan',
-      };
+        email: 'juan@example.com',
+        password: 'Password123!',
+        name: 'Juan Pérez',
+      } as CreateUserDto;
 
-      const serviceResult = {
+      const serviceResponse = {
         id: 'user-1',
-        email: 'nuevo@test.com',
+        email: newUserData.email,
       };
 
-      authServiceMock.signUp.mockReturnValue(serviceResult);
+      authService.signUp.mockResolvedValue(serviceResponse);
 
-      const result = controller.signUp(newUserData as any);
+      const result = await controller.signUp(newUserData);
 
-      expect(result).toEqual(serviceResult);
+      expect(authService.signUp).toHaveBeenCalledTimes(1);
+      expect(authService.signUp).toHaveBeenCalledWith(newUserData);
+      expect(result).toEqual(serviceResponse);
+    });
 
-      expect(authServiceMock.signUp).toHaveBeenCalledTimes(1);
-      expect(authServiceMock.signUp).toHaveBeenCalledWith(newUserData);
+    it('should propagate errors from AuthService.signUp', async () => {
+      const newUserData = {
+        email: 'existing@example.com',
+        password: 'Password123!',
+        name: 'Juan Pérez',
+      } as CreateUserDto;
+
+      const error = new Error('El email ya está registrado');
+
+      authService.signUp.mockRejectedValue(error);
+
+      await expect(controller.signUp(newUserData)).rejects.toThrow(error);
+
+      expect(authService.signUp).toHaveBeenCalledWith(newUserData);
     });
   });
 
   describe('googleSignIn', () => {
-    it('debería llamar al service con el credential recibido', () => {
+    it('should call AuthService.googleSignIn with the credential', async () => {
       const credential = 'google-credential-token';
 
-      const serviceResult = {
+      const serviceResponse = {
         access_token: 'jwt-token',
       };
 
-      authServiceMock.googleSignIn.mockReturnValue(serviceResult);
+      authService.googleSignIn.mockResolvedValue(serviceResponse);
 
-      const result = controller.googleSignIn(credential);
+      const result = await controller.googleSignIn(credential);
 
-      expect(result).toEqual(serviceResult);
+      expect(authService.googleSignIn).toHaveBeenCalledTimes(1);
+      expect(authService.googleSignIn).toHaveBeenCalledWith(credential);
+      expect(result).toEqual(serviceResponse);
+    });
 
-      expect(authServiceMock.googleSignIn).toHaveBeenCalledTimes(1);
-      expect(authServiceMock.googleSignIn).toHaveBeenCalledWith(credential);
+    it('should propagate errors from AuthService.googleSignIn', async () => {
+      const credential = 'invalid-google-credential';
+      const error = new Error('Google authentication failed');
+
+      authService.googleSignIn.mockRejectedValue(error);
+
+      await expect(controller.googleSignIn(credential)).rejects.toThrow(error);
+
+      expect(authService.googleSignIn).toHaveBeenCalledWith(credential);
     });
   });
 
   describe('googleCompleteSignUp', () => {
-    it('debería llamar al service con todos los datos recibidos', () => {
+    it('should call AuthService.googleCompleteSignUp with all provided data', async () => {
       const registrationToken = 'registration-token';
       const phone = '3411234567';
       const country = 'Argentina';
-      const address = 'Calle 123';
+      const address = 'Calle Falsa 123';
       const city = 'Rosario';
 
-      const serviceResult = {
+      const serviceResponse = {
         access_token: 'jwt-token',
       };
 
-      authServiceMock.googleCompleteSignUp.mockReturnValue(serviceResult);
+      authService.googleCompleteSignUp.mockResolvedValue(serviceResponse);
 
-      const result = controller.googleCompleteSignUp(
+      const result = await controller.googleCompleteSignUp(
         registrationToken,
         phone,
         country,
@@ -135,27 +222,26 @@ describe('AuthController', () => {
         city,
       );
 
-      expect(result).toEqual(serviceResult);
-
-      expect(authServiceMock.googleCompleteSignUp).toHaveBeenCalledTimes(1);
-      expect(authServiceMock.googleCompleteSignUp).toHaveBeenCalledWith(
+      expect(authService.googleCompleteSignUp).toHaveBeenCalledTimes(1);
+      expect(authService.googleCompleteSignUp).toHaveBeenCalledWith(
         registrationToken,
         phone,
         country,
         address,
         city,
       );
+      expect(result).toEqual(serviceResponse);
     });
 
-    it('debería permitir datos opcionales indefinidos', () => {
+    it('should support optional fields', async () => {
       const registrationToken = 'registration-token';
       const phone = '3411234567';
 
-      authServiceMock.googleCompleteSignUp.mockReturnValue({
+      authService.googleCompleteSignUp.mockResolvedValue({
         access_token: 'jwt-token',
       });
 
-      controller.googleCompleteSignUp(
+      await controller.googleCompleteSignUp(
         registrationToken,
         phone,
         undefined,
@@ -163,44 +249,164 @@ describe('AuthController', () => {
         undefined,
       );
 
-      expect(authServiceMock.googleCompleteSignUp).toHaveBeenCalledWith(
+      expect(authService.googleCompleteSignUp).toHaveBeenCalledWith(
         registrationToken,
         phone,
         undefined,
         undefined,
         undefined,
       );
+    });
+
+    it('should propagate errors from AuthService.googleCompleteSignUp', async () => {
+      const error = new Error('Could not complete Google registration');
+
+      authService.googleCompleteSignUp.mockRejectedValue(error);
+
+      await expect(
+        controller.googleCompleteSignUp(
+          'registration-token',
+          '3411234567',
+          'Argentina',
+          'Calle Falsa 123',
+          'Rosario',
+        ),
+      ).rejects.toThrow(error);
     });
   });
 
   describe('verifyEmail', () => {
-    it('debería verificar el email usando el token recibido', async () => {
-      const token = 'verification-token';
+    it('should call AuthService.verifyEmail with the token', async () => {
+      const verifyEmailDto: VerifyEmailDto = {
+        token: 'verification-token',
+      };
 
-      authServiceMock.verifyEmail.mockResolvedValue(undefined);
+      authService.verifyEmail.mockResolvedValue(undefined);
 
-      const result = await controller.verifyEmail({ token });
+      const result = await controller.verifyEmail(verifyEmailDto);
+
+      expect(authService.verifyEmail).toHaveBeenCalledTimes(1);
+      expect(authService.verifyEmail).toHaveBeenCalledWith(
+        verifyEmailDto.token,
+      );
 
       expect(result).toEqual({
         message: 'Email verificado correctamente',
       });
-
-      expect(authServiceMock.verifyEmail).toHaveBeenCalledTimes(1);
-      expect(authServiceMock.verifyEmail).toHaveBeenCalledWith(token);
     });
 
-    it('debería propagar el error del service', async () => {
-      const token = 'invalid-token';
+    it('should return the expected success message', async () => {
+      const verifyEmailDto: VerifyEmailDto = {
+        token: 'valid-token',
+      };
 
-      const error = new Error('Token inválido');
+      authService.verifyEmail.mockResolvedValue(undefined);
 
-      authServiceMock.verifyEmail.mockRejectedValue(error);
+      const result = await controller.verifyEmail(verifyEmailDto);
 
-      await expect(controller.verifyEmail({ token })).rejects.toThrow(
-        'Token inválido',
+      expect(result.message).toBe('Email verificado correctamente');
+    });
+
+    it('should propagate errors from AuthService.verifyEmail', async () => {
+      const verifyEmailDto: VerifyEmailDto = {
+        token: 'invalid-token',
+      };
+
+      const error = new Error(
+        'Token inválido, expirado o ya utilizado',
       );
 
-      expect(authServiceMock.verifyEmail).toHaveBeenCalledWith(token);
+      authService.verifyEmail.mockRejectedValue(error);
+
+      await expect(
+        controller.verifyEmail(verifyEmailDto),
+      ).rejects.toThrow(error);
+
+      expect(authService.verifyEmail).toHaveBeenCalledWith(
+        verifyEmailDto.token,
+      );
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should call AuthService.forgotPassword with the email', async () => {
+      const forgotPasswordDto = {
+        email: 'juan@example.com',
+      } as ForgotPasswordDto;
+
+      const serviceResponse = {
+        message: 'Si el email existe, recibirás instrucciones',
+      };
+
+      authService.forgotPassword.mockResolvedValue(serviceResponse);
+
+      const result = await controller.forgotPassword(forgotPasswordDto);
+
+      expect(authService.forgotPassword).toHaveBeenCalledTimes(1);
+      expect(authService.forgotPassword).toHaveBeenCalledWith(
+        forgotPasswordDto.email,
+      );
+      expect(result).toEqual(serviceResponse);
+    });
+
+    it('should propagate errors from AuthService.forgotPassword', async () => {
+      const forgotPasswordDto = {
+        email: 'juan@example.com',
+      } as ForgotPasswordDto;
+
+      const error = new Error('Could not process password recovery');
+
+      authService.forgotPassword.mockRejectedValue(error);
+
+      await expect(
+        controller.forgotPassword(forgotPasswordDto),
+      ).rejects.toThrow(error);
+
+      expect(authService.forgotPassword).toHaveBeenCalledWith(
+        forgotPasswordDto.email,
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should call AuthService.resetPassword with token and new password', async () => {
+      const resetPasswordDto = {
+        token: 'reset-token',
+        newPassword: 'NewPassword123!',
+      } as ResetPasswordDto;
+
+      const serviceResponse = 'Contraseña actualizada correctamente';
+
+      authService.resetPassword.mockResolvedValue(serviceResponse);
+
+      const result = await controller.resetPassword(resetPasswordDto);
+
+      expect(authService.resetPassword).toHaveBeenCalledTimes(1);
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        resetPasswordDto.token,
+        resetPasswordDto.newPassword,
+      );
+      expect(result).toBe(serviceResponse);
+    });
+
+    it('should propagate errors from AuthService.resetPassword', async () => {
+      const resetPasswordDto = {
+        token: 'invalid-token',
+        newPassword: 'NewPassword123!',
+      } as ResetPasswordDto;
+
+      const error = new Error('El token de recuperación no es válido');
+
+      authService.resetPassword.mockRejectedValue(error);
+
+      await expect(
+        controller.resetPassword(resetPasswordDto),
+      ).rejects.toThrow(error);
+
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        resetPasswordDto.token,
+        resetPasswordDto.newPassword,
+      );
     });
   });
 });

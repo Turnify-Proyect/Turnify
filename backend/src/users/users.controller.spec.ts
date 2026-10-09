@@ -1,351 +1,490 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { UserRole } from '../common/userRoles.enum';
 
 describe('UsersController', () => {
-  let controller: UsersController;
+let controller: UsersController;
 
-  const usersServiceMock = {
-    getAllUsers: jest.fn(),
-    getUserById: jest.fn(),
-    updateUser: jest.fn(),
-    changePassword: jest.fn(),
-    removeUser: jest.fn(),
-    activateUser: jest.fn(),
-    createUserByAdmin: jest.fn(),
-    updateUserRoles: jest.fn(),
-    updateProfilePicture: jest.fn(),
+let usersServiceMock: {
+getAllUsers: jest.Mock;
+getUserById: jest.Mock;
+updateUser: jest.Mock;
+changePassword: jest.Mock;
+removeUser: jest.Mock;
+activateUser: jest.Mock;
+createUserByAdmin: jest.Mock;
+updateUserRoles: jest.Mock;
+updateProfilePicture: jest.Mock;
+};
+
+const userId = 'user-123';
+
+beforeEach(() => {
+jest.clearAllMocks();
+
+usersServiceMock = {
+  getAllUsers: jest.fn(),
+  getUserById: jest.fn(),
+  updateUser: jest.fn(),
+  changePassword: jest.fn(),
+  removeUser: jest.fn(),
+  activateUser: jest.fn(),
+  createUserByAdmin: jest.fn(),
+  updateUserRoles: jest.fn(),
+  updateProfilePicture: jest.fn(),
+};
+
+controller = new UsersController(
+  usersServiceMock as unknown as UsersService,
+);
+
+
+});
+
+describe('getAllUsers', () => {
+it('should call the service with default pagination', () => {
+const response = {
+users: [],
+total: 0,
+page: 1,
+limit: 5,
+totalPages: 0,
+};
+
+  usersServiceMock.getAllUsers.mockReturnValue(response);
+
+  const result = controller.getAllUsers();
+
+  expect(result).toBe(response);
+
+  expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
+    1,
+    5,
+    undefined,
+    undefined,
+    undefined,
+  );
+});
+
+it('should convert pagination and isActive query params', () => {
+  const response = {
+    users: [],
+    total: 0,
+    page: 2,
+    limit: 10,
+    totalPages: 0,
   };
 
-  const jwtServiceMock = {
-    verify: jest.fn(),
+  usersServiceMock.getAllUsers.mockReturnValue(response);
+
+  const result = controller.getAllUsers(
+    '2',
+    '10',
+    'Juan',
+    UserRole.CLIENT,
+    'true',
+  );
+
+  expect(result).toBe(response);
+
+  expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
+    2,
+    10,
+    'Juan',
+    UserRole.CLIENT,
+    true,
+  );
+});
+
+it('should convert isActive false correctly', () => {
+  usersServiceMock.getAllUsers.mockReturnValue([]);
+
+  controller.getAllUsers(
+    '1',
+    '20',
+    undefined,
+    undefined,
+    'false',
+  );
+
+  expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
+    1,
+    20,
+    undefined,
+    undefined,
+    false,
+  );
+});
+
+it('should use default values for invalid pagination', () => {
+  usersServiceMock.getAllUsers.mockReturnValue([]);
+
+  controller.getAllUsers(
+    'abc',
+    'xyz',
+    undefined,
+    undefined,
+    undefined,
+  );
+
+  expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
+    1,
+    5,
+    undefined,
+    undefined,
+    undefined,
+  );
+});
+
+it('should use default values for zero or negative pagination', () => {
+  usersServiceMock.getAllUsers.mockReturnValue([]);
+
+  controller.getAllUsers(
+    '0',
+    '-5',
+    undefined,
+    undefined,
+    undefined,
+  );
+
+  expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
+    1,
+    5,
+    undefined,
+    undefined,
+    undefined,
+  );
+});
+
+
+});
+
+describe('getMyProfile', () => {
+it('should use the authenticated user id', () => {
+const response = {
+id: userId,
+name: 'Juan',
+};
+
+  usersServiceMock.getUserById.mockReturnValue(response);
+
+  const request = {
+    user: {
+      id: userId,
+    },
   };
 
-  beforeEach(async () => {
-    jest.clearAllMocks();
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
-      providers: [
-        {
-          provide: UsersService,
-          useValue: usersServiceMock,
-        },
-        {
-          provide: JwtService,
-          useValue: jwtServiceMock,
-        },
-      ],
-    }).compile();
-
-    controller = module.get<UsersController>(UsersController);
-  });
-
-  describe('getAllUsers', () => {
-    it('should use default pagination values', () => {
-      usersServiceMock.getAllUsers.mockReturnValue([]);
-
-      controller.getAllUsers();
-
-      expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
-        1,
-        5,
-        undefined,
-        undefined,
-        undefined,
-      );
-    });
-
-    it('should parse pagination parameters', () => {
-      usersServiceMock.getAllUsers.mockReturnValue([]);
-
-      controller.getAllUsers(
-        '2',
-        '10',
-        'Juan',
-        UserRole.CLIENT,
-        'true',
-      );
-
-      expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
-        2,
-        10,
-        'Juan',
-        UserRole.CLIENT,
-        true,
-      );
-    });
-
-    it('should convert isActive false correctly', () => {
-      usersServiceMock.getAllUsers.mockReturnValue([]);
-
-      controller.getAllUsers(
-        '1',
-        '20',
-        undefined,
-        undefined,
-        'false',
-      );
-
-      expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
-        1,
-        20,
-        undefined,
-        undefined,
-        false,
-      );
-    });
-
-    it('should use undefined when isActive is invalid', () => {
-      usersServiceMock.getAllUsers.mockReturnValue([]);
-
-      controller.getAllUsers(
-        '1',
-        '5',
-        undefined,
-        undefined,
-        'invalid',
-      );
-
-      expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
-        1,
-        5,
-        undefined,
-        undefined,
-        undefined,
-      );
-    });
-
-    it('should use defaults when pagination values are invalid', () => {
-      usersServiceMock.getAllUsers.mockReturnValue([]);
-
-      controller.getAllUsers(
-        'abc',
-        '-10',
-        undefined,
-        undefined,
-        undefined,
-      );
-
-      expect(usersServiceMock.getAllUsers).toHaveBeenCalledWith(
-        1,
-        5,
-        undefined,
-        undefined,
-        undefined,
-      );
-    });
-  });
-
-  describe('getMyProfile', () => {
-    it('should get the authenticated user profile', () => {
-      const user = {
-        id: 'user-123',
-      };
-
-      const expectedUser = {
-        id: 'user-123',
-        name: 'Juan',
-      };
-
-      usersServiceMock.getUserById.mockReturnValue(expectedUser);
+  const result = controller.getMyProfile(request);
 
-      const result = controller.getMyProfile({
-        user,
-      });
+  expect(result).toBe(response);
 
-      expect(usersServiceMock.getUserById).toHaveBeenCalledWith(
-        'user-123',
-      );
+  expect(usersServiceMock.getUserById).toHaveBeenCalledWith(
+    userId,
+  );
+});
 
-      expect(result).toBe(expectedUser);
-    });
-  });
 
-  describe('getUserById', () => {
-    it('should delegate to usersService', () => {
-      const id = 'user-123';
+});
 
-      const expectedUser = {
-        id,
-        name: 'Juan',
-      };
-
-      usersServiceMock.getUserById.mockReturnValue(expectedUser);
+describe('getUserById', () => {
+it('should return the user', () => {
+const response = {
+id: userId,
+name: 'Juan',
+};
 
-      const result = controller.getUserById(id);
-
-      expect(usersServiceMock.getUserById).toHaveBeenCalledWith(id);
-      expect(result).toBe(expectedUser);
-    });
-  });
-
-  describe('updateUser', () => {
-    it('should update the user', () => {
-      const id = 'user-123';
+  usersServiceMock.getUserById.mockReturnValue(response);
 
-      const dto = {
-        name: 'Juan Perez',
-        email: 'juan@test.com',
-      } as any;
+  const result = controller.getUserById(userId);
 
-      const expectedResult = {
-        message: 'Usuario actualizado',
-      };
+  expect(result).toBe(response);
 
-      usersServiceMock.updateUser.mockReturnValue(expectedResult);
-
-      const result = controller.updateUser(id, dto);
+  expect(usersServiceMock.getUserById).toHaveBeenCalledWith(
+    userId,
+  );
+});
 
-      expect(usersServiceMock.updateUser).toHaveBeenCalledWith(
-        id,
-        dto,
-      );
 
-      expect(result).toBe(expectedResult);
-    });
-  });
+});
 
-  describe('changePassword', () => {
-    it('should change the user password', () => {
-      const id = 'user-123';
+describe('updateUser', () => {
+it('should update the user', () => {
+const dto = {
+name: 'Juan Actualizado',
+email: 'juan@example.com',
+};
 
-      const dto = {
-        password: 'NewPassword123!',
-      } as any;
+  const response = {
+    id: userId,
+    name: 'Juan Actualizado',
+  };
 
-      const expectedResult = {
-        message: 'Contraseña actualizada correctamente',
-      };
+  usersServiceMock.updateUser.mockReturnValue(response);
 
-      usersServiceMock.changePassword.mockReturnValue(expectedResult);
+  const result = controller.updateUser(
+    userId,
+    dto as any,
+  );
 
-      const result = controller.changePassword(id, dto);
+  expect(result).toBe(response);
 
-      expect(usersServiceMock.changePassword).toHaveBeenCalledWith(
-        id,
-        dto,
-      );
-
-      expect(result).toBe(expectedResult);
-    });
-  });
-
-  describe('removeUser', () => {
-    it('should remove the user', () => {
-      const id = 'user-123';
-
-      const expectedResult = {
-        message: 'Usuario eliminado exitosamente',
-      };
-
-      usersServiceMock.removeUser.mockReturnValue(expectedResult);
+  expect(usersServiceMock.updateUser).toHaveBeenCalledWith(
+    userId,
+    dto,
+  );
+});
 
-      const result = controller.removeUser(id);
-
-      expect(usersServiceMock.removeUser).toHaveBeenCalledWith(id);
-      expect(result).toBe(expectedResult);
-    });
-  });
-
-  describe('activateUser', () => {
-    it('should activate the user', () => {
-      const id = 'user-123';
-
-      const expectedResult = {
-        message: 'Usuario activado exitosamente',
-      };
-
-      usersServiceMock.activateUser.mockReturnValue(expectedResult);
-
-      const result = controller.activateUser(id);
-
-      expect(usersServiceMock.activateUser).toHaveBeenCalledWith(id);
-      expect(result).toBe(expectedResult);
-    });
-  });
-
-  describe('createUserByAdmin', () => {
-    it('should create a user through the service', () => {
-      const dto = {
-        name: 'Juan',
-        email: 'juan@test.com',
-      } as any;
-
-      const expectedResult = {
-        id: 'user-123',
-        ...dto,
-      };
-
-      usersServiceMock.createUserByAdmin.mockReturnValue(
-        expectedResult,
-      );
-
-      const result = controller.createUserByAdmin(dto);
-
-      expect(usersServiceMock.createUserByAdmin).toHaveBeenCalledWith(
-        dto,
-      );
-
-      expect(result).toBe(expectedResult);
-    });
-  });
-
-  describe('updateUserRoles', () => {
-    it('should update user roles', () => {
-      const id = 'user-123';
-
-      const dto = {
-        roles: [UserRole.CLIENT],
-      } as any;
-
-      const expectedResult = {
-        message: 'Roles actualizados correctamente',
-      };
-
-      usersServiceMock.updateUserRoles.mockReturnValue(
-        expectedResult,
-      );
-
-      const result = controller.updateUserRoles(id, dto);
-
-      expect(usersServiceMock.updateUserRoles).toHaveBeenCalledWith(
-        id,
-        dto,
-      );
-
-      expect(result).toBe(expectedResult);
-    });
-  });
-
-  describe('uploadAvatar', () => {
-    it('should upload the user avatar', () => {
-      const id = 'user-123';
-
-      const file = {
-        originalname: 'avatar.jpg',
-        mimetype: 'image/jpeg',
-        size: 1024,
-      } as Express.Multer.File;
-
-      const expectedResult = {
-        id,
-        avatar: 'https://cloudinary.com/avatar.jpg',
-      };
-
-      usersServiceMock.updateProfilePicture.mockReturnValue(
-        expectedResult,
-      );
-
-      const result = controller.uploadAvatar(id, file);
-
-      expect(
-        usersServiceMock.updateProfilePicture,
-      ).toHaveBeenCalledWith(id, file);
-
-      expect(result).toBe(expectedResult);
-    });
-  });
+
+});
+
+describe('changePassword', () => {
+it('should change the user password', async () => {
+const dto = {
+password: 'NewPassword123!',
+};
+
+  const response = 'Contraseña actualizada correctamente';
+
+  usersServiceMock.changePassword.mockResolvedValue(response);
+
+  const result = await controller.changePassword(
+    userId,
+    dto as any,
+  );
+
+  expect(result).toBe(response);
+
+  expect(usersServiceMock.changePassword).toHaveBeenCalledWith(
+    userId,
+    dto,
+  );
+});
+
+
+});
+
+describe('removeUser', () => {
+it('should remove the user', () => {
+const response = {
+message: 'Usuario desactivado correctamente',
+};
+
+  usersServiceMock.removeUser.mockReturnValue(response);
+
+  const result = controller.removeUser(userId);
+
+  expect(result).toBe(response);
+
+  expect(usersServiceMock.removeUser).toHaveBeenCalledWith(
+    userId,
+  );
+});
+
+
+});
+
+describe('activateUser', () => {
+it('should activate the user', () => {
+const response = {
+message: 'Usuario activado correctamente',
+};
+
+  usersServiceMock.activateUser.mockReturnValue(response);
+
+  const result = controller.activateUser(userId);
+
+  expect(result).toBe(response);
+
+  expect(usersServiceMock.activateUser).toHaveBeenCalledWith(
+    userId,
+  );
+});
+
+
+});
+
+describe('createUserByAdmin', () => {
+it('should create a user', () => {
+const dto = {
+name: 'Juan',
+email: 'juan@example.com',
+phone: '3411234567',
+password: 'Password123!',
+confirmPassword: 'Password123!',
+roles: [UserRole.CLIENT],
+};
+
+  const response = {
+    id: userId,
+    name: 'Juan',
+  };
+
+  usersServiceMock.createUserByAdmin.mockReturnValue(response);
+
+  const result = controller.createUserByAdmin(dto as any);
+
+  expect(result).toBe(response);
+
+  expect(
+    usersServiceMock.createUserByAdmin,
+  ).toHaveBeenCalledWith(dto);
+});
+
+
+});
+
+describe('updateUserRoles', () => {
+it('should update user roles', () => {
+const dto = {
+roles: [UserRole.ADMIN],
+};
+
+  const response = {
+    id: userId,
+    roles: [UserRole.ADMIN],
+  };
+
+  usersServiceMock.updateUserRoles.mockReturnValue(response);
+
+  const result = controller.updateUserRoles(
+    userId,
+    dto as any,
+  );
+
+  expect(result).toBe(response);
+
+  expect(
+    usersServiceMock.updateUserRoles,
+  ).toHaveBeenCalledWith(userId, dto);
+});
+
+
+});
+
+describe('uploadAvatar', () => {
+it('should update the profile picture', () => {
+const file = {
+originalname: 'avatar.png',
+mimetype: 'image/png',
+} as Express.Multer.File;
+
+  const response = {
+    id: userId,
+    imgUrl: 'https://cloudinary.com/avatar.png',
+  };
+
+  usersServiceMock.updateProfilePicture.mockReturnValue(response);
+
+  const result = controller.uploadAvatar(
+    userId,
+    file,
+  );
+
+  expect(result).toBe(response);
+
+  expect(
+    usersServiceMock.updateProfilePicture,
+  ).toHaveBeenCalledWith(userId, file);
+});
+
+
+});
+
+describe('authorization metadata', () => {
+const reflector = new Reflector();
+
+const getRoles = (method: keyof UsersController) => {
+  return reflector.get(
+    'roles',
+    UsersController.prototype[method],
+  );
+};
+
+it('should require ADMIN and PROFESSIONAL roles for getAllUsers', () => {
+  const roles = getRoles('getAllUsers');
+
+  expect(roles).toEqual([
+    UserRole.ADMIN,
+    UserRole.PROFESSIONAL,
+  ]);
+});
+
+it('should require ADMIN role for getUserById', () => {
+  const roles = getRoles('getUserById');
+
+  expect(roles).toEqual([
+    UserRole.ADMIN,
+  ]);
+});
+
+it('should require CLIENT and ADMIN roles for updateUser', () => {
+  const roles = getRoles('updateUser');
+
+  expect(roles).toEqual([
+    UserRole.CLIENT,
+    UserRole.ADMIN,
+  ]);
+});
+
+it('should require CLIENT, ADMIN and PROFESSIONAL roles for changePassword', () => {
+  const roles = getRoles('changePassword');
+
+  expect(roles).toEqual([
+    UserRole.CLIENT,
+    UserRole.ADMIN,
+    UserRole.PROFESSIONAL,
+  ]);
+});
+
+it('should require ADMIN role for removeUser', () => {
+  const roles = getRoles('removeUser');
+
+  expect(roles).toEqual([
+    UserRole.ADMIN,
+  ]);
+});
+
+it('should require ADMIN role for activateUser', () => {
+  const roles = getRoles('activateUser');
+
+  expect(roles).toEqual([
+    UserRole.ADMIN,
+  ]);
+});
+
+it('should require ADMIN role for createUserByAdmin', () => {
+  const roles = getRoles('createUserByAdmin');
+
+  expect(roles).toEqual([
+    UserRole.ADMIN,
+  ]);
+});
+
+it('should require ADMIN role for updateUserRoles', () => {
+  const roles = getRoles('updateUserRoles');
+
+  expect(roles).toEqual([
+    UserRole.ADMIN,
+  ]);
+});
+
+it('should require CLIENT, ADMIN and PROFESSIONAL roles for uploadAvatar', () => {
+  const roles = getRoles('uploadAvatar');
+
+  expect(roles).toEqual([
+    UserRole.CLIENT,
+    UserRole.ADMIN,
+    UserRole.PROFESSIONAL,
+  ]);
+});
+
+it('should not require roles for getMyProfile', () => {
+  const roles = getRoles('getMyProfile');
+
+  expect(roles).toBeUndefined();
+});
+
+
+});
 });

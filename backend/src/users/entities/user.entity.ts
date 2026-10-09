@@ -10,6 +10,7 @@ import { Professional } from '../../professionals/entities/professional.entity';
 import { UserRole } from '../../common/userRoles.enum';
 import { AuthProvider } from '../../common/authProvider.enum';
 import { EmailVerificationToken } from '../../auth/email-verification/entities/email-verification-token.entity';
+import { PasswordResetToken } from '../../auth/password-reset/entities/password-reset-token.entity';
 
 @Entity({ name: 'USERS' })
 export class User {
@@ -111,4 +112,7 @@ export class User {
     (verificationToken) => verificationToken.user,
   )
   emailVerificationTokens!: EmailVerificationToken[];
+
+  @OneToMany(() => PasswordResetToken, (resetToken) => resetToken.user)
+  passwordResetTokens!: PasswordResetToken[];
 }

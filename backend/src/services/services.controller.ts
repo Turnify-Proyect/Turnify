@@ -23,8 +23,8 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../common/userRoles.enum';
 import {
-  ApiBearerAuth,
   ApiResponse,
+  ApiBearerAuth,
   ApiParam,
   ApiConsumes,
   ApiBody,

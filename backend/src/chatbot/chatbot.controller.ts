@@ -1,8 +1,11 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import type { ChatResponse } from './chatbot.service';
-import type { FAQCategory } from './data/faq.es';
-import { ChatMessageDto } from './dto/chat.dto';
+import {
+  AnswerQueryDto,
+  CategoryParamDto,
+  ChatMessageDto,
+} from './dto/chat.dto';
 
 // Expone los endpoints HTTP que el frontend usa para conversar con el chatbot.
 // Comentarios de orientación agregados por dev-Mazz.
@@ -24,16 +27,13 @@ export class ChatbotController {
 
   // GET /chatbot/category/:category: devuelve las preguntas de una categoría.
   @Get('category/:category')
-  category(@Param('category') category: FAQCategory): ChatResponse {
-    return this.chatbot.getCategoryContent(category);
+  category(@Param() params: CategoryParamDto): ChatResponse {
+    return this.chatbot.getCategoryContent(params.category);
   }
 
   // GET /chatbot/answer?category=...&question=...: responde una pregunta del FAQ.
   @Get('answer')
-  answer(
-    @Query('category') category: FAQCategory,
-    @Query('question') question: string,
-  ): ChatResponse {
-    return this.chatbot.getQuestionAnswer(category, question);
+  answer(@Query() query: AnswerQueryDto): ChatResponse {
+    return this.chatbot.getQuestionAnswer(query.category, query.question);
   }
 }

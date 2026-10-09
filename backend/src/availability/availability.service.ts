@@ -176,4 +176,16 @@ export class AvailabilityService {
 
     await this.availabilityRepository.delete(id);
   }
+
+  async getById(id: string): Promise<Availability> {
+  const availability = await this.availabilityRepository.getById(id);
+
+  if (!availability) {
+    throw new NotFoundException(
+      `No se encontró la disponibilidad con id ${id}`,
+    );
+  }
+
+  return availability;
+}
 }

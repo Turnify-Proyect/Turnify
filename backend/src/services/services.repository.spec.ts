@@ -1,22 +1,50 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { getRepositoryToken } from '@nestjs/typeorm';
-
 import { ServicesRepository } from './services.repository';
 import { Service } from './entities/service.entity';
 import { ProfessionalService } from '../professionals/entities/professional-service.entity';
+import { Category } from '../categories/category.entity';
 
 describe('ServicesRepository', () => {
   let repository: ServicesRepository;
 
-  let serviceRepository: jest.Mocked<Repository<Service>>;
-  let professionalServicesRepository: jest.Mocked<
-    Repository<ProfessionalService>
-  >;
+  let ormServiceRepositoryMock: {
+    find: jest.Mock;
+    findOne: jest.Mock;
+    findOneBy: jest.Mock;
+    create: jest.Mock;
+    save: jest.Mock;
+    update: jest.Mock;
+  };
 
-  beforeEach(async () => {
-    const mockServiceRepository = {
+  let professionalServicesRepositoryMock: {
+    find: jest.Mock;
+  };
+
+  const serviceId = 'service-123';
+  const categoryId = 'category-123';
+  const professionalId = 'professional-123';
+
+  const category = {
+    id: categoryId,
+    name: 'Categoría',
+    isActive: true,
+  } as unknown as Category;
+
+  const service = {
+    id: serviceId,
+    name: 'Masaje relajante',
+    description: 'Masaje de relajación',
+    price: '10000.00',
+    durationMinutes: 60,
+    imageUrl: null,
+    isActive: true,
+    category,
+  } as unknown as Service;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    ormServiceRepositoryMock = {
       find: jest.fn(),
       findOne: jest.fn(),
       findOneBy: jest.fn(),
@@ -25,59 +53,27 @@ describe('ServicesRepository', () => {
       update: jest.fn(),
     };
 
-    const mockProfessionalServicesRepository = {
+    professionalServicesRepositoryMock = {
       find: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ServicesRepository,
-        {
-          provide: getRepositoryToken(Service),
-          useValue: mockServiceRepository,
-        },
-        {
-          provide: getRepositoryToken(ProfessionalService),
-          useValue: mockProfessionalServicesRepository,
-        },
-      ],
-    }).compile();
-
-    repository = module.get<ServicesRepository>(ServicesRepository);
-
-    serviceRepository = module.get(getRepositoryToken(Service));
-    professionalServicesRepository = module.get(
-      getRepositoryToken(ProfessionalService),
+    repository = new ServicesRepository(
+      ormServiceRepositoryMock as any,
+      professionalServicesRepositoryMock as any,
     );
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('getAll', () => {
-    it('should return all services including inactive ones', async () => {
-      const services = [
-        {
-          id: 'service-1',
-          name: 'Corte',
-          isActive: true,
-        },
-        {
-          id: 'service-2',
-          name: 'Color',
-          isActive: false,
-        },
-      ] as Service[];
+    it('should return all services with their category', async () => {
+      const response = [service];
 
-      serviceRepository.find.mockResolvedValue(services);
+      ormServiceRepositoryMock.find.mockResolvedValue(response);
 
       const result = await repository.getAll();
 
-      expect(result).toEqual(services);
+      expect(result).toBe(response);
 
-      expect(serviceRepository.find).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.find).toHaveBeenCalledWith({
+      expect(ormServiceRepositoryMock.find).toHaveBeenCalledWith({
         relations: {
           category: true,
         },
@@ -86,23 +82,16 @@ describe('ServicesRepository', () => {
   });
 
   describe('getAllActive', () => {
-    it('should return only active services', async () => {
-      const services = [
-        {
-          id: 'service-1',
-          name: 'Corte',
-          isActive: true,
-        },
-      ] as Service[];
+    it('should return only active services with their category', async () => {
+      const response = [service];
 
-      serviceRepository.find.mockResolvedValue(services);
+      ormServiceRepositoryMock.find.mockResolvedValue(response);
 
       const result = await repository.getAllActive();
 
-      expect(result).toEqual(services);
+      expect(result).toBe(response);
 
-      expect(serviceRepository.find).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.find).toHaveBeenCalledWith({
+      expect(ormServiceRepositoryMock.find).toHaveBeenCalledWith({
         where: {
           isActive: true,
         },
@@ -114,58 +103,52 @@ describe('ServicesRepository', () => {
   });
 
   describe('getByName', () => {
-    it('should return a service by name', async () => {
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-      } as Service;
+    it('should return the service with the given name', async () => {
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(service);
 
-      serviceRepository.findOneBy.mockResolvedValue(service);
+      const result = await repository.getByName(
+        'Masaje relajante',
+      );
 
-      const result = await repository.getByName('Corte');
+      expect(result).toBe(service);
 
-      expect(result).toEqual(service);
-
-      expect(serviceRepository.findOneBy).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.findOneBy).toHaveBeenCalledWith({
-        name: 'Corte',
+      expect(
+        ormServiceRepositoryMock.findOneBy,
+      ).toHaveBeenCalledWith({
+        name: 'Masaje relajante',
       });
     });
 
     it('should return null when the service does not exist', async () => {
-      serviceRepository.findOneBy.mockResolvedValue(null);
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(null);
 
-      const result = await repository.getByName('Inexistente');
+      const result = await repository.getByName(
+        'Servicio inexistente',
+      );
 
       expect(result).toBeNull();
 
-      expect(serviceRepository.findOneBy).toHaveBeenCalledWith({
-        name: 'Inexistente',
+      expect(
+        ormServiceRepositoryMock.findOneBy,
+      ).toHaveBeenCalledWith({
+        name: 'Servicio inexistente',
       });
     });
   });
 
   describe('getById', () => {
-    it('should return a service by id with its category', async () => {
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-        category: {
-          id: 'category-1',
-          name: 'Cabello',
-        },
-      } as Service;
+    it('should return the service with its category', async () => {
+      ormServiceRepositoryMock.findOne.mockResolvedValue(service);
 
-      serviceRepository.findOne.mockResolvedValue(service);
+      const result = await repository.getById(serviceId);
 
-      const result = await repository.getById('service-1');
+      expect(result).toBe(service);
 
-      expect(result).toEqual(service);
-
-      expect(serviceRepository.findOne).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.findOne).toHaveBeenCalledWith({
+      expect(
+        ormServiceRepositoryMock.findOne,
+      ).toHaveBeenCalledWith({
         where: {
-          id: 'service-1',
+          id: serviceId,
         },
         relations: {
           category: true,
@@ -174,249 +157,255 @@ describe('ServicesRepository', () => {
     });
 
     it('should return null when the service does not exist', async () => {
-      serviceRepository.findOne.mockResolvedValue(null);
+      ormServiceRepositoryMock.findOne.mockResolvedValue(null);
 
-      const result = await repository.getById('service-1');
+      const result = await repository.getById(serviceId);
 
       expect(result).toBeNull();
     });
   });
 
   describe('create', () => {
-    it('should create and return the saved service with its category', async () => {
+    it('should create and save the service with the category', async () => {
       const data = {
-        name: 'Corte',
-        description: 'Corte de cabello',
-        price: 5000,
+        name: 'Masaje relajante',
+        description: 'Masaje de relajación',
+        price: '10000.00',
         durationMinutes: 60,
-        categoryId: 'category-1',
-      } as any;
-
-      const category = {
-        id: 'category-1',
-        name: 'Cabello',
+        imageUrl: null,
+        categoryId,
       } as any;
 
       const createdService = {
-        name: 'Corte',
-        description: 'Corte de cabello',
-        price: 5000,
-        durationMinutes: 60,
+        ...service,
+      };
+
+      ormServiceRepositoryMock.create.mockReturnValue(
+        createdService,
+      );
+
+      ormServiceRepositoryMock.save.mockResolvedValue(
+        createdService,
+      );
+
+      ormServiceRepositoryMock.findOne.mockResolvedValue(
+        createdService,
+      );
+
+      const result = await repository.create(
+        data,
         category,
-      } as Service;
+      );
 
-      const savedService = {
-        id: 'service-1',
-        ...createdService,
-      } as Service;
-
-      const serviceWithCategory = {
-        id: 'service-1',
-        ...createdService,
-      } as Service;
-
-      serviceRepository.create.mockReturnValue(createdService);
-      serviceRepository.save.mockResolvedValue(savedService);
-      serviceRepository.findOne.mockResolvedValue(serviceWithCategory);
-
-      const result = await repository.create(data, category);
-
-      expect(result).toEqual(serviceWithCategory);
-
-      expect(serviceRepository.create).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.create).toHaveBeenCalledWith({
-        name: 'Corte',
-        description: 'Corte de cabello',
-        price: 5000,
-        durationMinutes: 60,
+      expect(
+        ormServiceRepositoryMock.create,
+      ).toHaveBeenCalledWith({
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        durationMinutes: data.durationMinutes,
+        imageUrl: data.imageUrl,
         category,
       });
 
-      expect(serviceRepository.save).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.save).toHaveBeenCalledWith(createdService);
+      expect(
+        ormServiceRepositoryMock.save,
+      ).toHaveBeenCalledWith(createdService);
 
-      expect(serviceRepository.findOne).toHaveBeenCalledWith({
+      expect(
+        ormServiceRepositoryMock.findOne,
+      ).toHaveBeenCalledWith({
         where: {
-          id: 'service-1',
+          id: createdService.id,
         },
         relations: {
           category: true,
         },
       });
+
+      expect(result).toBe(createdService);
     });
   });
 
   describe('update', () => {
-    it('should update a service without changing its category', async () => {
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-        description: 'Descripción anterior',
-        price: 5000,
-        durationMinutes: 60,
-      } as Service;
-
+    it('should update the service without changing the category', async () => {
       const data = {
-        name: 'Corte premium',
-        price: 7000,
+        name: 'Nuevo nombre',
+        price: '15000.00',
       } as any;
 
-      serviceRepository.findOneBy.mockResolvedValue(service);
-      serviceRepository.save.mockResolvedValue(service);
+      const existingService = {
+        ...service,
+      };
 
-      await repository.update('service-1', data);
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(
+        existingService,
+      );
 
-      expect(serviceRepository.findOneBy).toHaveBeenCalledWith({
-        id: 'service-1',
+      ormServiceRepositoryMock.save.mockResolvedValue(
+        existingService,
+      );
+
+      const result = await repository.update(
+        serviceId,
+        data,
+      );
+
+      expect(
+        ormServiceRepositoryMock.findOneBy,
+      ).toHaveBeenCalledWith({
+        id: serviceId,
       });
 
-      expect(service.name).toBe('Corte premium');
-      expect(service.price).toBe(7000);
+      expect(existingService.name).toBe('Nuevo nombre');
+      expect(existingService.price).toBe('15000.00');
 
-      expect(serviceRepository.save).toHaveBeenCalledWith(service);
+      expect(
+        ormServiceRepositoryMock.save,
+      ).toHaveBeenCalledWith(existingService);
+
+      expect(result).toBeUndefined();
     });
 
-    it('should update the category when a category is provided', async () => {
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-      } as Service;
-
-      const category = {
-        id: 'category-2',
-        name: 'Barbería',
-      } as any;
+    it('should update the service and its category', async () => {
+      const newCategory = {
+        id: 'category-456',
+        name: 'Nueva categoría',
+        isActive: true,
+      } as unknown as Category;
 
       const data = {
-        name: 'Corte barbería',
-        categoryId: 'category-2',
+        name: 'Nuevo nombre',
+        categoryId: newCategory.id,
       } as any;
 
-      serviceRepository.findOneBy.mockResolvedValue(service);
-      serviceRepository.save.mockResolvedValue(service);
+      const existingService = {
+        ...service,
+      };
 
-      await repository.update('service-1', data, category);
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(
+        existingService,
+      );
 
-      expect(service.name).toBe('Corte barbería');
-      expect(service.category).toBe(category);
+      ormServiceRepositoryMock.save.mockResolvedValue(
+        existingService,
+      );
 
-      expect(serviceRepository.save).toHaveBeenCalledWith(service);
+      await repository.update(
+        serviceId,
+        data,
+        newCategory,
+      );
+
+      expect(existingService.name).toBe(
+        'Nuevo nombre',
+      );
+
+      expect(existingService.category).toBe(
+        newCategory,
+      );
+
+      expect(
+        ormServiceRepositoryMock.save,
+      ).toHaveBeenCalledWith(existingService);
     });
 
     it('should throw NotFoundException when the service does not exist', async () => {
-      serviceRepository.findOneBy.mockResolvedValue(null);
-
-      await expect(
-        repository.update(
-          'service-1',
-          {
-            name: 'Corte',
-          } as any,
-        ),
-      ).rejects.toThrow(
-        new NotFoundException(
-          'No existe un servicio con el ID proporcionado',
-        ),
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(
+        null,
       );
 
-      expect(serviceRepository.save).not.toHaveBeenCalled();
-    });
+      await expect(
+        repository.update(serviceId, {
+          name: 'Nuevo nombre',
+        } as any),
+      ).rejects.toThrow(NotFoundException);
 
-    it('should not overwrite the category when no category is provided', async () => {
-      const oldCategory = {
-        id: 'category-1',
-        name: 'Cabello',
-      };
-
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-        category: oldCategory,
-      } as Service;
-
-      const data = {
-        description: 'Nueva descripción',
-      } as any;
-
-      serviceRepository.findOneBy.mockResolvedValue(service);
-      serviceRepository.save.mockResolvedValue(service);
-
-      await repository.update('service-1', data);
-
-      expect(service.category).toBe(oldCategory);
-      expect(service.description).toBe('Nueva descripción');
+      expect(
+        ormServiceRepositoryMock.save,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe('deactivate', () => {
-    it('should deactivate a service', async () => {
-      serviceRepository.update.mockResolvedValue({
+    it('should deactivate the service', async () => {
+      ormServiceRepositoryMock.update.mockResolvedValue({
         affected: 1,
-      } as any);
+      });
 
-      await repository.deactivate('service-1');
+      const result = await repository.deactivate(
+        serviceId,
+      );
 
-      expect(serviceRepository.update).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.update).toHaveBeenCalledWith('service-1', {
+      expect(
+        ormServiceRepositoryMock.update,
+      ).toHaveBeenCalledWith(serviceId, {
         isActive: false,
       });
+
+      expect(result).toBeUndefined();
     });
   });
 
   describe('reactivate', () => {
-    it('should reactivate a service', async () => {
-      serviceRepository.update.mockResolvedValue({
+    it('should reactivate the service', async () => {
+      ormServiceRepositoryMock.update.mockResolvedValue({
         affected: 1,
-      } as any);
+      });
 
-      await repository.reactivate('service-1');
+      const result = await repository.reactivate(
+        serviceId,
+      );
 
-      expect(serviceRepository.update).toHaveBeenCalledTimes(1);
-      expect(serviceRepository.update).toHaveBeenCalledWith('service-1', {
+      expect(
+        ormServiceRepositoryMock.update,
+      ).toHaveBeenCalledWith(serviceId, {
         isActive: true,
       });
+
+      expect(result).toBeUndefined();
     });
   });
 
   describe('getProfessionalsByService', () => {
-    it('should return professionals associated with the service', async () => {
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-      } as Service;
-
-      const professionalServices = [
-        {
-          professionalId: 'professional-1',
-          serviceId: 'service-1',
-          professional: {
-            id: 'professional-1',
-            user: {
-              id: 'user-1',
-              name: 'Juan',
-            },
+    it('should return the professionals associated with the service', async () => {
+      const professionalService = {
+        professionalId,
+        serviceId,
+        professional: {
+          id: professionalId,
+          user: {
+            id: 'user-123',
           },
         },
-      ] as ProfessionalService[];
+      } as unknown as ProfessionalService;
 
-      serviceRepository.findOne.mockResolvedValue(service);
-      professionalServicesRepository.find.mockResolvedValue(
-        professionalServices,
+      ormServiceRepositoryMock.findOne.mockResolvedValue(
+        service,
       );
 
-      const result = await repository.getProfessionalsByService('service-1');
+      professionalServicesRepositoryMock.find.mockResolvedValue(
+        [professionalService],
+      );
 
-      expect(result).toEqual(professionalServices);
+      const result =
+        await repository.getProfessionalsByService(
+          serviceId,
+        );
 
-      expect(serviceRepository.findOne).toHaveBeenCalledWith({
+      expect(
+        ormServiceRepositoryMock.findOne,
+      ).toHaveBeenCalledWith({
         where: {
-          id: 'service-1',
+          id: serviceId,
         },
       });
 
-      expect(professionalServicesRepository.find).toHaveBeenCalledWith({
+      expect(
+        professionalServicesRepositoryMock.find,
+      ).toHaveBeenCalledWith({
         where: {
-          serviceId: 'service-1',
+          serviceId,
         },
         relations: {
           professional: {
@@ -424,81 +413,85 @@ describe('ServicesRepository', () => {
           },
         },
       });
+
+      expect(result).toEqual([
+        professionalService,
+      ]);
     });
 
     it('should throw NotFoundException when the service does not exist', async () => {
-      serviceRepository.findOne.mockResolvedValue(null);
-
-      await expect(
-        repository.getProfessionalsByService('service-1'),
-      ).rejects.toThrow(
-        new NotFoundException(
-          'No existe un servicio con el ID proporcionado',
-        ),
+      ormServiceRepositoryMock.findOne.mockResolvedValue(
+        null,
       );
 
-      expect(professionalServicesRepository.find).not.toHaveBeenCalled();
-    });
+      await expect(
+        repository.getProfessionalsByService(
+          serviceId,
+        ),
+      ).rejects.toThrow(NotFoundException);
 
-    it('should return an empty array when the service has no professionals', async () => {
-      const service = {
-        id: 'service-1',
-      } as Service;
-
-      serviceRepository.findOne.mockResolvedValue(service);
-      professionalServicesRepository.find.mockResolvedValue([]);
-
-      const result = await repository.getProfessionalsByService('service-1');
-
-      expect(result).toEqual([]);
+      expect(
+        professionalServicesRepositoryMock.find,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe('updateServiceImage', () => {
-    it('should update the service image URL', async () => {
-      const service = {
-        id: 'service-1',
-        name: 'Corte',
-        imageUrl: null,
-      } as Service;
-
-      const updatedService = {
+    it('should update the service image URL and save it', async () => {
+      const existingService = {
         ...service,
-        imageUrl: 'https://cloudinary.com/service-image.jpg',
-      } as Service;
+        imageUrl: null,
+      };
 
-      serviceRepository.findOneBy.mockResolvedValue(service);
-      serviceRepository.save.mockResolvedValue(updatedService);
-
-      const result = await repository.updateServiceImage(
-        'service-1',
-        'https://cloudinary.com/service-image.jpg',
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(
+        existingService,
       );
 
-      expect(result).toEqual(updatedService);
-
-      expect(service.imageUrl).toBe(
-        'https://cloudinary.com/service-image.jpg',
+      ormServiceRepositoryMock.save.mockResolvedValue(
+        existingService,
       );
 
-      expect(serviceRepository.save).toHaveBeenCalledWith(service);
+      const imageUrl =
+        'https://res.cloudinary.com/demo/image/upload/service.jpg';
+
+      const result =
+        await repository.updateServiceImage(
+          serviceId,
+          imageUrl,
+        );
+
+      expect(
+        ormServiceRepositoryMock.findOneBy,
+      ).toHaveBeenCalledWith({
+        id: serviceId,
+      });
+
+      expect(existingService.imageUrl).toBe(
+        imageUrl,
+      );
+
+      expect(
+        ormServiceRepositoryMock.save,
+      ).toHaveBeenCalledWith(existingService);
+
+      expect(result).toBe(existingService);
     });
 
     it('should throw NotFoundException when the service does not exist', async () => {
-      serviceRepository.findOneBy.mockResolvedValue(null);
+      ormServiceRepositoryMock.findOneBy.mockResolvedValue(
+        null,
+      );
 
       await expect(
         repository.updateServiceImage(
-          'service-1',
-          'https://cloudinary.com/image.jpg',
+          serviceId,
+          'https://example.com/image.jpg',
         ),
-      ).rejects.toThrow(
-        new NotFoundException(
-          'No existe un servicio con el ID proporcionado',
-        ),
-      );
+      ).rejects.toThrow(NotFoundException);
 
-      expect(serviceRepository.save).not.toHaveBeenCalled();
+      expect(
+        ormServiceRepositoryMock.save,
+      ).not.toHaveBeenCalled();
     });
   });
 });

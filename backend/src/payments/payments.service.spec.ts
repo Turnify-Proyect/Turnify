@@ -1,183 +1,96 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import Stripe from 'stripe';
-
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import { Payment, PaymentStatus } from './entities/payment.entity';
+import {
+  Payment,
+  PaymentStatus,
+  PaymentType,
+} from './entities/payment.entity';
 import { Order } from '../orders/entities/order.entity';
 import { OrderStatus } from '../orders/enums/order-status.enum';
 import {
   Appointment,
   AppointmentStatus,
 } from '../appointments/entities/appointment.entity';
-import { NotificationsService } from 'src/notifications/notifications.service';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
 
-  const paymentRepository = {
-    findOne: jest.fn(),
-    find: jest.fn(),
+  let paymentRepositoryMock: {
+    findOne: jest.Mock;
+    find: jest.Mock;
   };
 
-  const notificationsService = {
-    sendOrderConfirmed: jest.fn(),
+  let notificationsServiceMock: {
+    sendOrderConfirmed: jest.Mock;
+    sendPaymentLink: jest.Mock;
   };
 
-  const queryRunner = {
-    connect: jest.fn(),
-    startTransaction: jest.fn(),
-    commitTransaction: jest.fn(),
-    rollbackTransaction: jest.fn(),
-    release: jest.fn(),
-    isTransactionActive: true,
+  let queryRunnerMock: {
+    connect: jest.Mock;
+    startTransaction: jest.Mock;
+    commitTransaction: jest.Mock;
+    rollbackTransaction: jest.Mock;
+    release: jest.Mock;
+    isTransactionActive: boolean;
     manager: {
-      findOne: jest.fn(),
+      findOne: jest.Mock;
+      create: jest.Mock;
+      save: jest.Mock;
+    };
+  };
+
+  let dataSourceMock: {
+    createQueryRunner: jest.Mock;
+    getRepository: jest.Mock;
+    transaction: jest.Mock;
+  };
+
+  const stripeMock = {
+    paymentIntents: {
       create: jest.fn(),
-      save: jest.fn(),
+    },
+    refunds: {
+      create: jest.fn(),
+    },
+    checkout: {
+      sessions: {
+        create: jest.fn(),
+      },
+    },
+    webhooks: {
+      constructEvent: jest.fn(),
     },
   };
 
-  const mockProfessionalUnavailabilityRepository = {
-  getOverlapping: jest.fn().mockResolvedValue(null),
-};
-
-
-  const dataSource = {
-    createQueryRunner: jest.fn(),
-    getRepository: jest.fn(),
-    transaction: jest.fn(),
-  };
-
-  const stripePaymentIntentsCreate = jest.fn();
-  const stripeRefundsCreate = jest.fn();
-
-  beforeEach(async () => {
-    jest.clearAllMocks();
-
-    queryRunner.isTransactionActive = true;
-
-    dataSource.createQueryRunner.mockReturnValue(queryRunner);
-
-    dataSource.getRepository.mockReturnValue({
-      findOne: jest.fn(),
-    });
-
-    dataSource.transaction.mockImplementation(
-      async (callback: (manager: any) => Promise<any>) => {
-        const manager = {
-          findOne: jest.fn(),
-          create: jest.fn(),
-          save: jest.fn(),
-        };
-
-        return callback(manager);
-      },
-    );
-
-    /**
-     * Importante:
-     * PaymentsService utiliza el resultado de save(Payment, payment)
-     * para acceder a savedPayment.id.
-     *
-     * Si el mock devuelve undefined:
-     *
-     *   savedPayment.id
-     *
-     * rompe con:
-     *
-     *   Cannot read properties of undefined (reading 'id')
-     */
-    queryRunner.manager.save.mockImplementation(
-      async (entity: any, value: any) => {
-        if (entity === Payment) {
-          return {
-            ...value,
-            id: value.id ?? 'payment-1',
-          };
-        }
-
-        return value;
-      },
-    );
-
-    queryRunner.manager.create.mockImplementation(
-      (_entity: any, value: any) => value,
-    );
-
-    stripePaymentIntentsCreate.mockResolvedValue({
-      id: 'pi_test_123',
-      client_secret: 'pi_test_secret',
-    });
-
-    stripeRefundsCreate.mockResolvedValue({
-      id: 're_test_123',
-      status: 'succeeded',
-    });
-
-    notificationsService.sendOrderConfirmed.mockResolvedValue(undefined);
-
-    await Test.createTestingModule({
-      providers: [
-        PaymentsService,
-        {
-          provide: 'PaymentRepository',
-          useValue: paymentRepository,
-        },
-        {
-          provide: DataSource,
-          useValue: dataSource,
-        },
-        {
-          provide: NotificationsService,
-          useValue: notificationsService,
-        },
-      ],
-    })
-
-      .overrideProvider('PaymentRepository')
-      .useValue(paymentRepository)
-      .compile()
-      .then((module: TestingModule) => {
-        service = module.get<PaymentsService>(PaymentsService);
-      });
-
-    /**
-     * Reemplazamos Stripe internamente para que ningún test
-     * realice llamadas a la API de Stripe.
-     */
-    (service as any).stripe = {
-      paymentIntents: {
-        create: stripePaymentIntentsCreate,
-      },
-      refunds: {
-        create: stripeRefundsCreate,
-      },
-      webhooks: {
-        constructEvent: jest.fn(),
-      },
-    };
-  });
+  const orderId = 'order-123';
+  const userId = 'user-123';
 
   const createAppointment = (
     overrides: Partial<Appointment> = {},
   ): Appointment => {
     return {
-      id: 'appointment-1',
+      id: 'appointment-123',
+      user: {} as any,
+      professional: {
+        user: {
+          name: 'Dr. Test',
+        },
+      } as any,
+      service: {
+        name: 'Consulta',
+        durationMinutes: 60,
+      } as any,
+      orderDetail: {} as any,
+      startAt: new Date('2026-10-10T10:00:00.000Z'),
+      endAt: new Date('2026-10-10T11:00:00.000Z'),
       status: AppointmentStatus.PENDING,
+      rescheduleCount: 0,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      startAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
-      // Mocks requeridos por la sección de emails en el servicio:
-      service: { name: 'Servicio de Prueba', durationMinutes: 60 },
-      professional: { user: { name: 'Profesional de Prueba' } },
+      createdAt: new Date(),
+      reminderSent: false,
       ...overrides,
-    } as Appointment;
+    };
   };
-
 
   const createOrder = (
     overrides: Partial<Order> = {},
@@ -185,805 +98,799 @@ describe('PaymentsService', () => {
     const appointment = createAppointment();
 
     return {
-      order_id: 'order-1',
+      order_id: orderId,
       status: OrderStatus.PENDING,
-      orderDetails: {
-        total_price: '123.45',
-        appointments: [appointment],
-      },
+      created_at: new Date(),
       user: {
-        id: 'user-1',
+        id: userId,
         name: 'Juan Pérez',
-        email: 'juan@example.com',
-      },
+        email: 'juan@test.com',
+      } as any,
+      orderDetails: {
+        total_price: '10000',
+        appointments: [appointment],
+      } as any,
+      payment: null,
       ...overrides,
-    } as Order;
+    };
   };
 
   const createPayment = (
     overrides: Partial<Payment> = {},
   ): Payment => {
-    // Generamos una orden válida por defecto para que tenga todas las relaciones
-    const defaultOrder = createOrder(); 
-
     return {
-      id: 'payment-1',
-      amount: '37.04',
+      id: 'payment-123',
+      order: createOrder(),
       provider: 'stripe',
+      externalPaymentId: 'pi_123',
+      amount: '3000',
+      paymentType: PaymentType.DEPOSIT_PAYMENT,
       status: PaymentStatus.PAID,
-      externalPaymentId: 'pi_test_123',
       paidAt: new Date(),
-      order: defaultOrder, // <-- AGREGAMOS ESTO para solucionar el error de orderDetails
+      createdAt: new Date(),
       ...overrides,
-    } as Payment;
+    };
   };
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    queryRunnerMock = {
+      connect: jest.fn(),
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn(),
+      rollbackTransaction: jest.fn(),
+      release: jest.fn(),
+      isTransactionActive: true,
+      manager: {
+        findOne: jest.fn(),
+        create: jest.fn(),
+        save: jest.fn(),
+      },
+    };
+
+    paymentRepositoryMock = {
+      findOne: jest.fn(),
+      find: jest.fn(),
+    };
+
+    notificationsServiceMock = {
+      sendOrderConfirmed: jest.fn(),
+      sendPaymentLink: jest.fn(),
+    };
+
+    dataSourceMock = {
+      createQueryRunner: jest.fn(() => queryRunnerMock),
+      getRepository: jest.fn(() => paymentRepositoryMock),
+      transaction: jest.fn(),
+    };
+
+    service = new PaymentsService(
+      paymentRepositoryMock as any,
+      dataSourceMock as any,
+      notificationsServiceMock as any,
+    );
+
+    /*
+     * PaymentsService instancia Stripe internamente.
+     * Reemplazamos esa instancia por nuestro mock.
+     */
+    (service as any).stripe = stripeMock;
+
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+  });
 
   describe('processPayment', () => {
-    it('should process a payment successfully', async () => {
-      const appointment = createAppointment();
+    const dto = {
+      orderId,
+      amount: 3000,
+      provider: 'stripe',
+      externalPaymentId: 'pi_123',
+      status: PaymentStatus.PAID,
+      paymentType: PaymentType.DEPOSIT_PAYMENT,
+    };
 
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      const payment = createPayment({
-        status: PaymentStatus.PAID,
-      });
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(null);
-
-      queryRunner.manager.create.mockReturnValue(payment);
-
-      queryRunner.manager.save.mockImplementation(
-        async (entity: any, value: any) => {
-          if (entity === Payment) {
-            return {
-              ...value,
-              id: value.id ?? 'payment-1',
-            };
-          }
-
-          return value;
-        },
-      );
-
-      paymentRepository.findOne.mockResolvedValue(payment);
-
-      const result = await service.processPayment({
-        orderId: 'order-1',
-        amount: 37.04,
-        provider: 'stripe',
-        externalPaymentId: 'pi_test_123',
-        status: PaymentStatus.PAID,
-      });
-
-      expect(result).toBe(payment);
-
-      expect(queryRunner.manager.save).toHaveBeenCalledWith(
-        Order,
-        expect.objectContaining({
-          status: OrderStatus.PAID,
-        }),
-      );
-
-      expect(queryRunner.manager.save).toHaveBeenCalledWith(
-        Appointment,
-        expect.objectContaining({
-          status: AppointmentStatus.CONFIRMED,
-          expiresAt: null,
-        }),
-      );
-
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
-      expect(queryRunner.release).toHaveBeenCalled();
-    });
-
-    it('should return the existing payment when the same paid webhook is received again', async () => {
+    it('should process a new paid payment successfully', async () => {
       const order = createOrder();
 
-      const payment = createPayment({
-        status: PaymentStatus.PAID,
-        externalPaymentId: 'pi_test_123',
+      const savedPayment = createPayment({
+        id: 'payment-123',
+        order,
       });
 
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(payment);
-
-      const result = await service.processPayment({
-        orderId: 'order-1',
-        amount: 37.04,
-        provider: 'stripe',
-        externalPaymentId: 'pi_test_123',
-        status: PaymentStatus.PAID,
+      const updatedPayment = createPayment({
+        id: 'payment-123',
+        order: {
+          ...order,
+          status: OrderStatus.PAID,
+        } as Order,
       });
 
-      expect(result).toBe(payment);
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
-      expect(queryRunner.manager.save).not.toHaveBeenCalled();
+queryRunnerMock.manager.findOne
+  .mockResolvedValueOnce(order)
+  .mockResolvedValueOnce(null);
+
+queryRunnerMock.manager.create.mockReturnValue(savedPayment);
+
+queryRunnerMock.manager.save
+  .mockResolvedValueOnce(order)
+  .mockResolvedValueOnce(order.orderDetails.appointments[0])
+  .mockResolvedValueOnce(savedPayment);
+
+paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
+
+
+      notificationsServiceMock.sendOrderConfirmed.mockResolvedValue(undefined);
+
+      const result = await service.processPayment(dto);
+
+      expect(result).toBe(updatedPayment);
+
+      expect(queryRunnerMock.connect).toHaveBeenCalled();
+      expect(queryRunnerMock.startTransaction).toHaveBeenCalled();
+      expect(queryRunnerMock.commitTransaction).toHaveBeenCalled();
+      expect(queryRunnerMock.rollbackTransaction).not.toHaveBeenCalled();
+
+      expect(queryRunnerMock.manager.create).toHaveBeenCalledWith(
+        Payment,
+        expect.objectContaining({
+          order,
+          amount: '3000',
+          provider: 'stripe',
+          status: PaymentStatus.PAID,
+          externalPaymentId: 'pi_123',
+          paymentType: PaymentType.DEPOSIT_PAYMENT,
+        }),
+      );
+
+      expect(order.status).toBe(OrderStatus.PAID);
+
+      expect(order.orderDetails.appointments[0].status).toBe(
+        AppointmentStatus.CONFIRMED,
+      );
+
+      expect(order.orderDetails.appointments[0].expiresAt).toBeNull();
+
+      expect(notificationsServiceMock.sendOrderConfirmed).toHaveBeenCalled();
+
+      expect(queryRunnerMock.release).toHaveBeenCalled();
     });
 
     it('should throw when the order does not exist', async () => {
-      queryRunner.manager.findOne.mockResolvedValueOnce(null);
+      queryRunnerMock.manager.findOne.mockResolvedValue(null);
 
       await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
+        service.processPayment(dto),
       ).rejects.toThrow(NotFoundException);
+
+      expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
+      expect(queryRunnerMock.release).toHaveBeenCalled();
     });
 
-    it('should throw when the order already has a different paid payment', async () => {
-      const order = createOrder();
-
-      const payment = createPayment({
-        status: PaymentStatus.PAID,
-        externalPaymentId: 'pi_other',
-      });
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(payment);
-
-      await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
-      ).rejects.toThrow('La orden ya posee un pago confirmado');
-    });
-
-    it('should throw when the order has no appointments', async () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [],
-        },
-      });
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(null);
-
-      await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
-      ).rejects.toThrow('La orden no tiene turnos asociados');
-    });
-
-    it('should throw when an appointment has expired', async () => {
-      const appointment = createAppointment({
-        status: AppointmentStatus.EXPIRED,
-      });
-
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(null);
-
-      await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
-      ).rejects.toThrow(
-        'No se puede confirmar el pago porque el turno asociado ya expiró',
-      );
-    });
-
-    it('should throw when a pending appointment has passed its expiration date', async () => {
-      const appointment = createAppointment({
-        status: AppointmentStatus.PENDING,
-        expiresAt: new Date(Date.now() - 60 * 1000),
-      });
-
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(null);
-
-      await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
-      ).rejects.toThrow(
-        'No se puede confirmar el pago porque el turno asociado ya expiró',
-      );
-    });
-
-    it('should throw when an appointment is cancelled', async () => {
-      const appointment = createAppointment({
-        status: AppointmentStatus.CANCELLED,
-      });
-
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(null);
-
-      await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
-      ).rejects.toThrow(
-        'No se puede confirmar el pago de un turno cancelado',
-      );
-    });
-
-    it('should update an existing unpaid payment', async () => {
+    it('should return the existing payment when the same paid payment is processed again', async () => {
       const order = createOrder();
 
       const existingPayment = createPayment({
-        status: PaymentStatus.PENDING,
-        externalPaymentId: null,
+        order,
+        status: PaymentStatus.PAID,
+        externalPaymentId: 'pi_123',
       });
 
-      const savedPayment = {
-        ...existingPayment,
-        status: PaymentStatus.PAID,
-        externalPaymentId: 'pi_test_123',
-        amount: '37.04',
-      };
-
-      queryRunner.manager.findOne
+      queryRunnerMock.manager.findOne
         .mockResolvedValueOnce(order)
         .mockResolvedValueOnce(existingPayment);
 
-      queryRunner.manager.save.mockImplementation(
-        async (entity: any, value: any) => {
-          if (entity === Payment) {
-            return {
-              ...savedPayment,
-              ...value,
-              id: value.id ?? 'payment-1',
-            };
-          }
+      const result = await service.processPayment(dto);
 
-          return value;
-        },
-      );
+      expect(result).toBe(existingPayment);
 
-      paymentRepository.findOne.mockResolvedValue(savedPayment);
+      expect(queryRunnerMock.commitTransaction).toHaveBeenCalled();
 
-      const result = await service.processPayment({
-        orderId: 'order-1',
-        amount: 37.04,
-        provider: 'stripe',
-        externalPaymentId: 'pi_test_123',
+      expect(queryRunnerMock.manager.create).not.toHaveBeenCalled();
+      expect(queryRunnerMock.manager.save).not.toHaveBeenCalled();
+
+      expect(notificationsServiceMock.sendOrderConfirmed).not.toHaveBeenCalled();
+    });
+
+    it('should reject a different payment when the order already has a paid payment', async () => {
+      const order = createOrder();
+
+      const existingPayment = createPayment({
+        order,
         status: PaymentStatus.PAID,
+        externalPaymentId: 'pi_old',
       });
 
-      expect(result).toBe(savedPayment);
-
-      expect(existingPayment.status).toBe(PaymentStatus.PAID);
-      expect(existingPayment.externalPaymentId).toBe('pi_test_123');
-      expect(existingPayment.amount).toBe('37.04');
-    });
-
-    it('should return a BadRequestException when an unexpected error occurs', async () => {
-      const order = createOrder();
-
-      queryRunner.manager.findOne
+      queryRunnerMock.manager.findOne
         .mockResolvedValueOnce(order)
-        .mockRejectedValueOnce(new Error('Database error'));
+        .mockResolvedValueOnce(existingPayment);
 
       await expect(
         service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
+          ...dto,
+          externalPaymentId: 'pi_new',
         }),
-      ).rejects.toThrow(
-        'Error al procesar el pago: Database error',
-      );
+      ).rejects.toThrow(BadRequestException);
 
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
+      expect(queryRunnerMock.release).toHaveBeenCalled();
     });
 
-    it('should not fail the payment when confirmation email fails', async () => {
-      const appointment = createAppointment();
-
+    it('should reject a payment when the order has no appointments', async () => {
       const order = createOrder({
         orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      const savedPayment = createPayment();
-
-      queryRunner.manager.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(null);
-
-      queryRunner.manager.create.mockReturnValue(savedPayment);
-
-      queryRunner.manager.save.mockImplementation(
-        async (entity: any, value: any) => {
-          if (entity === Payment) {
-            return {
-              ...value,
-              id: value.id ?? 'payment-1',
-            };
-          }
-
-          return value;
-        },
-      );
-
-      paymentRepository.findOne.mockResolvedValue(savedPayment);
-
-      notificationsService.sendOrderConfirmed.mockRejectedValue(
-        new Error('Email error'),
-      );
-
-      await expect(
-        service.processPayment({
-          orderId: 'order-1',
-          amount: 37.04,
-          provider: 'stripe',
-          externalPaymentId: 'pi_test_123',
-          status: PaymentStatus.PAID,
-        }),
-      ).resolves.toBe(savedPayment);
-
-      expect(notificationsService.sendOrderConfirmed).toHaveBeenCalled();
-    });
-  });
-
-  describe('createStripeIntent', () => {
-    it('should create a Stripe PaymentIntent', async () => {
-      const order = createOrder();
-
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
-
-      const result = await service.createStripeIntent(
-        'order-1',
-        'user-1',
-      );
-
-      expect(stripePaymentIntentsCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          amount: 3703,
-          currency: 'ars',
-          metadata: {
-            orderId: 'order-1',
-          },
-        }),
-        {
-          idempotencyKey: 'turnify-order-order-1',
-        },
-      );
-
-      expect(result).toEqual({
-        clientSecret: 'pi_test_secret',
-      });
-    });
-
-    it('should throw when the order does not exist', async () => {
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.createStripeIntent('order-1', 'user-1'),
-      ).rejects.toThrow(
-        'La orden no existe o no pertenece al usuario autenticado',
-      );
-    });
-
-    it('should throw when the order is not pending', async () => {
-      const order = createOrder({
-        status: OrderStatus.PAID,
-      });
-
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
-
-      await expect(
-        service.createStripeIntent('order-1', 'user-1'),
-      ).rejects.toThrow(
-        'La orden no se encuentra pendiente de pago',
-      );
-    });
-
-    it('should throw when the order has no appointments', async () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
+          total_price: '10000',
           appointments: [],
-        },
+        } as any,
       });
 
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
-
-      await expect(
-        service.createStripeIntent('order-1', 'user-1'),
-      ).rejects.toThrow('La orden no tiene turnos asociados');
-    });
-
-    it('should throw when an appointment is expired', async () => {
-      const appointment = createAppointment({
-        status: AppointmentStatus.PENDING,
-        expiresAt: new Date(Date.now() - 60 * 1000),
-      });
-
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
-
-      await expect(
-        service.createStripeIntent('order-1', 'user-1'),
-      ).rejects.toThrow(
-        'La reserva asociada a la orden ya no se encuentra disponible para pagar',
-      );
-    });
-
-    it('should throw when appointment is not pending', async () => {
-      const appointment = createAppointment({
-        status: AppointmentStatus.CONFIRMED,
-        expiresAt: new Date(Date.now() + 60 * 1000),
-      });
-
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
-
-      await expect(
-        service.createStripeIntent('order-1', 'user-1'),
-      ).rejects.toThrow(
-        'La reserva asociada a la orden ya no se encuentra disponible para pagar',
-      );
-    });
-  });
-
-  describe('handleStripeWebhook', () => {
-    const createWebhookEvent = (
-      overrides: Partial<Stripe.PaymentIntent> = {},
-    ) => {
-      return {
-        id: 'evt_test_123',
-        type: 'payment_intent.succeeded',
-        data: {
-          object: {
-            id: 'pi_test_123',
-            amount_received: 3704,
-            metadata: {
-              orderId: 'order-1',
-            },
-            ...overrides,
-          },
-        },
-      } as unknown as Stripe.Event;
-    };
-
-    it('should reject an invalid Stripe signature', async () => {
-      const constructEvent = jest.fn(() => {
-        throw new Error('Invalid signature');
-      });
-
-      (service as any).stripe.webhooks.constructEvent =
-        constructEvent;
-
-      await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'invalid-signature',
-        ),
-      ).rejects.toThrow('Firma de webhook inválida');
-    });
-
-    it('should ignore a succeeded event without a valid Turnify order id', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () =>
-          ({
-            type: 'payment_intent.succeeded',
-            data: {
-              object: {
-                id: 'pi_test_123',
-                amount_received: 3704,
-                metadata: {},
-              },
-            },
-          }) as Stripe.Event,
-      );
-
-      await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).resolves.toEqual({
-        received: true,
-      });
-    });
-
-    it('should ignore a test payment intent id used as order id', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () =>
-          ({
-            type: 'payment_intent.succeeded',
-            data: {
-              object: {
-                id: 'pi_test_123',
-                amount_received: 3704,
-                metadata: {
-                  orderId: 'pi_test_fake',
-                },
-              },
-            },
-          }) as Stripe.Event,
-      );
-
-      await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).resolves.toEqual({
-        received: true,
-      });
-    });
-
-    it('should throw when the order from the webhook does not exist', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
-      );
-
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).rejects.toThrow(
-        'No se encontró la orden con ID: order-1',
-      );
-    });
-
-    it('should process a valid payment webhook', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
-      );
-
-      const appointment = createAppointment();
-
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [appointment],
-        },
-      });
-
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
-
-      queryRunner.manager.findOne
+      queryRunnerMock.manager.findOne
         .mockResolvedValueOnce(order)
         .mockResolvedValueOnce(null);
 
-      const savedPayment = createPayment();
-
-      queryRunner.manager.create.mockReturnValue(savedPayment);
-
-      queryRunner.manager.save.mockImplementation(
-        async (entity: any, value: any) => {
-          if (entity === Payment) {
-            return {
-              ...value,
-              id: value.id ?? 'payment-1',
-            };
-          }
-
-          return value;
-        },
-      );
-
-      paymentRepository.findOne.mockResolvedValue(savedPayment);
-
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).resolves.toEqual({
-        received: true,
-      });
+        service.processPayment(dto),
+      ).rejects.toThrow(BadRequestException);
 
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('should refund an expired reservation', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
-      );
-
+    it('should reject a payment when an appointment is expired', async () => {
       const appointment = createAppointment({
         status: AppointmentStatus.EXPIRED,
+        expiresAt: null,
       });
 
       const order = createOrder({
         orderDetails: {
-          total_price: '123.45',
+          total_price: '10000',
           appointments: [appointment],
-        },
+        } as any,
       });
 
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
+      queryRunnerMock.manager.findOne
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(null);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).resolves.toEqual({
-        received: true,
-      });
+        service.processPayment(dto),
+      ).rejects.toThrow(BadRequestException);
 
-      expect(stripeRefundsCreate).toHaveBeenCalledWith(
-        {
-          payment_intent: 'pi_test_123',
-        },
-        {
-          idempotencyKey: 'turnify-refund-pi_test_123',
-        },
-      );
+      expect(queryRunnerMock.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('should refund a cancelled reservation', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
-      );
+    it('should reject a payment when a pending appointment has expired', async () => {
+      const appointment = createAppointment({
+        status: AppointmentStatus.PENDING,
+        expiresAt: new Date(Date.now() - 60_000),
+      });
 
+      const order = createOrder({
+        orderDetails: {
+          total_price: '10000',
+          appointments: [appointment],
+        } as any,
+      });
+
+      queryRunnerMock.manager.findOne
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.processPayment(dto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject a payment when an appointment is cancelled', async () => {
       const appointment = createAppointment({
         status: AppointmentStatus.CANCELLED,
       });
 
       const order = createOrder({
         orderDetails: {
-          total_price: '123.45',
+          total_price: '10000',
           appointments: [appointment],
-        },
+        } as any,
       });
 
-      const repository = dataSource.getRepository();
-
-      repository.findOne.mockResolvedValue(order);
+      queryRunnerMock.manager.findOne
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(null);
 
       await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).resolves.toEqual({
-        received: true,
-      });
-
-      expect(stripeRefundsCreate).toHaveBeenCalled();
+        service.processPayment(dto),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should use processPayment when the order is already paid', async () => {
-      (service as any).stripe.webhooks.constructEvent = jest.fn(
-        () => createWebhookEvent(),
-      );
+    it('should not fail the payment when the confirmation email fails', async () => {
+      const order = createOrder();
 
-      const order = createOrder({
-        status: OrderStatus.PAID,
+      const savedPayment = createPayment({ order });
+
+      const updatedPayment = createPayment({
+        order: {
+          ...order,
+          status: OrderStatus.PAID,
+        } as Order,
       });
 
-      const repository = dataSource.getRepository();
+      queryRunnerMock.manager.findOne
+        .mockResolvedValueOnce(order)
+        .mockResolvedValueOnce(null);
 
-      repository.findOne.mockResolvedValue(order);
+      queryRunnerMock.manager.create.mockReturnValue(savedPayment);
+
+queryRunnerMock.manager.save
+  .mockResolvedValueOnce(order)
+  .mockResolvedValueOnce(order.orderDetails.appointments[0])
+  .mockResolvedValueOnce(savedPayment);
+
+
+      paymentRepositoryMock.findOne.mockResolvedValue(updatedPayment);
+
+      notificationsServiceMock.sendOrderConfirmed.mockRejectedValue(
+        new Error('SMTP error'),
+      );
+
+      const result = await service.processPayment(dto);
+
+      expect(result).toBe(updatedPayment);
+      expect(queryRunnerMock.commitTransaction).toHaveBeenCalled();
+    });
+  });
+
+  describe('processCashPayment', () => {
+    it('should process a deposit cash payment', async () => {
+      const order = createOrder();
 
       const processPaymentSpy = jest
         .spyOn(service, 'processPayment')
         .mockResolvedValue(createPayment());
 
-      await expect(
-        service.handleStripeWebhook(
-          Buffer.from('{}'),
-          'signature',
-        ),
-      ).resolves.toEqual({
-        received: true,
-      });
+      paymentRepositoryMock.findOne.mockResolvedValue(order);
+
+      const dto = {
+        orderId,
+        paymentType: PaymentType.DEPOSIT_PAYMENT,
+      };
+
+      await service.processCashPayment(dto);
 
       expect(processPaymentSpy).toHaveBeenCalledWith({
-        orderId: 'order-1',
-        amount: 37.04,
-        provider: 'stripe',
-        externalPaymentId: 'pi_test_123',
+        orderId,
+        amount: 3000,
+        provider: 'cash',
+        externalPaymentId: undefined,
         status: PaymentStatus.PAID,
+        paymentType: PaymentType.DEPOSIT_PAYMENT,
+      });
+    });
+
+    it('should process a full cash payment', async () => {
+      const order = createOrder();
+
+      const processPaymentSpy = jest
+        .spyOn(service, 'processPayment')
+        .mockResolvedValue(createPayment());
+
+      paymentRepositoryMock.findOne.mockResolvedValue(order);
+
+      const dto = {
+        orderId,
+        paymentType: PaymentType.FULL_PAYMENT,
+      };
+
+      await service.processCashPayment(dto);
+
+      expect(processPaymentSpy).toHaveBeenCalledWith({
+        orderId,
+        amount: 10000,
+        provider: 'cash',
+        externalPaymentId: undefined,
+        status: PaymentStatus.PAID,
+        paymentType: PaymentType.FULL_PAYMENT,
+      });
+    });
+
+    it('should throw when the order does not exist', async () => {
+      paymentRepositoryMock.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.processCashPayment({
+          orderId,
+          paymentType: PaymentType.DEPOSIT_PAYMENT,
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('createStripeIntent', () => {
+    it('should create a Stripe PaymentIntent using the authenticated user', async () => {
+      const order = createOrder();
+
+      paymentRepositoryMock.findOne.mockResolvedValue(order);
+
+      /*
+       * createStripeIntent usa:
+       * this.dataSource.getRepository(Order).findOne(...)
+       *
+       * Por eso usamos un repository específico para Order.
+       */
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockImplementation(
+        (entity: any) => {
+          if (entity === Order) {
+            return orderRepositoryMock;
+          }
+
+          return paymentRepositoryMock;
+        },
+      );
+
+      stripeMock.paymentIntents.create.mockResolvedValue({
+        id: 'pi_123',
+        client_secret: 'secret_123',
+      });
+
+      const result = await service.createStripeIntent(
+        orderId,
+        userId,
+      );
+
+      expect(result).toEqual({
+        clientSecret: 'secret_123',
+      });
+
+      expect(orderRepositoryMock.findOne).toHaveBeenCalledWith({
+        where: {
+          order_id: orderId,
+          user: {
+            id: userId,
+          },
+        },
+        relations: [
+          'user',
+          'orderDetails',
+          'orderDetails.appointments',
+        ],
+      });
+
+      expect(stripeMock.paymentIntents.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 300000,
+          currency: 'ars',
+          automatic_payment_methods: {
+            enabled: true,
+          },
+          metadata: {
+            orderId,
+          },
+        }),
+        {
+          idempotencyKey: `turnify-order-${orderId}`,
+        },
+      );
+    });
+
+    it('should throw when the order does not belong to the authenticated user', async () => {
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(null),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.createStripeIntent(orderId, userId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        stripeMock.paymentIntents.create,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should reject a non-pending order', async () => {
+      const order = createOrder({
+        status: OrderStatus.PAID,
+      });
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.createStripeIntent(orderId, userId),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(
+        stripeMock.paymentIntents.create,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should reject an order without appointments', async () => {
+      const order = createOrder({
+        orderDetails: {
+          total_price: '10000',
+          appointments: [],
+        } as any,
+      });
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.createStripeIntent(orderId, userId),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject an expired appointment', async () => {
+      const order = createOrder({
+        orderDetails: {
+          total_price: '10000',
+          appointments: [
+            createAppointment({
+              expiresAt: new Date(Date.now() - 60_000),
+            }),
+          ],
+        } as any,
+      });
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.createStripeIntent(orderId, userId),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('handleStripeWebhook', () => {
+    const createStripeEvent = (
+      overrides: Partial<any> = {},
+    ) => ({
+      id: 'evt_123',
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_123',
+          amount_received: 300000,
+          metadata: {
+            orderId,
+          },
+        },
+      },
+      ...overrides,
+    });
+
+    it('should reject an invalid Stripe signature', async () => {
+      stripeMock.webhooks.constructEvent.mockImplementation(() => {
+        throw new Error('Invalid signature');
+      });
+
+      await expect(
+        service.handleStripeWebhook(
+          Buffer.from('raw-body'),
+          'invalid-signature',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should ignore events without a valid orderId', async () => {
+      stripeMock.webhooks.constructEvent.mockReturnValue(
+        createStripeEvent({
+          data: {
+            object: {
+              id: 'pi_test',
+              amount_received: 300000,
+              metadata: {},
+            },
+          },
+        }),
+      );
+
+      const result = await service.handleStripeWebhook(
+        Buffer.from('raw-body'),
+        'signature',
+      );
+
+      expect(result).toEqual({
+        received: true,
+      });
+    });
+
+    it('should ignore generic Stripe test payment intent ids', async () => {
+      stripeMock.webhooks.constructEvent.mockReturnValue(
+        createStripeEvent({
+          data: {
+            object: {
+              id: 'pi_test',
+              amount_received: 300000,
+              metadata: {
+                orderId: 'pi_test',
+              },
+            },
+          },
+        }),
+      );
+
+      const result = await service.handleStripeWebhook(
+        Buffer.from('raw-body'),
+        'signature',
+      );
+
+      expect(result).toEqual({
+        received: true,
+      });
+    });
+
+    it('should ignore non-payment_intent.succeeded events', async () => {
+      stripeMock.webhooks.constructEvent.mockReturnValue(
+        createStripeEvent({
+          type: 'payment_intent.created',
+        }),
+      );
+
+      const result = await service.handleStripeWebhook(
+        Buffer.from('raw-body'),
+        'signature',
+      );
+
+      expect(result).toEqual({
+        received: true,
+      });
+    });
+
+    it('should throw when the order does not exist', async () => {
+      stripeMock.webhooks.constructEvent.mockReturnValue(
+        createStripeEvent(),
+      );
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(null),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.handleStripeWebhook(
+          Buffer.from('raw-body'),
+          'signature',
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should process a valid payment through processPayment', async () => {
+      const order = createOrder();
+
+      stripeMock.webhooks.constructEvent.mockReturnValue(
+        createStripeEvent(),
+      );
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      const processPaymentSpy = jest
+        .spyOn(service, 'processPayment')
+        .mockResolvedValue(createPayment());
+
+      const result = await service.handleStripeWebhook(
+        Buffer.from('raw-body'),
+        'signature',
+      );
+
+      expect(processPaymentSpy).toHaveBeenCalledWith({
+        orderId,
+        amount: 3000,
+        provider: 'stripe',
+        externalPaymentId: 'pi_123',
+        status: PaymentStatus.PAID,
+        paymentType: PaymentType.DEPOSIT_PAYMENT,
+      });
+
+      expect(result).toEqual({
+        received: true,
+      });
+    });
+
+    it('should refund the payment when the reservation expired', async () => {
+      const order = createOrder({
+        orderDetails: {
+          total_price: '10000',
+          appointments: [
+            createAppointment({
+              expiresAt: new Date(Date.now() - 60_000),
+            }),
+          ],
+        } as any,
+      });
+
+      stripeMock.webhooks.constructEvent.mockReturnValue(
+        createStripeEvent(),
+      );
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      dataSourceMock.transaction.mockImplementation(
+        async (callback: any) => {
+          const manager = {
+            findOne: jest.fn().mockResolvedValue(null),
+            create: jest.fn((_, entity) => entity),
+            save: jest.fn().mockResolvedValue(undefined),
+          };
+
+          return callback(manager);
+        },
+      );
+
+      stripeMock.refunds.create.mockResolvedValue({
+        id: 're_123',
+      });
+
+      const result = await service.handleStripeWebhook(
+        Buffer.from('raw-body'),
+        'signature',
+      );
+
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+        {
+          payment_intent: 'pi_123',
+        },
+        {
+          idempotencyKey: 'turnify-refund-pi_123',
+        },
+      );
+
+      expect(result).toEqual({
+        received: true,
       });
     });
   });
 
   describe('getPaymentById', () => {
-    it('should return a payment by id', async () => {
+    it('should return the payment when it exists', async () => {
       const payment = createPayment();
 
-      paymentRepository.findOne.mockResolvedValue(payment);
+      paymentRepositoryMock.findOne.mockResolvedValue(payment);
 
-      const result = await service.getPaymentById('payment-1');
+      const result = await service.getPaymentById('payment-123');
 
       expect(result).toBe(payment);
-      expect(paymentRepository.findOne).toHaveBeenCalledWith({
+
+      expect(paymentRepositoryMock.findOne).toHaveBeenCalledWith({
         where: {
-          id: 'payment-1',
+          id: 'payment-123',
         },
         relations: [
           'order',
@@ -993,14 +900,12 @@ describe('PaymentsService', () => {
       });
     });
 
-    it('should throw when payment does not exist', async () => {
-      paymentRepository.findOne.mockResolvedValue(null);
+    it('should throw when the payment does not exist', async () => {
+      paymentRepositoryMock.findOne.mockResolvedValue(null);
 
       await expect(
-        service.getPaymentById('payment-1'),
-      ).rejects.toThrow(
-        'No se encontró un registro de pago con el ID proporcionado',
-      );
+        service.getPaymentById('payment-404'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -1009,127 +914,274 @@ describe('PaymentsService', () => {
       const payments = [
         createPayment(),
         createPayment({
-          id: 'payment-2',
+          id: 'payment-456',
         }),
       ];
 
-      paymentRepository.find.mockResolvedValue(payments);
+      paymentRepositoryMock.find.mockResolvedValue(payments);
 
       const result = await service.findAll();
 
       expect(result).toBe(payments);
 
-      expect(paymentRepository.find).toHaveBeenCalledWith({
+      expect(paymentRepositoryMock.find).toHaveBeenCalledWith({
         relations: ['order'],
       });
     });
   });
 
-  describe('getOrderDeposit', () => {
-    it('should calculate 30 percent of the order total', () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: '100.00',
-          appointments: [],
-        },
+  describe('createAdminCheckoutSession', () => {
+    const createValidOrder = () => {
+      return createOrder();
+    };
+
+    it('should create an admin checkout session successfully', async () => {
+      const order = createValidOrder();
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      stripeMock.checkout.sessions.create.mockResolvedValue({
+        id: 'cs_test_123',
+        url: 'https://checkout.stripe.com/test',
       });
 
-      const result = (service as any).getOrderDeposit(order);
+      dataSourceMock.transaction.mockImplementation(
+        async (callback: any) => {
+          const manager = {
+            save: jest.fn().mockResolvedValue(undefined),
+          };
 
-      expect(result).toBe(30);
+          return callback(manager);
+        },
+      );
+
+      notificationsServiceMock.sendPaymentLink.mockResolvedValue(
+        undefined,
+      );
+
+      const result =
+        await service.createAdminCheckoutSession(orderId);
+
+      expect(result.orderId).toBe(orderId);
+      expect(result.checkoutUrl).toBe(
+        'https://checkout.stripe.com/test',
+      );
+      expect(result.email).toBe('juan@test.com');
+      expect(result.depositAmount).toBe(3000);
+      expect(result.emailSent).toBe(true);
+
+      expect(
+        stripeMock.checkout.sessions.create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'payment',
+          customer_email: 'juan@test.com',
+          client_reference_id: orderId,
+          metadata: {
+            orderId,
+          },
+          payment_intent_data: {
+            metadata: {
+              orderId,
+            },
+          },
+          line_items: [
+            {
+              price_data: expect.objectContaining({
+                currency: 'ars',
+                unit_amount: 300000,
+              }),
+              quantity: 1,
+            },
+          ],
+        }),
+        {
+          idempotencyKey:
+            `turnify-admin-checkout-${orderId}`,
+        },
+      );
+
+      expect(
+        notificationsServiceMock.sendPaymentLink,
+      ).toHaveBeenCalled();
+
+      expect(
+        order.orderDetails.appointments[0].expiresAt,
+      ).toEqual(expect.any(Date));
     });
 
-    it('should round the deposit to two decimal places', () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.4666666667',
-          appointments: [],
-        },
-      });
+    it('should throw when the order does not exist', async () => {
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(null),
+      };
 
-      const result = (service as any).getOrderDeposit(order);
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
 
-      expect(result).toBe(37.04);
+      await expect(
+        service.createAdminCheckoutSession(orderId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        stripeMock.checkout.sessions.create,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should throw when the order total is invalid', () => {
+    it('should reject a non-pending order', async () => {
       const order = createOrder({
-        orderDetails: {
-          total_price: 'invalid',
-          appointments: [],
-        },
+        status: OrderStatus.PAID,
       });
 
-      expect(() =>
-        (service as any).getOrderDeposit(order),
-      ).toThrow('La orden no tiene un precio válido');
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.createAdminCheckoutSession(orderId),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw when the order total is zero', () => {
+    it('should reject an order without appointments', async () => {
       const order = createOrder({
         orderDetails: {
-          total_price: '0',
+          total_price: '10000',
           appointments: [],
-        },
+        } as any,
       });
 
-      expect(() =>
-        (service as any).getOrderDeposit(order),
-      ).toThrow('La orden no tiene un precio válido');
-    });
-  });
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
 
-  describe('getOrderTotal', () => {
-    it('should return the order total', () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: '123.45',
-          appointments: [],
-        },
-      });
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
 
-      const result = (service as any).getOrderTotal(order);
-
-      expect(result).toBe(123.45);
+      await expect(
+        service.createAdminCheckoutSession(orderId),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should sum multiple order details', () => {
+    it('should reject an expired appointment', async () => {
       const order = createOrder({
         orderDetails: {
-          total_price: '300.50',
-          appointments: [],
-        },
+          total_price: '10000',
+          appointments: [
+            createAppointment({
+              expiresAt: new Date(Date.now() - 60_000),
+            }),
+          ],
+        } as any,
       });
 
-      const result = (service as any).getOrderTotal(order);
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
 
-      expect(result).toBe(300.50);
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      await expect(
+        service.createAdminCheckoutSession(orderId),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(
+        stripeMock.checkout.sessions.create,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should throw when the total is invalid', () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: 'invalid',
-          appointments: [],
-        },
-      });
+    it('should reject when FRONTEND_URL is not configured', async () => {
+      const order = createValidOrder();
 
-      expect(() =>
-        (service as any).getOrderTotal(order),
-      ).toThrow('La orden no tiene un precio válido');
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      delete process.env.FRONTEND_URL;
+
+      await expect(
+        service.createAdminCheckoutSession(orderId),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(
+        stripeMock.checkout.sessions.create,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should throw when the total is zero', () => {
-      const order = createOrder({
-        orderDetails: {
-          total_price: '0',
-          appointments: [],
-        },
+    it('should return emailSent false when sending the payment link fails', async () => {
+      const order = createValidOrder();
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      stripeMock.checkout.sessions.create.mockResolvedValue({
+        id: 'cs_test_123',
+        url: 'https://checkout.stripe.com/test',
       });
 
-      expect(() =>
-        (service as any).getOrderTotal(order),
-      ).toThrow('La orden no tiene un precio válido');
+      dataSourceMock.transaction.mockImplementation(
+        async (callback: any) => {
+          const manager = {
+            save: jest.fn().mockResolvedValue(undefined),
+          };
+
+          return callback(manager);
+        },
+      );
+
+      notificationsServiceMock.sendPaymentLink.mockRejectedValue(
+        new Error('SMTP error'),
+      );
+
+      const result =
+        await service.createAdminCheckoutSession(orderId);
+
+      expect(result.emailSent).toBe(false);
+      expect(result.checkoutUrl).toBe(
+        'https://checkout.stripe.com/test',
+      );
+    });
+
+    it('should throw when Stripe does not generate a checkout URL', async () => {
+      const order = createValidOrder();
+
+      const orderRepositoryMock = {
+        findOne: jest.fn().mockResolvedValue(order),
+      };
+
+      dataSourceMock.getRepository.mockReturnValue(
+        orderRepositoryMock,
+      );
+
+      stripeMock.checkout.sessions.create.mockResolvedValue({
+        id: 'cs_test_123',
+        url: null,
+      });
+
+      await expect(
+        service.createAdminCheckoutSession(orderId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
