@@ -38,26 +38,17 @@ export class PaymentsController {
   @Roles(UserRole.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiOperation({
-    summary:
-      'Procesar pago de una orden de forma atómica (solo administradores)',
+ @ApiOperation({
+    summary: 'Procesar pago de una orden de forma atómica (Solo Administradores)',
     description:
-      'Actualiza el estado del pago, marca la orden como abonada y confirma automáticamente los turnos asociados.',
+      'Actualiza el estado del pago mediante una transacción segura. Si el estado es PAID, confirma los turnos asociados, anula sus marcas de expiración temporal, asienta las fechas y dispara de forma asíncrona la notificación por correo electrónico.',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'El pago ha sido procesado exitosamente',
-    type: Payment,
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Datos inválidos o falla en el procesamiento de la transacción',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'La orden especificada no fue encontrada',
-  })
+  @ApiResponse({ status: 201, description: 'El pago ha sido procesado exitosamente y los estados relacionales fueron actualizados.' })
+  @ApiResponse({ status: 400, description: 'Petición inválida: La orden ya está paga, no tiene turnos asociados, los turnos ya expiraron/cancelaron, o hubo un fallo crítico en la transacción.',}) 
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.', })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee el rol de ADMINISTRADOR.', })
+  @ApiResponse({ status: 404, description: 'No encontrado: No existe ninguna orden registrada con el ID proporcionado.', })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor en la base de datos o fallo crítico en el motor transaccional.', })
   async processPayment(
     @Body() processPaymentDto: ProcessPaymentDto,
   ): Promise<Payment> {
@@ -71,26 +62,14 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'Registrar un pago en efectivo',
     description:
-      'Registra el cobro en efectivo de la seña o del valor total de una orden y confirma los turnos asociados.',
+      'Registra el cobro presencial en efectivo de la seña o del valor total de una orden. Calcula el monto correspondiente y reutiliza la pasarela transaccional interna para confirmar los turnos asociados de forma segura.',
   })
- @ApiResponse({
-    status: 200,
-    description: 'Detalle del pago encontrado',
-    type: Payment,
-  })
-    @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos o falla en el procesamiento',
-  })
-      @ApiResponse({
-    status: 401,
-    description: 'Token no enviado, inválido o expirado',
-  })
-      @ApiResponse({
-    status: 403,
-    description: 'Sin permisos de administrador'
-  })
-
+  @ApiResponse({ status: 201, description: 'El pago en efectivo ha sido registrado y procesado de forma exitosa.', })
+  @ApiResponse({ status: 400, description: 'Petición inválida: Los datos del ProcessCashPaymentDto son incorrectos, la orden ya está paga, o los turnos asociados han expirado o fueron cancelados.',})
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.', })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee el rol de ADMINISTRADOR.', })
+  @ApiResponse({ status: 404, description: 'No encontrado: No existe ninguna orden registrada con el ID proporcionado.', })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al procesar la transacción o guardar en la base de datos.', })
   async processCashPayment(
     @Body() processCashPaymentDto: ProcessCashPaymentDto,
   ): Promise<Payment> {
@@ -104,21 +83,14 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'Crear el intento de pago de Stripe para una orden',
     description:
-      'Crea el PaymentIntent únicamente para una orden pendiente perteneciente al usuario autenticado.',
+      'Genera un PaymentIntent en Stripe únicamente para una orden pendiente que pertenezca al usuario autenticado. Implementa claves de idempotencia seguras para evitar cargos duplicados por reintentos de red.',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Intento de pago creado, devuelve el clientSecret',
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'La orden o la reserva ya no se encuentran disponibles para pagar',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'La orden no existe o no pertenece al usuario autenticado',
-  })
+  @ApiResponse({ status: 201, description: 'Intento de pago creado exitosamente en Stripe, devuelve el clientSecret para inicializar el SDK del frontend.',})
+  @ApiResponse({ status: 400, description: 'Petición inválida: La orden no está pendiente, no contiene citas o la reserva temporal de los turnos asociados ya caducó.',})
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.',})
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee el rol de CLIENT.',})
+  @ApiResponse({ status: 404, description: 'No encontrado: La orden especificada no existe o no corresponde al cliente que inició sesión.'})
+  @ApiResponse({ status: 500, description: 'Error interno: Falla crítica de comunicación con las APIs externas de Stripe o error en la consulta transaccional.',})
   createStripeIntent(
     @Req() req: any,
     @Body() createPaymentDto: CreatePaymentDto,
@@ -147,18 +119,13 @@ export class PaymentsController {
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Obtener el listado de todos los pagos registrados',
+    summary: 'Obtener el listado de todos los pagos registrados (Solo Administradores)',
+    description: 'Devuelve un listado completo con el historial de todas las transacciones de pago procesadas en el sistema, incluyendo los datos básicos de su orden asociada.'
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista completa de transacciones de pago',
-    type: [Payment],
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Sin permisos de administrador para consultar la lista de pagos',
-  })
+  @ApiResponse({ status: 200, description: 'Lista completa de transacciones de pago devuelta con éxito.', })
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.' }) 
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee el rol de ADMINISTRADOR.', })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al consultar el historial de pagos en la base de datos.' })
   async findAll(): Promise<Payment[]> {
     return this.paymentsService.findAll();
   }
@@ -169,21 +136,21 @@ export class PaymentsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Consultar el detalle de un pago por su ID',
+    description: 'Devuelve la información detallada de una transacción de pago específica junto con su orden, detalles de facturación y turnos vinculados. Accesible para Administradores y Clientes.'
   })
   @ApiParam({
     name: 'id',
     type: String,
-    description: 'UUID del registro de pago',
+    required: true,
+    description: 'ID del registro de pago en formato UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Detalle del pago encontrado',
-    type: Payment,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Registro de pago no encontrado',
-  })
+  @ApiResponse({ status: 200, description: 'Detalle del pago encontrado y devuelto con éxito junto con sus relaciones.', })
+  @ApiResponse({ status: 400, description: 'Petición inválida: El ID provisto en la ruta no cumple con el formato UUID válido.'})
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.' })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee un rol válido para consultar esta transacción (ej. un PROFESSIONAL).' })
+  @ApiResponse({ status: 404, description: 'No encontrado: No se encontró un registro de pago con el ID proporcionado en la base de datos.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al consultar el registro o mapear sus relaciones anidadas.' })
   async getPaymentById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Payment> {
@@ -195,14 +162,16 @@ export class PaymentsController {
   @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
-  summary:
-    'Generar enlace de pago para una reserva creada por administración',
-})
-@ApiResponse({
-  status: 201,
-  description:
-    'Enlace de pago generado correctamente',
-})
+    summary: 'Generar enlace de pago para una reserva creada por administración (Solo Administradores)',
+    description:
+      'Crea una sesión de Stripe Checkout de 30 minutos para una orden pendiente. Sincroniza la expiración de los turnos asociados, genera una clave de idempotencia única y dispara de forma asíncrona la notificación por correo electrónico con el link de pago.',
+  })
+  @ApiResponse({ status: 201, description: 'Enlace de pago generado correctamente en Stripe y metadatos temporales actualizados.', })
+  @ApiResponse({ status: 400, description: 'Petición inválida: La orden no está pendiente, no contiene citas, los turnos ya expiraron, falta configurar FRONTEND_URL en el .env, o Stripe no generó el enlace.',})
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.',})
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee el rol de ADMINISTRADOR.', })
+  @ApiResponse({ status: 404, description: 'No encontrado: No existe ninguna orden registrada con el ID proporcionado.', })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al procesar la transacción o fallo crítico con el SDK de Stripe.', }) 
 createAdminCheckoutSession(
   @Body() createPaymentDto: CreatePaymentDto,
 ) {
