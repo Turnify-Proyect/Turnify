@@ -31,15 +31,29 @@ describe('UsersService', () => {
     uploadImage: jest.fn(),
   };
 
+  const emailVerificationService = {
+    createVerificationToken: jest.fn(),
+  };
+
+  const mailService = {
+    sendVerificationEmail: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     service = new UsersService(
       usersRepository as any,
       cloudinaryService as any,
+      emailVerificationService as any,
+      mailService as any,
     );
 
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+    emailVerificationService.createVerificationToken.mockResolvedValue(
+      'verification-token',
+    );
+    mailService.sendVerificationEmail.mockResolvedValue(undefined);
   });
 
   describe('getAllUsers', () => {
@@ -228,9 +242,37 @@ describe('UsersService', () => {
         roles: [UserRole.CLIENT],
         authProvider: AuthProvider.LOCAL,
         providerId: null,
+        isEmailVerified: false,
       });
 
+      expect(
+        emailVerificationService.createVerificationToken,
+      ).toHaveBeenCalledWith('user-id');
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(
+        'juan@test.com',
+        'verification-token',
+      );
+
       expect(result).toEqual(expected);
+    });
+
+    it('should keep the user created when the verification email fails', async () => {
+      usersRepository.getUserByEmail.mockResolvedValue(null);
+      usersRepository.getUserByPhone.mockResolvedValue(null);
+      usersRepository.createUser.mockResolvedValue({
+        id: 'user-id',
+        email: 'juan@test.com',
+      });
+      mailService.sendVerificationEmail.mockRejectedValue(
+        new Error('SMTP unavailable'),
+      );
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      const result = await service.createUserByAdmin(dto as any);
+
+      expect(result).toEqual({ id: 'user-id', email: 'juan@test.com' });
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
 
     it('should throw ConflictException when email already exists', async () => {

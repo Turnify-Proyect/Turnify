@@ -12,12 +12,16 @@ import { CreateUserByAdminDto } from './dto/create-user-by-admin.dto';
 import { AuthProvider } from '../common/authProvider.enum';
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto';
 import { CloudinaryService } from '../config/cloudinary.service';
+import { EmailVerificationService } from '../auth/email-verification/email-verification.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly emailVerificationService: EmailVerificationService,
+    private readonly mailService: MailService,
   ) {}
 
   async updateProfilePicture(userId: string, file: Express.Multer.File) {
@@ -89,7 +93,7 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    return this.usersRepository.createUser({
+    const createdUser = await this.usersRepository.createUser({
       ...userData,
       email,
       phone,
@@ -97,7 +101,26 @@ export class UsersService {
       roles,
       authProvider: AuthProvider.LOCAL,
       providerId: null,
+      isEmailVerified: false,
     });
+
+    try {
+      const verificationToken =
+        await this.emailVerificationService.createVerificationToken(
+          createdUser.id,
+        );
+
+      await this.mailService.sendVerificationEmail(email, verificationToken);
+    } catch (error) {
+      // La cuenta ya fue creada; un fallo de correo no debe hacer creer
+      // al administrador que la creación falló y provocar un duplicado.
+      console.warn(
+        'No se pudo enviar el correo de verificación al usuario creado por administración:',
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+
+    return createdUser;
   }
 
   async updateUserRoles(id: string, updateUserRolesDto: UpdateUserRolesDto) {
