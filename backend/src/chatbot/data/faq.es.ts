@@ -1,5 +1,4 @@
 // Categorías válidas que se comparten entre el FAQ, el servicio y el controlador.
-// Comentarios de orientación agregados por dev-Mazz.
 export type FAQCategory =
   'general' | 'appointments' | 'payments' | 'professionals' | 'account';
 
@@ -18,9 +17,9 @@ export interface FAQCategoryData {
   entries: FAQEntry[];
 }
 
-// Fuente principal de contenido: agrega o edita aquí categorías y respuestas.
+// Fuente principal de contenido del FAQ, con todas las categorías y preguntas. Se usa para mostrar el FAQ y para buscar respuestas.
 export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
-  general: {
+    general: {
     label: 'General',
     icon: '💬',
     entries: [
@@ -28,128 +27,216 @@ export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
         id: 'what-is-turnify',
         question: '¿Qué es Turnify?',
         answer:
-          'Turnify es una plataforma para reservar citas con profesionales de belleza y bienestar (estilistas, masajistas, manicuristas, etc.). Buscas, eliges horario y pagas todo desde la app.',
-        keywords: ['qué es', 'turnify', 'plataforma', 'app'],
+          'Turnify es una plataforma web para gestionar y reservar turnos en un centro de estética. Los clientes pueden consultar los servicios disponibles, elegir un profesional, seleccionar una fecha y horario, reservar un turno y pagar una seña para confirmarlo.',
+        keywords: [
+          'qué es',
+          'turnify',
+          'plataforma',
+          'centro de estética',
+          'turnos',
+          'reservas',
+        ],
       },
       {
-        id: 'countries',
-        question: '¿En qué países está disponible?',
+        id: 'what-can-i-do',
+        question: '¿Qué puedo hacer en Turnify?',
         answer:
-          'Actualmente operamos en Argentina, Chile, Uruguay y México. Próximamente más países.',
-        keywords: ['país', 'disponible', 'ubicación', 'argentina', 'chile'],
+          'Podés consultar los servicios del centro, elegir un profesional, ver los horarios disponibles, reservar turnos, pagar la seña correspondiente y consultar tus reservas desde tu cuenta.',
+        keywords: [
+          'qué puedo hacer',
+          'funciones',
+          'servicios',
+          'reservas',
+          'turnos',
+          'cuenta',
+        ],
       },
     ],
   },
+
   appointments: {
-    label: 'Citas y reservas',
+    label: 'Turnos y reservas',
     icon: '📅',
     entries: [
       {
         id: 'how-to-book',
-        question: '¿Cómo reservo una cita?',
+        question: '¿Cómo reservo un turno?',
         answer:
-          '1. Inicia sesión → 2. Elige "Reservar" → 3. Filtra por servicio/profesional/fecha → 4. Elige horario → 5. Confirma y paga. Recibirás confirmación por email y notificación.',
+          'Para reservar un turno, elegí un servicio, seleccioná un profesional disponible, indicá la fecha y elegí uno de los horarios disponibles. Luego podrás confirmar la reserva y realizar el pago de la seña.',
         keywords: [
           'reservar',
           'reservar turno',
           'reservo',
-          'cita',
           'turno',
+          'cita',
           'booking',
           'agendar',
-          'agendo',
           'agendar turno',
-          'agendo turno',
-          'como agendo',
-          'asignar',
-          'asignar turno',
-          'asignar un turno',
-          'pedir',
           'pedir turno',
-          'sacar',
           'sacar turno',
-          'solicitar',
           'solicitar turno',
           'pasos',
         ],
       },
       {
         id: 'cancel-policy',
-        question: '¿Cuál es la política de cancelación?',
+        question: '¿Puedo cancelar un turno?',
         answer:
-          'Puedes cancelar gratis hasta 2 horas antes. Menos de 2h: se cobra el 50%. No-show (no avisar): cargo completo. Cancelas desde "Mis citas" en la app.',
+          'Sí. Podés cancelar una reserva desde la sección de tus turnos. Si la reserva ya tiene una seña pagada, el importe abonado no es reembolsable. Para evitar cancelar el turno y perder la seña, podés reprogramarlo hasta 2 veces, siempre que cumplas con las condiciones de reprogramación.',
         keywords: [
           'cancelar',
-          'política',
           'cancelación',
-          'no-show',
-          'penalidad',
+          'cancelar turno',
+          'dar de baja',
+          'anular',
+          'seña',
+          'reprogramar',
         ],
       },
       {
         id: 'reschedule',
-        question: '¿Puedo reprogramar mi cita?',
+        question: '¿Puedo reprogramar mi turno?',
         answer:
-          'Sí, hasta 2h antes desde "Mis citas" → "Reprogramar". Eliges nuevo horario disponible. Máximo 2 reprogramaciones por cita.',
-        keywords: ['reprogramar', 'cambiar', 'horario', 'modificar'],
+          'Sí. Podés reprogramar un turno pendiente o confirmado siempre que falten al menos 24 horas para su inicio. Cada turno puede reprogramarse como máximo 2 veces.',
+        keywords: [
+          'reprogramar',
+          'cambiar turno',
+          'cambiar horario',
+          'cambiar fecha',
+          'modificar turno',
+          'reprogramación',
+        ],
+      },
+      {
+        id: 'reschedule-options',
+        question: '¿Qué puedo cambiar al reprogramar un turno?',
+        answer:
+          'Al reprogramar podés seleccionar otra fecha u horario disponible y, cuando corresponda, cambiar el profesional o el servicio. Las opciones disponibles dependen del servicio, del profesional y de sus horarios de atención.',
+        keywords: [
+          'cambiar profesional',
+          'cambiar servicio',
+          'cambiar fecha',
+          'cambiar horario',
+          'reprogramar',
+        ],
       },
     ],
   },
+
   payments: {
     label: 'Pagos',
     icon: '💳',
     entries: [
       {
-        id: 'payment-methods',
-        question: '¿Qué medios de pago aceptan?',
+        id: 'deposit',
+        question: '¿Tengo que pagar para reservar?',
         answer:
-          'MercadoPago: tarjetas de crédito/débito, dinero en cuenta, transferencia, efectivo (PagoFácil, Rapipago). Todo procesado seguro por MercadoPago.',
+          'Sí. Para confirmar la reserva se debe abonar una seña equivalente al 30% del valor total de los servicios incluidos en la reserva.',
+        keywords: [
+          'seña',
+          'pagar',
+          'pago',
+          '30%',
+          'reserva',
+          'confirmar',
+          'anticipo',
+        ],
+      },
+      {
+        id: 'payment-methods',
+        question: '¿Cómo se realiza el pago de la seña?',
+        answer:
+          'El pago de la seña se realiza de forma online mediante Stripe. Al momento de pagar, la plataforma te redirige al proceso de pago seguro correspondiente.',
         keywords: [
           'pago',
-          'funcionan los pagos',
-          'como funcionan los pagos',
-          'metodos de pago',
+          'cómo pagar',
+          'pagar seña',
+          'stripe',
           'tarjeta',
-          'mercadopago',
-          'efectivo',
-          'transferencia',
+          'medio de pago',
+          'método de pago',
+        ],
+      },
+      {
+        id: 'payment-confirmation',
+        question: '¿Cuándo queda confirmado mi turno?',
+        answer:
+          'La reserva queda confirmada cuando el pago de la seña se procesa correctamente. Hasta ese momento, el turno puede permanecer pendiente de pago.',
+        keywords: [
+          'confirmado',
+          'confirmar turno',
+          'pago confirmado',
+          'pendiente',
+          'seña',
+          'estado',
         ],
       },
       {
         id: 'refund',
-        question: '¿Cómo pido reembolso?',
+        question: '¿La seña es reembolsable?',
         answer:
-          'Si cancelas a tiempo, el reembolso es automático a tu medio de pago original (2-10 días hábiles según tu banco). Si hay un problema, contacta soporte desde la app.',
-        keywords: ['reembolso', 'devolución', 'dinero', 'reembolso automático'],
+          'No. La seña abonada no es reembolsable. Si cancelás un turno que ya fue pagado, el importe de la seña no se devuelve.',
+        keywords: [
+          'reembolso',
+          'devolución',
+          'devolver',
+          'dinero',
+          'seña',
+          'cancelación',
+        ],
+      },
+      {
+        id: 'reschedule-payment',
+        question: '¿Qué pasa con la seña si reprogramo o cambio el servicio?',
+        answer:
+          'La seña ya abonada se mantiene asociada a la reserva. Si al reprogramar elegís un servicio de mayor valor, la seña pagada no se modifica y cualquier diferencia pendiente se abona posteriormente en el centro.',
+        keywords: [
+          'cambiar servicio',
+          'reprogramar',
+          'diferencia',
+          'precio',
+          'seña pagada',
+          'pago',
+        ],
       },
     ],
   },
+
   professionals: {
     label: 'Profesionales',
     icon: '👨‍💼',
     entries: [
       {
-        id: 'become-pro',
-        question: '¿Quiero ser profesional en Turnify, cómo me uno?',
+        id: 'choose-professional',
+        question: '¿Cómo elijo un profesional?',
         answer:
-          'Ve a "Ser profesional" en el menú → Completa tu perfil (especialidad, experiencia, horarios, precios) → Nuestro equipo valida en 24-48h → ¡Empiezas a recibir citas!',
+          'Después de seleccionar un servicio, Turnify muestra los profesionales activos que realizan ese servicio. Podés elegir uno de ellos y luego consultar sus fechas y horarios disponibles.',
         keywords: [
           'profesional',
-          'unirme',
-          'registrarme',
-          'trabajar',
-          'ser pro',
+          'elegir profesional',
+          'seleccionar profesional',
+          'quién atiende',
+          'especialista',
         ],
       },
       {
-        id: 'pro-verified',
-        question: '¿Cómo sé que un profesional es confiable?',
+        id: 'professional-availability',
+        question: '¿Por qué un profesional no tiene horarios disponibles?',
         answer:
-          'Todos pasan verificación de identidad, certificación de especialidad y revisión de antecedentes. Ves su rating, reseñas reales y foto verificada antes de reservar.',
-        keywords: ['confiable', 'verificado', 'seguridad', 'rating', 'reseñas'],
+          'Los horarios disponibles dependen de la agenda configurada para cada profesional, de los turnos que ya tenga reservados y de los horarios o fechas que hayan sido bloqueados.',
+        keywords: [
+          'disponibilidad',
+          'horarios',
+          'sin horarios',
+          'profesional',
+          'agenda',
+          'bloqueado',
+          'fecha',
+        ],
       },
     ],
   },
+
   account: {
     label: 'Mi cuenta',
     icon: '👤',
@@ -158,33 +245,48 @@ export const FAQ_DATABASE: Record<FAQCategory, FAQCategoryData> = {
         id: 'sign-in',
         question: '¿Cómo inicio sesión?',
         answer:
-          'En la pantalla de inicio de Turnify, selecciona "Iniciar sesión" e ingresa el correo electrónico y la contraseña registrados en tu cuenta.',
+          'Seleccioná "Iniciar sesión" e ingresá el correo electrónico y la contraseña registrados en tu cuenta. También podés iniciar sesión utilizando Google.',
         keywords: [
           'iniciar sesión',
           'inicio sesión',
           'sesión',
           'login',
-          'entrar a mi cuenta',
-          'acceder a mi cuenta',
+          'entrar',
+          'acceder',
+          'cuenta',
         ],
       },
       {
-        id: 'reset-password',
-        question: 'Olvidé mi contraseña',
+        id: 'google-login',
+        question: '¿Puedo ingresar con Google?',
         answer:
-          'En login toca "¿Olvidaste tu contraseña?" → Ingresa tu email → Te llega link para resetear (expira en 1h). Revisa spam si no llega.',
-        keywords: ['contraseña', 'password', 'olvidé', 'reset', 'recuperar'],
+          'Sí. Turnify permite iniciar sesión con una cuenta de Google desde la pantalla de acceso.',
+        keywords: [
+          'google',
+          'gmail',
+          'iniciar con google',
+          'login google',
+          'cuenta google',
+        ],
       },
       {
-        id: 'delete-account',
-        question: '¿Cómo elimino mi cuenta?',
+        id: 'my-appointments',
+        question: '¿Dónde puedo ver mis turnos?',
         answer:
-          'Perfil → Configuración → "Eliminar cuenta". Requiere confirmar por email. Se borran tus datos en 30 días (excepto lo que la ley exige conservar).',
-        keywords: ['eliminar', 'borrar', 'cuenta', 'baja', 'dar de baja'],
+          'Una vez que hayas iniciado sesión, podés consultar tus reservas desde tu panel de usuario, donde se muestra la información y el estado de tus turnos.',
+        keywords: [
+          'mis turnos',
+          'mis reservas',
+          'ver turnos',
+          'consultar turno',
+          'estado',
+          'panel',
+        ],
       },
     ],
   },
 };
+
 
 // Lista plana utilizada por el servicio para buscar en todas las categorías.
 export const ALL_FAQ_ENTRIES: FAQEntry[] = Object.values(FAQ_DATABASE).flatMap(
