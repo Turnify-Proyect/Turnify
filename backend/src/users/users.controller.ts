@@ -196,7 +196,11 @@ export class UsersController {
   }
 
   @Put(':id')
-  @Roles(UserRole.CLIENT, UserRole.ADMIN)
+  @Roles(
+    UserRole.CLIENT,
+    UserRole.ADMIN,
+    UserRole.PROFESSIONAL,
+  )
   @UseGuards(AuthGuard, RolesGuard, UserOwnerOrAdminGuard)
   @ApiBearerAuth()
   @ApiParam({
@@ -209,7 +213,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Actualizar datos de un usuario',
     description:
-      'Permite a un administrador modificar cualquier usuario, o a un cliente modificar únicamente su propio perfil.',
+      'Permite a un administrador modificar cualquier usuario, o a un cliente o profesional modificar únicamente su propio perfil.',
   })
   @ApiResponse({
     status: 200,
@@ -238,7 +242,10 @@ export class UsersController {
     status: 409,
     description: 'Conflicto: El email o el teléfono ya están registrados.',
   })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor.',
+  })
   updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
