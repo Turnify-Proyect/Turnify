@@ -117,9 +117,18 @@ export class CreateUserDto {
 }
 
 export class LoginUserDto {
+  @ApiProperty({
+    description: 'Correo electrónico registrado en la aplicación',
+    example: 'admin@admin.com',
+  })
   @IsEmail({}, { message: 'Ingresá un correo electrónico válido' })
   email!: string;
 
+  @ApiProperty({
+    description: 'Contraseña en texto plano correspondiente a la cuenta',
+    format: 'password',
+    example: 'Abc1234!',
+  })
   @IsString()
   @IsNotEmpty({ message: 'Ingresá tu contraseña' })
   password!: string;

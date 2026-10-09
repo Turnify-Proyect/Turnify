@@ -19,7 +19,7 @@ import { Roles } from 'src/decorators/roles.decorators';
 import { UserRole } from 'src/common/userRoles.enum';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam, ApiResponse, ApiOperation } from '@nestjs/swagger';
 
 @Controller('availability')
 export class AvailabilityController {
@@ -38,17 +38,20 @@ export class AvailabilityController {
   @ApiBearerAuth()
   @ApiParam({
     name: 'professionalId',
-    description: 'ID del profesional',
+    required: true, // 💡 Excelente práctica dejarlo explícito
     type: String,
+    description: 'ID del profesional en formato UUID para consultar su agenda de trabajo',
+    example: '123e4567-e89b-12d3-a456-426614174000'
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de disponibilidades para el profesional',
+  @ApiOperation({ 
+    summary: 'Obtener la agenda de disponibilidad de un profesional', 
+    description: 'Devuelve una lista con todos los bloques de días y horarios configurados para el profesional. Accesible por Administradores, Profesionales y Clientes.' 
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin disponibilidad para el profesional',
-  })
+  @ApiResponse({ status: 200, description: 'Lista de disponibilidades obtenida con éxito (puede retornar un arreglo vacío si aún no tiene horarios configurados).' })
+  @ApiResponse({ status: 400, description: 'Petición inválida: El professionalId enviado en la ruta no cumple con el formato UUID válido.' })
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.' })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario autenticado no posee un rol válido en el sistema.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al consultar los registros de la agenda.' })
   getByProfessionalId(
     @Param('professionalId', ParseUUIDPipe) professionalId: string,
   ) {
@@ -59,6 +62,23 @@ export class AvailabilityController {
 @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
 @UseGuards(AuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID de la disponibilidad horaria a actualizar en formato UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @ApiOperation({ 
+    summary: 'Actualizar parcialmente un bloque de disponibilidad', 
+    description: 'Permite modificar el día o las horas de un bloque de atención existente. Los administradores pueden editar cualquiera, mientras que los profesionales solo pueden modificar los suyos.' 
+  })
+  @ApiResponse({ status: 200, description: 'Disponibilidad actualizada exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Petición inválida: El ID no es un UUID válido, el formato de hora falló, o no se enviaron campos en el cuerpo de la solicitud.' })
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.' })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario no cuenta con el rol requerido o intentó modificar la agenda de otro profesional sin autorización.' })
+  @ApiResponse({ status: 404, description: 'No encontrado: No existe ningún bloque de disponibilidad registrado con el ID proporcionado.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al intentar actualizar los registros en la base de datos.' })
 async update(
   @Param('id', ParseUUIDPipe) id: string,
   @Body() data: UpdateAvailabilityDto,
@@ -78,6 +98,23 @@ async update(
 @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
 @UseGuards(AuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiParam({
+    name: 'professionalId',
+    required: true,
+    type: String,
+    description: 'ID del profesional en formato UUID al cual se le asignará el bloque de disponibilidad',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @ApiOperation({ 
+    summary: 'Crear un bloque de disponibilidad horaria para un profesional', 
+    description: 'Registra un día de la semana y un rango horario de atención. Los administradores pueden configurarlo para cualquier profesional, mientras que los profesionales solo pueden modificar su propia agenda.' 
+  })
+  @ApiResponse({ status: 201, description: 'Bloque de disponibilidad creado exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Petición inválida: El professionalId no es un UUID válido o los formatos del DTO fallaron la validación de formato HH:mm.' })
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.' })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario no cuenta con el rol requerido o está intentando modificar la agenda de otro profesional sin ser Administrador.' })
+  @ApiResponse({ status: 409, description: 'Conflicto: El rango de tiempo es inválido o se superpone con un bloque horario existente para ese mismo día.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al intentar persistir los datos en la agenda.' })
 create(
   @Param('professionalId', ParseUUIDPipe) professionalId: string,
   @Body() data: CreateAvailabilityDto,
@@ -117,6 +154,23 @@ private async createAuthorized(
 @Roles(UserRole.ADMIN, UserRole.PROFESSIONAL)
 @UseGuards(AuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    description: 'ID del bloque de disponibilidad horaria a eliminar en formato UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @ApiOperation({ 
+    summary: 'Eliminar un bloque de disponibilidad horaria', 
+    description: 'Remueve físicamente un rango de atención de la agenda. Los administradores pueden eliminar cualquiera, mientras que los profesionales solo pueden borrar sus propios bloques horarios.' 
+  })
+  @ApiResponse({ status: 200, description: 'Bloque de disponibilidad eliminado exitosamente.' })
+  @ApiResponse({ status: 400, description: 'Petición inválida: El ID provisto en la ruta no cumple con el formato UUID válido.' })
+  @ApiResponse({ status: 401, description: 'No autorizado: Token no enviado, inválido o expirado.' })
+  @ApiResponse({ status: 403, description: 'Prohibido: El usuario no cuenta con el rol requerido o intentó eliminar la agenda de otro profesional sin autorización.' })
+  @ApiResponse({ status: 404, description: 'No encontrado: No existe ningún bloque de disponibilidad registrado con el ID proporcionado.' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor al intentar remover el registro de la base de datos.' })
 async delete(
   @Param('id', ParseUUIDPipe) id: string,
   @Req() request: any,
