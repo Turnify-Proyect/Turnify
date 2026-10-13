@@ -112,6 +112,13 @@ npm run dev
 ## Participación en el proyecto
 Turnify fue desarrollado de manera colaborativa como proyecto final del bootcamp de **Soy Henry**.
 
+## Equipo de desarrollo
+- [Valeria Trevisi](https://github.com/Valeriat92)
+- [Leandro Bock](https://github.com/LeandroBock)
+- [José Buenahora](https://github.com/josebuenahoras)
+- [Lautaro Schroeder](https://github.com/LautaroSch-hub)
+- [Max Camacho](https://github.com/MazzCamacho23)
+
 ## Posibles mejoras futuras
 - Integración de pagos más completa.
 - Mejora de métricas y visualizaciones del panel de administración.
